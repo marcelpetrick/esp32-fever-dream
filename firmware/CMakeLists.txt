@@ -1,7 +1,9 @@
 add_library(fever_core
     src/api_serializer.cpp
+    src/camera_manager.cpp
     src/diagnostics.cpp
     src/image_preprocessor.cpp
+    src/measurement_controller.cpp
     src/reading_record.cpp
     src/recognition.cpp
     src/storage_ring_buffer.cpp

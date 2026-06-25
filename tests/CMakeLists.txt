@@ -1,6 +1,7 @@
 add_executable(fever_tests
     test_api_serializer.cpp
     test_image_preprocessor.cpp
+    test_measurement_controller.cpp
     test_recognition.cpp
     test_storage_ring_buffer.cpp
     test_time_manager.cpp

@@ -1,5 +1,6 @@
 #include "api_serializer.h"
 #include "test_support.h"
+#include "version.h"
 
 void TestApiSerializer() {
     const auto record = fever::ReadingRecord::Success(123U, 2175, fever::ConfidencePercent{94U},
@@ -13,6 +14,7 @@ void TestApiSerializer() {
     diagnostics.time_synced = true;
     diagnostics.last_error = "none";
     const std::string status = fever::SerializeStatus(diagnostics, 1U, 10U, &record);
-    REQUIRE(status.find("\"firmware_version\":\"0.0.0\"") != std::string::npos);
+    REQUIRE(status.find(std::string{"\"firmware_version\":\""} + fever::version::ProjectVersion() + "\"") !=
+            std::string::npos);
     REQUIRE(status.find("\"time_synced\":true") != std::string::npos);
 }
