@@ -10,7 +10,11 @@ Local ESP32-CAM thermometer readout firmware. The target device captures a fixed
 
 **License: GPLv3 or later. See `LICENSE`.**
 
+### set-up idealized
 ![](media/esp32cam_c0_sensor.png)
+
+### web-UI-view
+![](media/currentStateWebUi.png)
 
 ## Current Web UI
 
