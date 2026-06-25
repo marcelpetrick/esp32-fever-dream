@@ -1,7 +1,11 @@
 #pragma once
 
-// Copy this file to config.local.h for local Wi-Fi credentials.
-// config.local.h is ignored by Git.
+// This fallback is used only when ignored config.local.h has not been generated.
+// Preferred local flow:
+//
+// 1. Put credentials in ignored wifi.env.
+// 2. Run scripts/build_firmware.sh or scripts/flash_device.sh.
+// 3. scripts/generate_wifi_config.sh writes ignored config.local.h.
 
 #define FEVER_WIFI_SSID "your-local-ssid"
 #define FEVER_WIFI_PASSWORD "your-local-password"

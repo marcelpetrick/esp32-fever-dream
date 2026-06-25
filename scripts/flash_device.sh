@@ -8,4 +8,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${ROOT_DIR}/scripts/idf_env.sh"
 source_idf_environment
 
+"${ROOT_DIR}/scripts/generate_wifi_config.sh"
+
 idf.py -p "${PORT}" flash

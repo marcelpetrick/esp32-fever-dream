@@ -93,11 +93,22 @@ Override it with `IDF_PATH_ROOT=/path/to/esp-idf-v6.0.1 ./scripts/build_firmware
 
 Wi-Fi credentials must stay out of Git.
 
-```bash
-cp main/config.example.h main/config.local.h
+Create ignored `wifi.env` in the repository root:
+
+```text
+ssid: your-local-ssid
+pw: your-local-password
 ```
 
-Edit `main/config.local.h` for the local network. The `.gitignore` excludes `config.local.h`.
+Then build or flash normally:
+
+```bash
+./scripts/build_firmware.sh
+```
+
+`scripts/generate_wifi_config.sh` reads ignored `wifi.env` and writes ignored `main/config.local.h` for the ESP-IDF build. The firmware connects as a Wi-Fi station and logs the assigned IP address on serial.
+
+For a stable address, prefer a DHCP reservation in the router for the ESP32-CAM MAC address. That keeps the firmware simple while still giving the device the same IP on every boot.
 
 ## Flash And Monitor
 
