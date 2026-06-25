@@ -80,6 +80,16 @@ source ~/.local/opt/esp-idf-v6.0.1/export.sh
 
 If `idf.py` is not available, the firmware build script exits with a clear error.
 
+## Local Configuration
+
+Wi-Fi credentials must stay out of Git.
+
+```bash
+cp main/config.example.h main/config.local.h
+```
+
+Edit `main/config.local.h` for the local network. The `.gitignore` excludes `config.local.h`.
+
 ## Flash And Monitor
 
 ```bash
@@ -110,6 +120,7 @@ esp32-fever-dream/
 ├── main/
 │   ├── app_main.cpp            # ESP-IDF app entry
 │   ├── CMakeLists.txt
+│   ├── config.example.h        # Copy to ignored config.local.h
 │   └── idf_component.yml       # Pinned ESP-IDF component deps
 ├── web/
 │   ├── index.html
