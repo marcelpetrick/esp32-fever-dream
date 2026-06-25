@@ -1,0 +1,9 @@
+Checks: >
+  bugprone-*,
+  performance-*,
+  portability-*,
+  -portability-avoid-pragma-once,
+  modernize-use-nullptr
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*'
+FormatStyle: file

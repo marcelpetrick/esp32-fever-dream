@@ -1,0 +1,58 @@
+# Build outputs
+build/
+build-*/
+dist/
+*.elf
+*.bin
+*.map
+*.hex
+*.uf2
+compile_commands.json
+
+# ESP-IDF and managed components
+managed_components/
+dependencies.lock.tmp
+sdkconfig
+sdkconfig.old
+.idf_tools/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local configuration and secrets
+config.local.h
+wifi.local.*
+secrets.*
+*.secret
+.env
+.env.*
+!.env.example
+
+# Local captures, datasets, and generated model outputs
+dataset/raw/
+dataset/captures/
+tools/dataset/raw/
+tools/dataset/captures/
+models/generated/
+firmware/generated/
+
+# Tool caches and logs
+.pipeline-cache
+*.log
+coverage/
+htmlcov/
+docs/doxygen/
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/

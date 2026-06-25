@@ -1,0 +1,11 @@
+PROJECT_NAME           = "ESP32 Fever Dream"
+OUTPUT_DIRECTORY       = docs/doxygen
+INPUT                  = firmware/include firmware/src main
+RECURSIVE              = YES
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+WARN_IF_UNDOCUMENTED   = YES
+WARN_AS_ERROR          = NO
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+QUIET                  = YES
