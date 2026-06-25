@@ -179,7 +179,10 @@ esp32-fever-dream/
 ├── dependencies.lock           # Pinned ESP-IDF managed component resolution
 ├── documents/
 │   ├── 00_VISION.md
-│   └── 01_PLAN.md
+│   ├── 01_PLAN.md
+│   ├── 02_ML_OCR.md
+│   ├── 03_currentState.md
+│   └── 04_TFLITE_TRAIN_DEPLOY_PLAN.md
 ├── firmware/
 │   ├── include/                # Host-testable firmware interfaces
 │   └── src/                    # Host-testable firmware core
