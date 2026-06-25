@@ -24,15 +24,36 @@ constexpr const char* kTag = "fever_dream";
 constexpr int kWifiConnectedBit = BIT0;
 EventGroupHandle_t g_wifi_events = nullptr;
 
+const char* WifiDisconnectReasonName(uint8_t reason) {
+    switch (reason) {
+        case WIFI_REASON_AUTH_EXPIRE:
+            return "auth_expire";
+        case WIFI_REASON_AUTH_FAIL:
+            return "auth_fail";
+        case WIFI_REASON_NO_AP_FOUND:
+            return "no_ap_found";
+        case WIFI_REASON_ASSOC_FAIL:
+            return "assoc_fail";
+        case WIFI_REASON_HANDSHAKE_TIMEOUT:
+            return "handshake_timeout";
+        case WIFI_REASON_BEACON_TIMEOUT:
+            return "beacon_timeout";
+        default:
+            return "other";
+    }
+}
+
 void WifiEventHandler(void*, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
         return;
     }
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        const auto* event = static_cast<wifi_event_sta_disconnected_t*>(event_data);
         xEventGroupClearBits(g_wifi_events, kWifiConnectedBit);
         esp_wifi_connect();
-        ESP_LOGW(kTag, "wifi disconnected, reconnecting");
+        ESP_LOGW(kTag, "wifi disconnected, reconnecting: reason=%u (%s)", event->reason,
+                 WifiDisconnectReasonName(event->reason));
         return;
     }
     if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
@@ -69,7 +90,7 @@ bool InitializeWifi() {
     snprintf(reinterpret_cast<char*>(wifi_config.sta.ssid), sizeof(wifi_config.sta.ssid), "%s", FEVER_WIFI_SSID);
     snprintf(reinterpret_cast<char*>(wifi_config.sta.password), sizeof(wifi_config.sta.password), "%s",
              FEVER_WIFI_PASSWORD);
-    wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+    wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA_PSK;
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
