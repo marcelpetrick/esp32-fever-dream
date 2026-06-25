@@ -5,6 +5,7 @@ idf_component_register(
     SRCS
         "app_main.cpp"
         "../firmware/src/api_serializer.cpp"
+        "../firmware/src/api_router.cpp"
         "../firmware/src/camera_manager.cpp"
         "../firmware/src/diagnostics.cpp"
         "../firmware/src/image_preprocessor.cpp"

@@ -1,5 +1,6 @@
 add_library(fever_core
     src/api_serializer.cpp
+    src/api_router.cpp
     src/camera_manager.cpp
     src/diagnostics.cpp
     src/image_preprocessor.cpp
