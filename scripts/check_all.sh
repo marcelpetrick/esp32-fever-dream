@@ -20,6 +20,11 @@ printf '[INFO] static analysis\n'
 printf '[INFO] web asset check\n'
 "${ROOT_DIR}/scripts/package_web_assets.sh"
 
+printf '[INFO] python tooling check\n'
+if [[ -d "${ROOT_DIR}/tools" ]]; then
+    python3 -m compileall -q "${ROOT_DIR}/tools"
+fi
+
 printf '[INFO] documentation check\n'
 doxygen "${ROOT_DIR}/Doxyfile" >/dev/null
 
