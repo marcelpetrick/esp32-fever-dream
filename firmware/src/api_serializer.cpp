@@ -44,6 +44,12 @@ void AppendRecord(std::ostringstream& out, const ReadingRecord& record) {
     } else {
         out << "null";
     }
+    out << ",\"humidity_percent\":";
+    if (const auto humidity = record.HumidityPercent(); humidity.has_value()) {
+        out << static_cast<unsigned int>(*humidity);
+    } else {
+        out << "null";
+    }
     out << ",\"status\":\"" << ToString(record.status)
         << "\",\"confidence\":" << (static_cast<unsigned int>(record.confidence.value) / 100.0) << "}";
 }

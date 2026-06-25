@@ -110,9 +110,9 @@
         setApiState("Loading");
 
         Promise.all([
-            getJson(ENDPOINTS.status),
-            getJson(ENDPOINTS.current),
-            getJson(ENDPOINTS.latest)
+            getJson(apiUrl(ENDPOINTS.status)),
+            getJson(apiUrl(ENDPOINTS.current)),
+            getJson(apiUrl(ENDPOINTS.latest))
         ]).then(function (responses) {
             state.status = responses[0];
             state.current = normalizeCurrent(responses[1]);
@@ -180,6 +180,10 @@
         return state.streamBase + "/debug/capture.jpg?" + params.join("&");
     }
 
+    function apiUrl(path) {
+        return state.streamBase ? state.streamBase + path : path;
+    }
+
     function loadStreamFrame() {
         if (!state.streamBase) {
             return;
@@ -244,9 +248,11 @@
         var timestamp = pick(raw, ["timestamp", "time", "ts", "created_at"]);
         var temperature = pick(raw, ["temperature_c", "temperature", "temp_c", "value"]);
         var confidence = pick(raw, ["confidence", "quality", "score"]);
+        var humidity = pick(raw, ["humidity_percent", "humidity", "rh_percent"]);
         return {
             timestamp: normalizeTimestamp(timestamp),
             temperature: toNumberOrNull(temperature),
+            humidity: toNumberOrNull(humidity),
             status: String(pick(raw, ["status", "state"], "unknown") || "unknown"),
             confidence: toNumberOrNull(confidence),
             source: pick(raw, ["source", "recognition_source"], ""),
@@ -300,6 +306,9 @@
         }
         if (reading && reading.confidence !== null) {
             parts.push("confidence " + formatConfidence(reading.confidence));
+        }
+        if (reading && reading.humidity !== null) {
+            parts.push("humidity " + reading.humidity.toFixed(0) + "%");
         }
         if (reading && reading.error) {
             parts.push(reading.error);

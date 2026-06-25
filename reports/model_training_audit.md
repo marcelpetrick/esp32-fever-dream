@@ -1,7 +1,7 @@
 # TinyML Dataset Audit
 
-Generated UTC: `2026-06-25T18:47:05+00:00`
-Labels CSV: `tools/dataset/captures/training_baseline_manual_20260625T183552Z/labels_environment.csv`
+Generated UTC: `2026-06-25T19:58:03+00:00`
+Labels CSV: `tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/labels_environment.csv`
 Status: `blocked`
 
 ## Requirements
@@ -22,15 +22,15 @@ Status: `blocked`
 
 ## Summary
 
-- Rows: 100
-- Valid rows: 100
+- Rows: 20
+- Valid rows: 20
 - Distinct readings: 1
-- Held-out rows: 20
-- Splits: `{'test': 10, 'train': 80, 'validation': 10}`
-- Digit counts: `{'2': 100, '3': 100, '4': 100, '9': 100}`
-- Missing digits: `['0', '1', '5', '6', '7', '8']`
-- Underrepresented digits: `{'0': 0, '1': 0, '5': 0, '6': 0, '7': 0, '8': 0}`
-- Sample readings: `['29C 43%']`
+- Held-out rows: 4
+- Splits: `{'test': 2, 'train': 16, 'validation': 2}`
+- Digit counts: `{'1': 20, '2': 20, '4': 20, '9': 20}`
+- Missing digits: `['0', '3', '5', '6', '7', '8']`
+- Underrepresented digits: `{'0': 0, '3': 0, '5': 0, '6': 0, '7': 0, '8': 0}`
+- Sample readings: `['29C 41%']`
 
 ## Next Actions
 

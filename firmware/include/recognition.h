@@ -32,6 +32,8 @@ struct RecognitionResult {
     bool ok;
     /** Temperature in centi-degrees Celsius when `ok` is true. */
     int16_t temperature_centi_c;
+    /** Relative humidity percent, or kHumidityUnavailable when unknown. */
+    uint8_t humidity_percent;
     /** Recognition confidence percentage. */
     ConfidencePercent confidence;
     /** Status code describing success or failure. */

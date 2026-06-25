@@ -16,10 +16,12 @@ idf_component_register(
         "../firmware/src/reading_record.cpp"
         "../firmware/src/recognition.cpp"
         "../firmware/src/storage_ring_buffer.cpp"
+        "../firmware/src/tinyml_display_recognizer.cpp"
         "../firmware/src/time_manager.cpp"
         "../firmware/src/version.cpp"
     INCLUDE_DIRS
         "../firmware/include"
+        "../firmware/generated"
     REQUIRES
         esp_timer
         esp_http_server
@@ -28,6 +30,7 @@ idf_component_register(
         esp_wifi
         nvs_flash
         esp32-camera
+        esp-tflite-micro
 )
 
 target_compile_definitions(${COMPONENT_LIB} PRIVATE FEVER_DREAM_VERSION="${FEVER_DREAM_VERSION}")

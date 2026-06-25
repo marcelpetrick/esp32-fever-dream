@@ -4,13 +4,17 @@
 #include "diagnostics.h"
 #include "esp_event.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "esp_netif.h"
 #include "esp_netif_ip_addr.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
+#include "freertos/task.h"
+#include "measurement_controller.h"
 #include "nvs_flash.h"
 #include "storage_ring_buffer.h"
+#include "tinyml_display_recognizer.h"
 #include "version.h"
 
 #if __has_include("config.local.h")
@@ -23,6 +27,13 @@ namespace {
 constexpr const char* kTag = "fever_dream";
 constexpr int kWifiConnectedBit = BIT0;
 EventGroupHandle_t g_wifi_events = nullptr;
+fever::CameraManager* g_camera = nullptr;
+fever::StorageRingBuffer* g_readings = nullptr;
+fever::Diagnostics* g_diagnostics = nullptr;
+fever::TimeManager g_time;
+fever::CameraManager g_camera_runtime;
+fever::StorageRingBuffer g_readings_runtime(240);
+fever::Diagnostics g_diagnostics_runtime;
 
 const char* WifiDisconnectReasonName(uint8_t reason) {
     switch (reason) {
@@ -97,29 +108,49 @@ bool InitializeWifi() {
     ESP_ERROR_CHECK(esp_wifi_start());
     return true;
 }
+
+void MeasurementTask(void*) {
+    vTaskDelay(pdMS_TO_TICKS(10000));
+    fever::MeasurementController controller(
+        *g_readings, *g_diagnostics, g_time, []() { return g_camera->Capture(); },
+        [](const fever::CameraFrame& frame) { return fever::RecognizeDisplayWithTinyMl(frame); });
+
+    while (true) {
+        const uint32_t now_s = static_cast<uint32_t>(esp_timer_get_time() / 1000000LL);
+        g_time.SetSynchronizedTime(now_s);
+        const fever::ReadingRecord record = controller.RunOnce();
+        (void)record;
+        vTaskDelay(pdMS_TO_TICKS(fever::config::kMeasurementIntervalSeconds * 1000U));
+    }
+}
 }  // namespace
 
 extern "C" void app_main(void) {
-    fever::Diagnostics diagnostics;
+    fever::Diagnostics& diagnostics = g_diagnostics_runtime;
     diagnostics.RecordBoot();
 
     ESP_LOGI(kTag, "ESP32 Fever Dream firmware %s", fever::version::ProjectVersion());
     ESP_LOGI(kTag, "measurement interval: %u seconds", fever::config::kMeasurementIntervalSeconds);
     ESP_LOGI(kTag, "target board: AI-Thinker ESP32-CAM / OV2640");
 
-    fever::CameraManager camera;
+    fever::CameraManager& camera = g_camera_runtime;
+    fever::StorageRingBuffer& readings = g_readings_runtime;
+    g_camera = &camera;
+    g_readings = &readings;
+    g_diagnostics = &diagnostics;
+
     const bool camera_ready = camera.Initialize();
     ESP_LOGI(kTag, "camera ready: %s", camera_ready ? "yes" : camera.LastError().c_str());
 
     const bool wifi_ready = InitializeWifi();
     ESP_LOGI(kTag, "wifi startup: %s", wifi_ready ? "started" : "failed");
     if (camera_ready && wifi_ready) {
-        const bool debug_server_ready = fever::StartDebugCaptureServer(camera);
+        const bool debug_server_ready = fever::StartDebugCaptureServer(camera, readings, diagnostics);
         ESP_LOGI(kTag, "debug capture server: %s", debug_server_ready ? "started" : "failed");
         ESP_LOGI(kTag, "dataset endpoint: http://<device-ip>/debug/capture.jpg");
+        xTaskCreate(&MeasurementTask, "measurement", 8192, nullptr, 5, nullptr);
     }
 
-    fever::StorageRingBuffer readings(16);
     const fever::ReadingRecord boot_record = fever::ReadingRecord::Failure(
         0U, fever::ReadingStatus::kTimeUnknown, fever::ConfidencePercent{0U}, fever::ReadingFlags::kTimeEstimated);
     const bool stored = readings.Append(boot_record);

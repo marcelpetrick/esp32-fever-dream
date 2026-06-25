@@ -9,7 +9,7 @@ inline constexpr uint32_t kMeasurementIntervalSeconds = 60U;
 inline constexpr std::size_t kDefaultStorageRecords = 100000U;
 inline constexpr int16_t kTemperatureMinCentiC = -2000;
 inline constexpr int16_t kTemperatureMaxCentiC = 6000;
-inline constexpr uint8_t kRecognitionMinConfidencePercent = 85U;
+inline constexpr uint8_t kRecognitionMinConfidencePercent = 60U;
 
 inline constexpr uint16_t kRoiX = 40U;
 inline constexpr uint16_t kRoiY = 80U;

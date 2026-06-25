@@ -5,6 +5,8 @@
 
 namespace fever {
 
+inline constexpr uint8_t kHumidityUnavailable = 255U;
+
 /** Stable reading status codes exposed in storage and API responses. */
 enum class ReadingStatus : uint8_t {
     kOk = 0,
@@ -49,6 +51,8 @@ struct ReadingRecord {
     uint32_t timestamp_s;
     /** Temperature in centi-degrees Celsius; valid only for successful records. */
     int16_t temperature_centi_c;
+    /** Relative humidity percent, or kHumidityUnavailable when unknown. */
+    uint8_t humidity_percent;
     /** Reading status. */
     ReadingStatus status;
     /** Recognition confidence percentage. */
@@ -58,7 +62,7 @@ struct ReadingRecord {
 
     /** Construct a successful temperature reading. */
     static ReadingRecord Success(uint32_t timestamp_s, int16_t temperature_centi_c, ConfidencePercent confidence,
-                                 ReadingFlags flags);
+                                 ReadingFlags flags, uint8_t humidity_percent = kHumidityUnavailable);
     /** Construct an explicit failed reading. */
     static ReadingRecord Failure(uint32_t timestamp_s, ReadingStatus status, ConfidencePercent confidence,
                                  ReadingFlags flags);
@@ -67,6 +71,8 @@ struct ReadingRecord {
     [[nodiscard]] bool IsSuccess() const;
     /** Return the temperature in degrees Celsius when the record is successful. */
     [[nodiscard]] std::optional<float> TemperatureCelsius() const;
+    /** Return humidity percent when available. */
+    [[nodiscard]] std::optional<uint8_t> HumidityPercent() const;
 };
 
 /** Convert a reading status to the stable API/storage string. */

@@ -42,7 +42,7 @@ std::array<uint8_t, RecordCodec::kEncodedSize> RecordCodec::Encode(const Reading
     out[6] = static_cast<uint8_t>(record.status);
     out[7] = record.confidence.value;
     out[8] = static_cast<uint8_t>(record.flags);
-    out[9] = 0U;
+    out[9] = record.humidity_percent;
     PutU16(out, 10U, Checksum(out));
     return out;
 }
@@ -51,13 +51,15 @@ std::optional<ReadingRecord> RecordCodec::Decode(const std::array<uint8_t, kEnco
     if (Checksum(encoded) != GetU16(encoded, 10U)) {
         return std::nullopt;
     }
-    if (!IsValidStatus(encoded[6]) || encoded[7] > 100U || !IsValidFlags(encoded[8]) || encoded[9] != 0U) {
+    if (!IsValidStatus(encoded[6]) || encoded[7] > 100U || !IsValidFlags(encoded[8]) ||
+        (encoded[9] > 100U && encoded[9] != kHumidityUnavailable)) {
         return std::nullopt;
     }
 
     return ReadingRecord{
         GetU32(encoded, 0U),
         static_cast<int16_t>(GetU16(encoded, 4U)),
+        encoded[9],
         static_cast<ReadingStatus>(encoded[6]),
         ConfidencePercent{encoded[7]},
         static_cast<ReadingFlags>(encoded[8]),

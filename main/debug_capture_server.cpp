@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 
+#include "api_router.h"
 #include "esp_camera.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -17,6 +18,8 @@ constexpr const char* kTag = "debug_capture";
 constexpr std::size_t kQueryBufferSize = 256U;
 
 CameraManager* g_camera = nullptr;
+StorageRingBuffer* g_storage = nullptr;
+Diagnostics* g_diagnostics = nullptr;
 
 std::string QueryString(httpd_req_t* request) {
     const std::size_t query_length = httpd_req_get_url_query_len(request);
@@ -126,12 +129,44 @@ esp_err_t SendJson(httpd_req_t* request, int status_code, const char* body) {
     return httpd_resp_sendstr(request, body);
 }
 
+esp_err_t SendJsonString(httpd_req_t* request, int status_code, const std::string& body) {
+    SetCorsHeaders(request);
+    httpd_resp_set_type(request, "application/json");
+    switch (status_code) {
+        case 200:
+            httpd_resp_set_status(request, "200 OK");
+            break;
+        case 400:
+            httpd_resp_set_status(request, "400 Bad Request");
+            break;
+        case 404:
+            httpd_resp_set_status(request, "404 Not Found");
+            break;
+        case 405:
+            httpd_resp_set_status(request, "405 Method Not Allowed");
+            break;
+        default:
+            httpd_resp_set_status(request, "500 Internal Server Error");
+            break;
+    }
+    return httpd_resp_send(request, body.data(), body.size());
+}
+
 esp_err_t OptionsHandler(httpd_req_t* request) {
     SetCorsHeaders(request);
     return httpd_resp_send(request, nullptr, 0);
 }
 
 esp_err_t HealthHandler(httpd_req_t* request) { return SendJson(request, 200, "{\"ok\":true}"); }
+
+esp_err_t ApiHandler(httpd_req_t* request) {
+    if (g_storage == nullptr || g_diagnostics == nullptr) {
+        return SendJson(request, 500, "{\"error\":{\"code\":\"api_not_ready\",\"message\":\"API state not registered\"}}");
+    }
+    ApiRouter router(*g_storage, *g_diagnostics);
+    const ApiResponse response = router.Handle(ApiRequest{ApiMethod::kGet, request->uri});
+    return SendJsonString(request, response.status_code, response.body);
+}
 
 esp_err_t CaptureJpegHandler(httpd_req_t* request) {
     if (g_camera == nullptr) {
@@ -169,8 +204,10 @@ esp_err_t CaptureJpegHandler(httpd_req_t* request) {
 
 }  // namespace
 
-bool StartDebugCaptureServer(CameraManager& camera) {
+bool StartDebugCaptureServer(CameraManager& camera, StorageRingBuffer& storage, Diagnostics& diagnostics) {
     g_camera = &camera;
+    g_storage = &storage;
+    g_diagnostics = &diagnostics;
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 80;
@@ -195,6 +232,12 @@ bool StartDebugCaptureServer(CameraManager& camera) {
         .handler = CaptureJpegHandler,
         .user_ctx = nullptr,
     };
+    const httpd_uri_t api_uri = {
+        .uri = "/api/v1/*",
+        .method = HTTP_GET,
+        .handler = ApiHandler,
+        .user_ctx = nullptr,
+    };
     const httpd_uri_t options_uri = {
         .uri = "/*",
         .method = HTTP_OPTIONS,
@@ -204,6 +247,7 @@ bool StartDebugCaptureServer(CameraManager& camera) {
 
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &health_uri));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &capture_uri));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &api_uri));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &options_uri));
     ESP_LOGI(kTag, "debug capture server listening on port 80");
     return true;

@@ -11,6 +11,7 @@ void TestRecordCodec() {
     REQUIRE(decoded.has_value());
     REQUIRE(decoded->timestamp_s == record.timestamp_s);
     REQUIRE(decoded->temperature_centi_c == record.temperature_centi_c);
+    REQUIRE(decoded->humidity_percent == fever::kHumidityUnavailable);
     REQUIRE(decoded->status == record.status);
     REQUIRE(decoded->confidence.value == record.confidence.value);
     REQUIRE(fever::HasFlag(decoded->flags, fever::ReadingFlags::kRecognitionRuleBased));
@@ -23,6 +24,7 @@ void TestRecordCodec() {
     const auto invalid_status = fever::RecordCodec::Encode(fever::ReadingRecord{
         record.timestamp_s,
         record.temperature_centi_c,
+        fever::kHumidityUnavailable,
         static_cast<fever::ReadingStatus>(99U),
         record.confidence,
         record.flags,
@@ -32,6 +34,7 @@ void TestRecordCodec() {
     REQUIRE(!fever::RecordCodec::Decode(fever::RecordCodec::Encode(fever::ReadingRecord{
                                             record.timestamp_s,
                                             record.temperature_centi_c,
+                                            fever::kHumidityUnavailable,
                                             record.status,
                                             fever::ConfidencePercent{101U},
                                             record.flags,

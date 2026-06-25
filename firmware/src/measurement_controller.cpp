@@ -30,7 +30,7 @@ ReadingRecord MeasurementController::RunOnce() {
     ReadingRecord record =
         recognition.ok
             ? ReadingRecord::Success(timestamp.timestamp_s, recognition.temperature_centi_c, recognition.confidence,
-                                     flags)
+                                     flags, recognition.humidity_percent)
             : ReadingRecord::Failure(timestamp.timestamp_s, recognition.status, recognition.confidence, flags);
 
     if (!recognition.ok) {

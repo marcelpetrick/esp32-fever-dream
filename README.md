@@ -2,7 +2,7 @@
 
 Local ESP32-CAM thermometer readout firmware. The target device captures a fixed-position digital thermometer once per minute, recognizes the displayed temperature, stores readings in bounded local storage, and serves a dashboard plus raw API endpoints directly from the ESP32.
 
-**Status: implementation bootstrap.** Host-side core modules, tests, static web UI, firmware skeleton, ESP-IDF firmware build, debug image capture endpoint, pipeline scripts, GPLv3 license, and SemVer source of truth are present. Persistent flash storage, production HTTP handlers, OCR training data, and the full one-minute device loop are still in progress.
+**Status: mounted TinyML prototype.** The ESP32-CAM joins the configured Wi-Fi, captures the fixed display once per minute, runs an embedded int8 TFLite digit classifier, stores recent records in RAM, and serves local API data for the web dashboard. The current mounted setup validated `29.00 C` and `41%` over `http://esp32-fever-dream`; wider OCR validation is still in progress.
 
 **Author: Marcel Petrick <mail@marcelpetrick.it>**
 
@@ -30,6 +30,18 @@ GET /api/v1/readings/latest?count=1440
 
 It renders the current reading, device diagnostics, API state, theme controls, and a canvas history chart. No external CDN or internet dependency is used.
 
+During local development, serve the dashboard from the workstation and point it at the device:
+
+```bash
+python3 -m http.server 8080 --bind 127.0.0.1 --directory web
+```
+
+Open:
+
+```text
+http://127.0.0.1:8080/?device=esp32-fever-dream
+```
+
 ## Hardware
 
 Target hardware is borrowed from the existing ESP32-CAM notes in `/home/mpetrick/repos/esp32Collection/esp32cam/`.
@@ -53,6 +65,7 @@ Firmware target:
 - ESP32 target.
 - C++ firmware core with ESP-IDF app entrypoint.
 - Managed component: `espressif/esp32-camera` pinned to `2.1.7`.
+- Managed component: `espressif/esp-tflite-micro` pinned to `1.3.7`.
 
 Host/local checks:
 
@@ -186,7 +199,8 @@ esp32-fever-dream/
 │   ├── 01_PLAN.md
 │   ├── 02_ML_OCR.md
 │   ├── 03_currentState.md
-│   └── 04_TFLITE_TRAIN_DEPLOY_PLAN.md
+│   ├── 04_TFLITE_TRAIN_DEPLOY_PLAN.md
+│   └── 05_ARCHITECTURE.md
 ├── firmware/
 │   ├── include/                # Host-testable firmware interfaces
 │   └── src/                    # Host-testable firmware core
@@ -213,6 +227,7 @@ esp32-fever-dream/
 - `Diagnostics`: boot, failure, Wi-Fi, and time state snapshot.
 - `TimeManager`: synchronized and estimated timestamp state.
 - `ApiSerializer`: JSON serialization for status, current reading, historical readings, and errors.
+- `TinyMlDisplayRecognizer`: ESP-only JPEG decode, fixed ROI preprocessing, and TFLite Micro digit inference for temperature and humidity.
 
 ## Versioning
 
