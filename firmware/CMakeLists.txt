@@ -5,6 +5,7 @@ add_library(fever_core
     src/diagnostics.cpp
     src/image_preprocessor.cpp
     src/measurement_controller.cpp
+    src/measurement_scheduler.cpp
     src/record_codec.cpp
     src/reading_record.cpp
     src/recognition.cpp
