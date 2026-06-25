@@ -113,10 +113,22 @@ void ApplyCameraSettings(std::string_view query) {
     }
 }
 
+void SetCorsHeaders(httpd_req_t* request) {
+    httpd_resp_set_hdr(request, "Access-Control-Allow-Origin", "*");
+    httpd_resp_set_hdr(request, "Access-Control-Allow-Methods", "GET, OPTIONS");
+    httpd_resp_set_hdr(request, "Access-Control-Allow-Headers", "Content-Type, Accept");
+}
+
 esp_err_t SendJson(httpd_req_t* request, int status_code, const char* body) {
+    SetCorsHeaders(request);
     httpd_resp_set_type(request, "application/json");
     httpd_resp_set_status(request, status_code == 200 ? "200 OK" : "500 Internal Server Error");
     return httpd_resp_sendstr(request, body);
+}
+
+esp_err_t OptionsHandler(httpd_req_t* request) {
+    SetCorsHeaders(request);
+    return httpd_resp_send(request, nullptr, 0);
 }
 
 esp_err_t HealthHandler(httpd_req_t* request) { return SendJson(request, 200, "{\"ok\":true}"); }
@@ -144,6 +156,7 @@ esp_err_t CaptureJpegHandler(httpd_req_t* request) {
     snprintf(height, sizeof(height), "%u", static_cast<unsigned int>(frame_buffer->height));
 
     httpd_resp_set_type(request, "image/jpeg");
+    SetCorsHeaders(request);
     httpd_resp_set_hdr(request, "Cache-Control", "no-store");
     httpd_resp_set_hdr(request, "Connection", "close");
     httpd_resp_set_hdr(request, "X-Fever-Frame-Width", width);
@@ -182,9 +195,16 @@ bool StartDebugCaptureServer(CameraManager& camera) {
         .handler = CaptureJpegHandler,
         .user_ctx = nullptr,
     };
+    const httpd_uri_t options_uri = {
+        .uri = "/*",
+        .method = HTTP_OPTIONS,
+        .handler = OptionsHandler,
+        .user_ctx = nullptr,
+    };
 
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &health_uri));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &capture_uri));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &options_uri));
     ESP_LOGI(kTag, "debug capture server listening on port 80");
     return true;
 }

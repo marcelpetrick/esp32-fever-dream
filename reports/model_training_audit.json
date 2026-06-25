@@ -1,0 +1,62 @@
+{
+  "checks": {
+    "all_digits_present": false,
+    "distinct_readings": false,
+    "heldout_samples": false,
+    "minimum_captures": false,
+    "samples_per_digit": false
+  },
+  "generated_at_utc": "2026-06-25T18:47:05+00:00",
+  "labels_csv": "tools/dataset/captures/training_baseline_manual_20260625T183552Z/labels_environment.csv",
+  "next_actions": [
+    "Capture more real images only when values have changed or lighting conditions are intentionally varied.",
+    "Collect readings until every digit 0-9 appears at least 20 times.",
+    "Keep at least 50 validation/test frames out of tuning.",
+    "Add negative examples before trusting false-accept rates."
+  ],
+  "passed": false,
+  "requirements": {
+    "min_captures": 300,
+    "min_distinct_readings": 10,
+    "min_heldout": 50,
+    "min_samples_per_digit": 20,
+    "required_digits": "0123456789"
+  },
+  "summary": {
+    "digit_counts": {
+      "2": 100,
+      "3": 100,
+      "4": 100,
+      "9": 100
+    },
+    "distinct_readings": 1,
+    "heldout_count": 20,
+    "missing_digits": [
+      "0",
+      "1",
+      "5",
+      "6",
+      "7",
+      "8"
+    ],
+    "rows": 100,
+    "sample_readings": [
+      "29C 43%"
+    ],
+    "split_counts": {
+      "test": 10,
+      "train": 80,
+      "validation": 10
+    },
+    "underrepresented_digits": {
+      "0": 0,
+      "1": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0
+    },
+    "valid_rows": 100
+  },
+  "tool": "model_training.audit_dataset"
+}

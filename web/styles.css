@@ -132,12 +132,24 @@ h2 {
     text-transform: uppercase;
 }
 
+.input-field {
+    display: grid;
+    gap: 5px;
+    min-width: min(360px, 100%);
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
 select,
-button {
+button,
+input {
     font: inherit;
 }
 
-select {
+select,
+input {
     min-height: 38px;
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -221,6 +233,41 @@ select {
 .chart-panel,
 .panel {
     padding: 18px;
+}
+
+.stream-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.text-button {
+    min-height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-strong);
+    color: var(--text);
+    cursor: pointer;
+    padding: 0 14px;
+    font-weight: 750;
+}
+
+.stream-frame {
+    display: grid;
+    place-items: center;
+    min-height: 240px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #050505;
+    overflow: hidden;
+}
+
+.stream-frame img {
+    display: block;
+    width: min(100%, 760px);
+    height: auto;
 }
 
 .section-head {

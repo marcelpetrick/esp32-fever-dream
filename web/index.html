@@ -57,6 +57,28 @@
             <canvas id="historyChart" width="960" height="320" aria-label="Temperature history chart"></canvas>
         </section>
 
+        <section class="stream-panel panel" aria-labelledby="streamTitle">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow" id="streamTitle">Live camera</p>
+                    <h2>Debug stream</h2>
+                </div>
+                <div id="streamState" class="api-state">Idle</div>
+            </div>
+            <div class="stream-controls">
+                <label class="input-field">
+                    <span>Device</span>
+                    <input id="deviceInput" type="text" autocomplete="off" placeholder="esp32-fever-dream">
+                </label>
+                <button id="connectButton" class="text-button" type="button">Connect</button>
+                <button id="snapshotButton" class="text-button" type="button">Snapshot</button>
+            </div>
+            <div class="stream-frame">
+                <img id="liveImage" alt="Live ESP32-CAM capture">
+            </div>
+            <p id="streamMeta" class="muted">Add <code>?device=esp32-fever-dream</code> or connect manually.</p>
+        </section>
+
         <section class="grid">
             <article class="panel" aria-labelledby="statusTitle">
                 <div class="section-head">

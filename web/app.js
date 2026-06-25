@@ -14,7 +14,11 @@
         readings: [],
         loading: false,
         lastUpdated: null,
-        lastError: null
+        lastError: null,
+        streamBase: "",
+        streamTimer: null,
+        streamFrames: 0,
+        streamLastLoaded: null
     };
 
     var el = {};
@@ -31,11 +35,18 @@
             statusList: document.getElementById("statusList"),
             diagnosticsList: document.getElementById("diagnosticsList"),
             refreshButton: document.getElementById("refreshButton"),
-            apiState: document.getElementById("apiState")
+            apiState: document.getElementById("apiState"),
+            deviceInput: document.getElementById("deviceInput"),
+            connectButton: document.getElementById("connectButton"),
+            snapshotButton: document.getElementById("snapshotButton"),
+            liveImage: document.getElementById("liveImage"),
+            streamState: document.getElementById("streamState"),
+            streamMeta: document.getElementById("streamMeta")
         };
 
         loadPreferences();
         bindControls();
+        setupStreamFromLocation();
         refreshAll();
         window.setInterval(refreshAll, POLL_MS);
         window.addEventListener("resize", debounce(drawChart, 120));
@@ -54,6 +65,18 @@
             drawChart();
         });
         el.refreshButton.addEventListener("click", refreshAll);
+        el.connectButton.addEventListener("click", connectStream);
+        el.snapshotButton.addEventListener("click", loadStreamFrame);
+        el.liveImage.addEventListener("load", function () {
+            state.streamFrames += 1;
+            state.streamLastLoaded = new Date();
+            setStreamState("Live");
+            renderStreamMeta();
+        });
+        el.liveImage.addEventListener("error", function () {
+            setStreamState("Offline");
+            renderStreamMeta("capture failed");
+        });
     }
 
     function loadPreferences() {
@@ -106,6 +129,82 @@
             state.loading = false;
             el.refreshButton.disabled = false;
         });
+    }
+
+    function setupStreamFromLocation() {
+        var params = new URLSearchParams(window.location.search);
+        var device = params.get("device") || localStorage.getItem(STORAGE_KEY + "-device") || "";
+        if (!device && window.location.protocol.indexOf("http") === 0 && window.location.hostname) {
+            device = window.location.origin;
+        }
+        el.deviceInput.value = device.replace(/^https?:\/\//, "");
+        if (device) {
+            connectStream();
+        }
+    }
+
+    function connectStream() {
+        var raw = el.deviceInput.value.trim();
+        if (!raw) {
+            setStreamState("Unknown");
+            renderStreamMeta("device missing");
+            return;
+        }
+        state.streamBase = normalizeDeviceBase(raw);
+        localStorage.setItem(STORAGE_KEY + "-device", state.streamBase);
+        state.streamFrames = 0;
+        setStreamState("Loading");
+        loadStreamFrame();
+        window.clearInterval(state.streamTimer);
+        state.streamTimer = window.setInterval(loadStreamFrame, 5000);
+    }
+
+    function normalizeDeviceBase(raw) {
+        if (/^https?:\/\//.test(raw)) {
+            return raw.replace(/\/+$/, "");
+        }
+        return "http" + "://" + raw.replace(/\/+$/, "");
+    }
+
+    function streamCaptureUrl() {
+        var params = [
+            "framesize=vga",
+            "quality=12",
+            "brightness=2",
+            "contrast=2",
+            "awb=0",
+            "aec=0",
+            "agc=0",
+            "ui_ts=" + Date.now()
+        ];
+        return state.streamBase + "/debug/capture.jpg?" + params.join("&");
+    }
+
+    function loadStreamFrame() {
+        if (!state.streamBase) {
+            return;
+        }
+        setStreamState("Loading");
+        el.liveImage.src = streamCaptureUrl();
+    }
+
+    function setStreamState(text) {
+        el.streamState.textContent = text;
+        el.streamState.className = "api-state " + statusClass(text);
+    }
+
+    function renderStreamMeta(extra) {
+        var parts = [];
+        if (state.streamBase) {
+            parts.push(state.streamBase);
+        }
+        if (state.streamLastLoaded) {
+            parts.push("frame " + state.streamFrames + " at " + formatTime(state.streamLastLoaded));
+        }
+        if (extra) {
+            parts.push(extra);
+        }
+        el.streamMeta.textContent = parts.join(" · ") || "No live stream connected";
     }
 
     function getJson(url) {
