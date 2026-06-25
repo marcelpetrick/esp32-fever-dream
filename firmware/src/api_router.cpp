@@ -31,27 +31,35 @@ bool ParseCount(const std::string& query, std::size_t* count) {
         return true;
     }
 
-    constexpr std::string_view key = "count=";
-    const std::size_t key_pos = query.find(key);
-    if (key_pos == std::string::npos) {
-        *count = kDefaultLatestCount;
-        return true;
-    }
-
-    const std::size_t value_start = key_pos + key.size();
-    const std::size_t value_end = query.find('&', value_start);
     const std::string_view query_view(query);
-    const std::string_view raw_value = query_view.substr(value_start, value_end - value_start);
-    std::size_t parsed = 0U;
-    const auto result = std::from_chars(raw_value.data(), raw_value.data() + raw_value.size(), parsed);
-    if (result.ec != std::errc{} || result.ptr != raw_value.data() + raw_value.size()) {
-        return false;
-    }
-    if (parsed == 0U || parsed > kMaxReadingsLimit) {
-        return false;
+    std::size_t param_start = 0U;
+    while (param_start <= query_view.size()) {
+        const std::size_t param_end = query_view.find('&', param_start);
+        const std::string_view param = query_view.substr(
+            param_start, (param_end == std::string_view::npos ? query_view.size() : param_end) - param_start);
+        const std::size_t equals = param.find('=');
+        const std::string_view name = param.substr(0U, equals);
+        if (name == "count") {
+            const std::string_view raw_value =
+                equals == std::string_view::npos ? std::string_view{} : param.substr(equals + 1U);
+            std::size_t parsed = 0U;
+            const auto result = std::from_chars(raw_value.data(), raw_value.data() + raw_value.size(), parsed);
+            if (raw_value.empty() || result.ec != std::errc{} || result.ptr != raw_value.data() + raw_value.size()) {
+                return false;
+            }
+            if (parsed == 0U || parsed > kMaxReadingsLimit) {
+                return false;
+            }
+            *count = parsed;
+            return true;
+        }
+        if (param_end == std::string_view::npos) {
+            break;
+        }
+        param_start = param_end + 1U;
     }
 
-    *count = parsed;
+    *count = kDefaultLatestCount;
     return true;
 }
 

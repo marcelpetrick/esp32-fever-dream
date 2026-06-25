@@ -3,6 +3,15 @@
 namespace fever {
 namespace {
 
+bool IsValidStatus(uint8_t value) { return value <= static_cast<uint8_t>(ReadingStatus::kTimeUnknown); }
+
+bool IsValidFlags(uint8_t value) {
+    constexpr uint8_t kKnownFlags =
+        static_cast<uint8_t>(ReadingFlags::kTimeEstimated) | static_cast<uint8_t>(ReadingFlags::kRecognitionRuleBased) |
+        static_cast<uint8_t>(ReadingFlags::kRecognitionTinyMl) | static_cast<uint8_t>(ReadingFlags::kRecognitionHybrid);
+    return (value & static_cast<uint8_t>(~kKnownFlags)) == 0U;
+}
+
 void PutU16(std::array<uint8_t, RecordCodec::kEncodedSize>& out, std::size_t offset, uint16_t value) {
     out[offset] = static_cast<uint8_t>(value & 0xFFU);
     out[offset + 1U] = static_cast<uint8_t>((value >> 8U) & 0xFFU);
@@ -40,6 +49,9 @@ std::array<uint8_t, RecordCodec::kEncodedSize> RecordCodec::Encode(const Reading
 
 std::optional<ReadingRecord> RecordCodec::Decode(const std::array<uint8_t, kEncodedSize>& encoded) {
     if (Checksum(encoded) != GetU16(encoded, 10U)) {
+        return std::nullopt;
+    }
+    if (!IsValidStatus(encoded[6]) || encoded[7] > 100U || !IsValidFlags(encoded[8]) || encoded[9] != 0U) {
         return std::nullopt;
     }
 

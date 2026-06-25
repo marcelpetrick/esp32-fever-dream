@@ -3,6 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+if command -v shellcheck >/dev/null 2>&1; then
+    shellcheck "${ROOT_DIR}"/scripts/*.sh
+fi
+
 if command -v cppcheck >/dev/null 2>&1; then
     cppcheck --enable=warning,style,performance,portability \
         --suppressions-list="${ROOT_DIR}/.cppcheck-suppress" \

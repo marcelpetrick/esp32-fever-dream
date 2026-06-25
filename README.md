@@ -2,7 +2,7 @@
 
 Local ESP32-CAM thermometer readout firmware. The target device captures a fixed-position digital thermometer once per minute, recognizes the displayed temperature, stores readings in bounded local storage, and serves a dashboard plus raw API endpoints directly from the ESP32.
 
-**Status: implementation bootstrap.** Host-side core modules, tests, static web UI, firmware skeleton, pipeline scripts, GPLv3 license, and SemVer source of truth are present. Hardware capture, persistent flash storage, live HTTP handlers, and the full one-minute device loop are still in progress.
+**Status: implementation bootstrap.** Host-side core modules, tests, static web UI, firmware skeleton, ESP-IDF firmware build, pipeline scripts, GPLv3 license, and SemVer source of truth are present. Hardware capture, persistent flash storage, live HTTP handlers, and the full one-minute device loop are still in progress.
 
 ## Current Web UI
 
@@ -49,7 +49,9 @@ Host/local checks:
 - clang-tidy.
 - cppcheck.
 - Doxygen.
-- Python 3 for future dataset/model tooling.
+- shellcheck.
+- Node.js for JavaScript syntax checks.
+- Python 3 plus ruff and black for tooling checks.
 
 ## Local Pipeline
 
@@ -63,22 +65,29 @@ Stages:
 2. Host CMake configure.
 3. Host C++ build.
 4. Host unit tests.
-5. cppcheck and clang-tidy when available.
-6. Static web asset check.
-7. Doxygen generation.
+5. shellcheck, cppcheck, and clang-tidy when available.
+6. ESP-IDF firmware build for `esp32`.
+7. Static web asset syntax check.
+8. Python compile, ruff, and black checks when available.
+9. Doxygen generation with warnings treated as errors.
 
-The host pipeline is intended to run without attached hardware.
+The pipeline is intended to run without attached hardware. It builds the firmware image locally but does not flash the board.
 
 ## Build Firmware
 
-ESP-IDF is not vendored. Source the pinned local ESP-IDF environment first:
+ESP-IDF is not vendored. The scripts source the pinned local install automatically when `idf.py` is not already on `PATH`:
 
 ```bash
-source ~/.local/opt/esp-idf-v6.0.1/export.sh
 ./scripts/build_firmware.sh
 ```
 
-If `idf.py` is not available, the firmware build script exits with a clear error.
+Default local install path:
+
+```text
+~/.local/opt/esp-idf-v6.0.1
+```
+
+Override it with `IDF_PATH_ROOT=/path/to/esp-idf-v6.0.1 ./scripts/build_firmware.sh`. If the export script is not available, the firmware build exits with a clear error.
 
 ## Local Configuration
 
@@ -111,6 +120,7 @@ esp32-fever-dream/
 ├── CMakeLists.txt              # ESP-IDF project or host test project
 ├── VERSION                     # SemVer source of truth
 ├── LICENSE                     # GPLv3
+├── dependencies.lock           # Pinned ESP-IDF managed component resolution
 ├── documents/
 │   ├── 00_VISION.md
 │   └── 01_PLAN.md
@@ -153,7 +163,6 @@ The project starts at `0.0.0`. Per the project rule, later implementation commit
 
 ## Current Limitations
 
-- ESP-IDF is not installed or sourced in the current shell, so only host-side checks can run here.
 - Camera capture is not wired yet.
 - HTTP handlers are not wired yet; serializers and web UI define the contract first.
 - Ring-buffer persistence to flash is not implemented yet.

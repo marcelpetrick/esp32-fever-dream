@@ -6,12 +6,14 @@ Review findings are tracked here by severity. High findings must be fixed immedi
 
 ### High
 
-- [ ] Hardware image capture cannot be verified until the ESP32-CAM is attached and ESP-IDF v6.0.1 is installed.
+- [x] Local pipeline did not run the ESP-IDF firmware build; install ESP-IDF v6.0.1 and add firmware build to `scripts/check_all.sh`.
 
 ### Medium
 
-- [ ] Firmware HTTP API handlers are not wired yet; host serializers define the contract first.
+- [x] `RecordCodec::Decode` accepted checksum-valid bytes with invalid status, confidence, flags, or reserved byte.
+- [x] API query parsing matched `count=` inside unrelated parameter names such as `xcount`.
+- [x] Doxygen warnings were visible but not fatal.
 
 ### Low
 
-- [ ] Doxygen coverage should be tightened once all public firmware interfaces settle.
+- [ ] Firmware HTTP handlers are still not wired to ESP-IDF `esp_http_server`; the host router defines the contract first.

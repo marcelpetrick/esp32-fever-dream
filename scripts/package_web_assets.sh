@@ -17,4 +17,8 @@ find "${WEB_DIR}" -type f \( -name '*.html' -o -name '*.css' -o -name '*.js' \) 
         fi
     done
 
+if command -v node >/dev/null 2>&1 && [[ -f "${WEB_DIR}/app.js" ]]; then
+    node --check "${WEB_DIR}/app.js"
+fi
+
 printf '[INFO] web assets are local-only\n'

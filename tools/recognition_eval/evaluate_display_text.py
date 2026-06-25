@@ -18,7 +18,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-
 FULL_READING_THRESHOLD = 0.98
 PER_DIGIT_THRESHOLD = 0.99
 LABEL_COLUMN = "display_text"
@@ -43,9 +42,24 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Evaluate labeled thermometer display_text values from CSV.",
     )
-    parser.add_argument("--input", required=True, type=Path, help="CSV file containing labeled display_text rows.")
-    parser.add_argument("--json-out", required=True, type=Path, help="Path for the JSON evaluation report.")
-    parser.add_argument("--markdown-out", required=True, type=Path, help="Path for the Markdown evaluation report.")
+    parser.add_argument(
+        "--input",
+        required=True,
+        type=Path,
+        help="CSV file containing labeled display_text rows.",
+    )
+    parser.add_argument(
+        "--json-out",
+        required=True,
+        type=Path,
+        help="Path for the JSON evaluation report.",
+    )
+    parser.add_argument(
+        "--markdown-out",
+        required=True,
+        type=Path,
+        help="Path for the Markdown evaluation report.",
+    )
     parser.add_argument(
         "--strict",
         action="store_true",
@@ -72,17 +86,22 @@ def read_rows(csv_path: Path) -> list[DisplayTextRow]:
         for row_number, row in enumerate(reader, start=2):
             label = normalize_display_text(row.get(LABEL_COLUMN, ""))
             if not label:
-                raise ValueError(f"{csv_path}:{row_number} has an empty {LABEL_COLUMN!r} value")
+                raise ValueError(
+                    f"{csv_path}:{row_number} has an empty {LABEL_COLUMN!r} value"
+                )
 
             rows.append(
                 DisplayTextRow(
                     row_number=row_number,
                     display_text=label,
-                    predicted_display_text=normalize_display_text(row.get(PREDICTION_COLUMN, "")),
+                    predicted_display_text=normalize_display_text(
+                        row.get(PREDICTION_COLUMN, "")
+                    ),
                     sample_id=row.get("sample_id", "").strip(),
                     split=row.get("split", "").strip() or "unassigned",
                     image_path=row.get("image_path", "").strip(),
-                    failure_class=row.get("failure_class", "").strip() or "unclassified",
+                    failure_class=row.get("failure_class", "").strip()
+                    or "unclassified",
                 )
             )
 
@@ -116,15 +135,21 @@ def score_digit_pairs(rows: list[DisplayTextRow]) -> tuple[int, int]:
 def evaluate(rows: list[DisplayTextRow], source_csv: Path) -> dict[str, Any]:
     total_rows = len(rows)
     predicted_rows = [row for row in rows if row.predicted_display_text]
-    exact_matches = sum(1 for row in predicted_rows if row.display_text == row.predicted_display_text)
+    exact_matches = sum(
+        1 for row in predicted_rows if row.display_text == row.predicted_display_text
+    )
     digit_correct, digit_compared = score_digit_pairs(rows)
 
-    full_reading_accuracy = exact_matches / len(predicted_rows) if predicted_rows else None
+    full_reading_accuracy = (
+        exact_matches / len(predicted_rows) if predicted_rows else None
+    )
     per_digit_accuracy = digit_correct / digit_compared if digit_compared else None
     predictions_available = bool(predicted_rows)
 
     split_counts = Counter(row.split for row in rows)
-    failure_class_counts = Counter(row.failure_class for row in rows if row.failure_class != "unclassified")
+    failure_class_counts = Counter(
+        row.failure_class for row in rows if row.failure_class != "unclassified"
+    )
 
     mismatches = [
         {
@@ -144,10 +169,14 @@ def evaluate(rows: list[DisplayTextRow], source_csv: Path) -> dict[str, Any]:
         "per_digit_threshold": PER_DIGIT_THRESHOLD,
         "invalid_or_ambiguous_rejected_explicitly": "not_evaluated",
         "full_reading_accuracy_met": (
-            full_reading_accuracy >= FULL_READING_THRESHOLD if full_reading_accuracy is not None else "not_evaluated"
+            full_reading_accuracy >= FULL_READING_THRESHOLD
+            if full_reading_accuracy is not None
+            else "not_evaluated"
         ),
         "per_digit_accuracy_met": (
-            per_digit_accuracy >= PER_DIGIT_THRESHOLD if per_digit_accuracy is not None else "not_evaluated"
+            per_digit_accuracy >= PER_DIGIT_THRESHOLD
+            if per_digit_accuracy is not None
+            else "not_evaluated"
         ),
     }
 
@@ -155,7 +184,9 @@ def evaluate(rows: list[DisplayTextRow], source_csv: Path) -> dict[str, Any]:
         "tool": "recognition_eval.display_text",
         "generated_at_utc": dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat(),
         "source_csv": str(source_csv),
-        "status": "evaluated" if predictions_available else "placeholder_no_predictions",
+        "status": (
+            "evaluated" if predictions_available else "placeholder_no_predictions"
+        ),
         "summary": {
             "total_rows": total_rows,
             "predicted_rows": len(predicted_rows),
@@ -264,13 +295,18 @@ def render_markdown(report: dict[str, Any]) -> str:
 def write_report(report: dict[str, Any], json_path: Path, markdown_path: Path) -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    json_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     markdown_path.write_text(render_markdown(report), encoding="utf-8")
 
 
 def thresholds_failed(report: dict[str, Any]) -> bool:
     acceptance = report["acceptance"]
-    checks = [acceptance["full_reading_accuracy_met"], acceptance["per_digit_accuracy_met"]]
+    checks = [
+        acceptance["full_reading_accuracy_met"],
+        acceptance["per_digit_accuracy_met"],
+    ]
     return any(check is False for check in checks)
 
 

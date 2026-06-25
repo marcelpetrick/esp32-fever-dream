@@ -26,6 +26,12 @@ void TestApiRouter() {
     REQUIRE(latest.body.find("\"timestamp\":20") != std::string::npos);
     REQUIRE(latest.body.find("\"timestamp\":10") == std::string::npos);
 
+    const fever::ApiResponse ignored_similar_name =
+        router.Handle({fever::ApiMethod::kGet, "/api/v1/readings/latest?xcount=1"});
+    REQUIRE(ignored_similar_name.status_code == 200);
+    REQUIRE(ignored_similar_name.body.find("\"timestamp\":20") != std::string::npos);
+    REQUIRE(ignored_similar_name.body.find("\"timestamp\":10") != std::string::npos);
+
     const fever::ApiResponse bad_limit = router.Handle({fever::ApiMethod::kGet, "/api/v1/readings/latest?count=0"});
     REQUIRE(bad_limit.status_code == 400);
 

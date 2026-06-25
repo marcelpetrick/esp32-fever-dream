@@ -19,4 +19,22 @@ void TestRecordCodec() {
     auto corrupt = encoded;
     corrupt[0] ^= 0x01U;
     REQUIRE(!fever::RecordCodec::Decode(corrupt).has_value());
+
+    const auto invalid_status = fever::RecordCodec::Encode(fever::ReadingRecord{
+        record.timestamp_s,
+        record.temperature_centi_c,
+        static_cast<fever::ReadingStatus>(99U),
+        record.confidence,
+        record.flags,
+    });
+    REQUIRE(!fever::RecordCodec::Decode(invalid_status).has_value());
+
+    REQUIRE(!fever::RecordCodec::Decode(fever::RecordCodec::Encode(fever::ReadingRecord{
+                                            record.timestamp_s,
+                                            record.temperature_centi_c,
+                                            record.status,
+                                            fever::ConfidencePercent{101U},
+                                            record.flags,
+                                        }))
+                 .has_value());
 }

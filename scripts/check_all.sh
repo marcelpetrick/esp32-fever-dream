@@ -17,12 +17,21 @@ cmake --build "${BUILD_DIR}" --target check
 printf '[INFO] static analysis\n'
 "${ROOT_DIR}/scripts/static_analysis.sh"
 
+printf '[INFO] firmware build\n'
+"${ROOT_DIR}/scripts/build_firmware.sh"
+
 printf '[INFO] web asset check\n'
 "${ROOT_DIR}/scripts/package_web_assets.sh"
 
 printf '[INFO] python tooling check\n'
 if [[ -d "${ROOT_DIR}/tools" ]]; then
     python3 -m compileall -q "${ROOT_DIR}/tools"
+    if command -v ruff >/dev/null 2>&1; then
+        ruff check "${ROOT_DIR}/tools"
+    fi
+    if command -v black >/dev/null 2>&1; then
+        black --check "${ROOT_DIR}/tools"
+    fi
 fi
 
 printf '[INFO] documentation check\n'
