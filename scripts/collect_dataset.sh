@@ -5,6 +5,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_URL=""
 COUNT="100"
 INTERVAL_SECONDS="1"
+RETRIES="3"
+CONNECT_TIMEOUT_SECONDS="5"
+MAX_TIME_SECONDS="20"
 FRAME_SIZE="vga"
 QUALITY="12"
 BRIGHTNESS=""
@@ -24,6 +27,9 @@ Usage:
 Options:
   --count N                 Number of images to capture. Default: 100.
   --interval SECONDS        Delay between captures. Default: 1.
+  --retries N               Attempts per image before marking failure. Default: 3.
+  --connect-timeout SECONDS Curl connect timeout. Default: 5.
+  --max-time SECONDS        Curl total request timeout. Default: 20.
   --output DIR              Output directory. Default: tools/dataset/captures/<utc>.
   --lighting-label LABEL    Label written to the manifest. Default: unspecified.
   --framesize qvga|vga|svga Camera frame size. Default: vga.
@@ -49,6 +55,18 @@ while [[ $# -gt 0 ]]; do
             ;;
         --interval)
             INTERVAL_SECONDS="$2"
+            shift 2
+            ;;
+        --retries)
+            RETRIES="$2"
+            shift 2
+            ;;
+        --connect-timeout)
+            CONNECT_TIMEOUT_SECONDS="$2"
+            shift 2
+            ;;
+        --max-time)
+            MAX_TIME_SECONDS="$2"
             shift 2
             ;;
         --output)
@@ -135,11 +153,33 @@ for index in $(seq 1 "${COUNT}"); do
     image_path="${OUTPUT_DIR}/${sample_id}.jpg"
     captured_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     url="${BASE_URL}/debug/capture.jpg?${query}&sample=${sample_id}"
-    http_code="$(curl --silent --show-error --output "${image_path}" --write-out '%{http_code}' "${url}")"
-    bytes="$(wc -c <"${image_path}" | tr -d ' ')"
+    http_code="000"
+    curl_status="0"
+    for attempt in $(seq 1 "${RETRIES}"); do
+        curl_status="0"
+        http_code="$(curl \
+            --silent \
+            --show-error \
+            --connect-timeout "${CONNECT_TIMEOUT_SECONDS}" \
+            --max-time "${MAX_TIME_SECONDS}" \
+            --output "${image_path}" \
+            --write-out '%{http_code}' \
+            "${url}")" || curl_status="$?"
+        if [[ "${curl_status}" == "0" && "${http_code}" == "200" ]]; then
+            break
+        fi
+        printf '[WARN] %s attempt %s/%s failed: curl=%s http=%s\n' \
+            "${sample_id}" "${attempt}" "${RETRIES}" "${curl_status}" "${http_code}" >&2
+        sleep "${INTERVAL_SECONDS}"
+    done
+    if [[ -f "${image_path}" ]]; then
+        bytes="$(wc -c <"${image_path}" | tr -d ' ')"
+    else
+        bytes="0"
+    fi
 
-    if [[ "${http_code}" != "200" ]]; then
-        printf '[WARN] %s failed with HTTP %s\n' "${sample_id}" "${http_code}" >&2
+    if [[ "${curl_status}" != "0" || "${http_code}" != "200" ]]; then
+        printf '[WARN] %s failed: curl=%s http=%s\n' "${sample_id}" "${curl_status}" "${http_code}" >&2
     else
         printf '[INFO] %s %s bytes\n' "${sample_id}" "${bytes}"
     fi

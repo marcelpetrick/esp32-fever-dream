@@ -143,6 +143,24 @@ Capture a local training batch from the workstation:
 
 Repeat with different `--lighting-label` values and optional camera controls such as `--brightness`, `--contrast`, `--saturation`, `--aec`, `--agc`, and `--awb`. Captures and manifests are written under ignored `tools/dataset/captures/` directories.
 
+For the current mounted air-quality display, the best measured first-pass
+settings are:
+
+```sh
+./scripts/collect_dataset.sh \
+  --base-url http://esp32-fever-dream \
+  --count 100 \
+  --interval 1 \
+  --lighting-label baseline_manual_bright \
+  --framesize vga \
+  --quality 12 \
+  --brightness 2 \
+  --contrast 2 \
+  --awb 0 \
+  --aec 0 \
+  --agc 0
+```
+
 ## Project Structure
 
 ```text

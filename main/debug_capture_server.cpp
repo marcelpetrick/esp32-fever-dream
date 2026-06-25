@@ -129,22 +129,29 @@ esp_err_t CaptureJpegHandler(httpd_req_t* request) {
     const std::string query = QueryString(request);
     ApplyCameraSettings(query);
 
-    const CameraCaptureResult result = g_camera->Capture();
-    if (!result.ok || result.frame.format != CameraPixelFormat::kJpeg) {
-        ESP_LOGW(kTag, "capture failed: %s", result.error.c_str());
+    camera_fb_t* frame_buffer = esp_camera_fb_get();
+    if (frame_buffer == nullptr || frame_buffer->format != PIXFORMAT_JPEG) {
+        if (frame_buffer != nullptr) {
+            esp_camera_fb_return(frame_buffer);
+        }
+        ESP_LOGW(kTag, "capture failed");
         return SendJson(request, 500, "{\"ok\":false,\"error\":\"capture_failed\"}");
     }
 
     char width[16] = {};
     char height[16] = {};
-    snprintf(width, sizeof(width), "%u", static_cast<unsigned int>(result.frame.width));
-    snprintf(height, sizeof(height), "%u", static_cast<unsigned int>(result.frame.height));
+    snprintf(width, sizeof(width), "%u", static_cast<unsigned int>(frame_buffer->width));
+    snprintf(height, sizeof(height), "%u", static_cast<unsigned int>(frame_buffer->height));
 
     httpd_resp_set_type(request, "image/jpeg");
     httpd_resp_set_hdr(request, "Cache-Control", "no-store");
+    httpd_resp_set_hdr(request, "Connection", "close");
     httpd_resp_set_hdr(request, "X-Fever-Frame-Width", width);
     httpd_resp_set_hdr(request, "X-Fever-Frame-Height", height);
-    return httpd_resp_send(request, reinterpret_cast<const char*>(result.frame.data.data()), result.frame.data.size());
+    const esp_err_t send_result =
+        httpd_resp_send(request, reinterpret_cast<const char*>(frame_buffer->buf), frame_buffer->len);
+    esp_camera_fb_return(frame_buffer);
+    return send_result;
 }
 
 }  // namespace
