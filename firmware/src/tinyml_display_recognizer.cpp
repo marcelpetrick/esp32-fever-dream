@@ -8,6 +8,7 @@
 
 #include "app_config.h"
 #include "digit_classifier_model.h"
+#include "esp_timer.h"
 #include "img_converters.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
@@ -96,23 +97,33 @@ std::pair<uint8_t, uint8_t> ClassifyDigit(tflite::MicroInterpreter& interpreter,
     return {static_cast<uint8_t>(best_index), static_cast<uint8_t>(confidence)};
 }
 
+uint32_t ElapsedMs(int64_t started_at_us) {
+    const int64_t elapsed_us = esp_timer_get_time() - started_at_us;
+    if (elapsed_us <= 0) {
+        return 0U;
+    }
+    return static_cast<uint32_t>(std::min<int64_t>(elapsed_us / 1000, static_cast<int64_t>(UINT32_MAX)));
+}
+
 }  // namespace
 
 RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
+    const int64_t started_at_us = esp_timer_get_time();
     if (frame.format != CameraPixelFormat::kJpeg || frame.data.empty() || frame.width == 0U || frame.height == 0U) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ReadingStatus::kImageInvalid,
+        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
+                                 ReadingStatus::kImageInvalid,
                                  "expected_jpeg_frame"};
     }
 
     std::vector<uint8_t> rgb(frame.width * frame.height * 3U);
     if (!fmt2rgb888(frame.data.data(), frame.data.size(), PIXFORMAT_JPEG, rgb.data())) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U},
+        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
                                  ReadingStatus::kPreprocessFailed, "jpeg_decode_failed"};
     }
 
     const tflite::Model* model = tflite::GetModel(generated::kDigitClassifierModel);
     if (model == nullptr || model->version() != TFLITE_SCHEMA_VERSION) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U},
+        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
                                  ReadingStatus::kRecognitionFailed, "model_schema_mismatch"};
     }
 
@@ -128,7 +139,7 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
 
     tflite::MicroInterpreter interpreter(model, resolver, g_tensor_arena, kTensorArenaSize);
     if (interpreter.AllocateTensors() != kTfLiteOk) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U},
+        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
                                  ReadingStatus::kRecognitionFailed, "tensor_allocation_failed"};
     }
 
@@ -138,12 +149,12 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
     uint8_t min_confidence = 100U;
     for (std::size_t index = 0; index < kDigitBoxes.size(); ++index) {
         if (!FillInput(input, rgb, frame.width, frame.height, kDigitBoxes[index])) {
-            return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U},
+            return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
                                      ReadingStatus::kPreprocessFailed, "digit_crop_failed"};
         }
         const auto [digit, confidence] = ClassifyDigit(interpreter, output);
         if (digit > 9U) {
-            return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U},
+            return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
                                      ReadingStatus::kRecognitionFailed, "digit_classification_failed"};
         }
         digits[index] = digit;
@@ -166,13 +177,16 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
     }
     if (min_confidence < config::kRecognitionMinConfidencePercent) {
         return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{min_confidence},
+                                 ElapsedMs(started_at_us),
                                  ReadingStatus::kConfidenceTooLow, "tinyml_confidence_below_threshold"};
     }
     if (!IsPlausibleTemperature(corrected_temperature_centi_c) || humidity_percent > 100U) {
         return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{min_confidence},
+                                 ElapsedMs(started_at_us),
                                  ReadingStatus::kValueOutOfRange, "recognized_value_out_of_range"};
     }
     return RecognitionResult{true, corrected_temperature_centi_c, humidity_percent, ConfidencePercent{min_confidence},
+                             ElapsedMs(started_at_us),
                              ReadingStatus::kOk, ""};
 }
 
@@ -181,7 +195,7 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
 namespace fever {
 
 RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame&) {
-    return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U},
+    return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, 0U,
                              ReadingStatus::kRecognitionFailed, "tinyml_unavailable_on_host"};
 }
 

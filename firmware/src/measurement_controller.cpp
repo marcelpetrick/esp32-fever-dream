@@ -1,5 +1,8 @@
 #include "measurement_controller.h"
 
+#include <algorithm>
+#include <cstdint>
+
 namespace fever {
 
 MeasurementController::MeasurementController(StorageRingBuffer& storage, Diagnostics& diagnostics, TimeManager& time,
@@ -30,8 +33,12 @@ ReadingRecord MeasurementController::RunOnce() {
     ReadingRecord record =
         recognition.ok
             ? ReadingRecord::Success(timestamp.timestamp_s, recognition.temperature_centi_c, recognition.confidence,
-                                     flags, recognition.humidity_percent)
-            : ReadingRecord::Failure(timestamp.timestamp_s, recognition.status, recognition.confidence, flags);
+                                     flags, recognition.humidity_percent,
+                                     static_cast<uint16_t>(std::min<uint32_t>(recognition.recognition_duration_ms,
+                                                                              UINT16_MAX)))
+            : ReadingRecord::Failure(timestamp.timestamp_s, recognition.status, recognition.confidence, flags,
+                                     static_cast<uint16_t>(std::min<uint32_t>(recognition.recognition_duration_ms,
+                                                                              UINT16_MAX)));
 
     if (!recognition.ok) {
         diagnostics_.RecordRecognitionFailure(recognition.error);

@@ -4,7 +4,8 @@
 void TestRecordCodec() {
     const fever::ReadingRecord record =
         fever::ReadingRecord::Success(1750000000U, -125, fever::ConfidencePercent{98U},
-                                      fever::ReadingFlags::kRecognitionRuleBased | fever::ReadingFlags::kTimeEstimated);
+                                      fever::ReadingFlags::kRecognitionRuleBased | fever::ReadingFlags::kTimeEstimated,
+                                      fever::kHumidityUnavailable, 1234U);
 
     const auto encoded = fever::RecordCodec::Encode(record);
     const auto decoded = fever::RecordCodec::Decode(encoded);
@@ -14,6 +15,7 @@ void TestRecordCodec() {
     REQUIRE(decoded->humidity_percent == fever::kHumidityUnavailable);
     REQUIRE(decoded->status == record.status);
     REQUIRE(decoded->confidence.value == record.confidence.value);
+    REQUIRE(decoded->recognition_duration_ms == record.recognition_duration_ms);
     REQUIRE(fever::HasFlag(decoded->flags, fever::ReadingFlags::kRecognitionRuleBased));
     REQUIRE(fever::HasFlag(decoded->flags, fever::ReadingFlags::kTimeEstimated));
 
@@ -27,6 +29,7 @@ void TestRecordCodec() {
         fever::kHumidityUnavailable,
         static_cast<fever::ReadingStatus>(99U),
         record.confidence,
+        record.recognition_duration_ms,
         record.flags,
     });
     REQUIRE(!fever::RecordCodec::Decode(invalid_status).has_value());
@@ -37,6 +40,7 @@ void TestRecordCodec() {
                                             fever::kHumidityUnavailable,
                                             record.status,
                                             fever::ConfidencePercent{101U},
+                                            record.recognition_duration_ms,
                                             record.flags,
                                         }))
                  .has_value());

@@ -57,15 +57,18 @@ struct ReadingRecord {
     ReadingStatus status;
     /** Recognition confidence percentage. */
     ConfidencePercent confidence;
+    /** End-to-end recognition runtime in milliseconds, capped for compact storage. */
+    uint16_t recognition_duration_ms;
     /** Metadata flags for this reading. */
     ReadingFlags flags;
 
     /** Construct a successful temperature reading. */
     static ReadingRecord Success(uint32_t timestamp_s, int16_t temperature_centi_c, ConfidencePercent confidence,
-                                 ReadingFlags flags, uint8_t humidity_percent = kHumidityUnavailable);
+                                 ReadingFlags flags, uint8_t humidity_percent = kHumidityUnavailable,
+                                 uint16_t recognition_duration_ms = 0U);
     /** Construct an explicit failed reading. */
     static ReadingRecord Failure(uint32_t timestamp_s, ReadingStatus status, ConfidencePercent confidence,
-                                 ReadingFlags flags);
+                                 ReadingFlags flags, uint16_t recognition_duration_ms = 0U);
 
     /** Return true when this record contains a valid temperature. */
     [[nodiscard]] bool IsSuccess() const;

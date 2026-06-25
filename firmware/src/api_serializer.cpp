@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <sstream>
 
+#include "app_config.h"
 #include "version.h"
 
 namespace fever {
@@ -51,7 +52,8 @@ void AppendRecord(std::ostringstream& out, const ReadingRecord& record) {
         out << "null";
     }
     out << ",\"status\":\"" << ToString(record.status)
-        << "\",\"confidence\":" << (static_cast<unsigned int>(record.confidence.value) / 100.0) << "}";
+        << "\",\"confidence\":" << (static_cast<unsigned int>(record.confidence.value) / 100.0)
+        << ",\"recognition_duration_ms\":" << record.recognition_duration_ms << "}";
 }
 
 }  // namespace
@@ -84,6 +86,9 @@ std::string SerializeStatus(const DiagnosticsSnapshot& diagnostics, std::size_t 
         << ",\"boot_count\":" << diagnostics.boot_count << ",\"capture_failures\":" << diagnostics.capture_failures
         << ",\"recognition_failures\":" << diagnostics.recognition_failures
         << ",\"storage_failures\":" << diagnostics.storage_failures << ",\"wifi_rssi\":" << diagnostics.wifi_rssi
+        << ",\"recognition_min_confidence\":" << (static_cast<unsigned int>(config::kRecognitionMinConfidencePercent) / 100.0)
+        << ",\"recognition_min_confidence_percent\":"
+        << static_cast<unsigned int>(config::kRecognitionMinConfidencePercent)
         << ",\"last_reading_status\":\"" << (latest == nullptr ? "none" : ToString(latest->status))
         << "\",\"last_error\":";
     AppendJsonString(out, diagnostics.last_error);

@@ -37,10 +37,21 @@
         <section class="current-panel" aria-labelledby="currentTitle">
             <div>
                 <p class="eyebrow" id="currentTitle">Current reading</p>
-                <div class="temperature-row">
-                    <span id="currentTemp" class="temperature">--.-</span>
-                    <span class="unit">°C</span>
+                <div class="current-values" aria-label="Current measurement values">
+                    <div class="value-tile">
+                        <span class="value-label">Temperature</span>
+                        <span class="value-row"><span id="currentTemp" class="value-number">--.-</span><span class="unit">°C</span></span>
+                    </div>
+                    <div class="value-tile">
+                        <span class="value-label">Humidity</span>
+                        <span class="value-row"><span id="currentHumidity" class="value-number">--</span><span class="unit">%</span></span>
+                    </div>
+                    <div class="value-tile">
+                        <span class="value-label">OCR confidence</span>
+                        <span class="value-row"><span id="currentConfidence" class="value-number">--</span><span class="unit">%</span></span>
+                    </div>
                 </div>
+                <p id="confidenceRule" class="rule-text">Waiting for OCR threshold</p>
                 <p id="currentMeta" class="muted">Waiting for first reading</p>
             </div>
             <div id="statusBadge" class="status-badge status-unknown">Unknown</div>

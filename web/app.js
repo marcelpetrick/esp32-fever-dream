@@ -28,6 +28,9 @@
             modeSelect: document.getElementById("modeSelect"),
             themeSelect: document.getElementById("themeSelect"),
             currentTemp: document.getElementById("currentTemp"),
+            currentHumidity: document.getElementById("currentHumidity"),
+            currentConfidence: document.getElementById("currentConfidence"),
+            confidenceRule: document.getElementById("confidenceRule"),
             currentMeta: document.getElementById("currentMeta"),
             statusBadge: document.getElementById("statusBadge"),
             chart: document.getElementById("historyChart"),
@@ -249,12 +252,14 @@
         var temperature = pick(raw, ["temperature_c", "temperature", "temp_c", "value"]);
         var confidence = pick(raw, ["confidence", "quality", "score"]);
         var humidity = pick(raw, ["humidity_percent", "humidity", "rh_percent"]);
+        var duration = pick(raw, ["recognition_duration_ms", "ocr_duration_ms", "duration_ms"]);
         return {
             timestamp: normalizeTimestamp(timestamp),
             temperature: toNumberOrNull(temperature),
             humidity: toNumberOrNull(humidity),
             status: String(pick(raw, ["status", "state"], "unknown") || "unknown"),
             confidence: toNumberOrNull(confidence),
+            recognitionDurationMs: toNumberOrNull(duration),
             source: pick(raw, ["source", "recognition_source"], ""),
             error: pick(raw, ["error", "message"], "")
         };
@@ -299,6 +304,20 @@
         } else {
             el.currentTemp.textContent = "--.-";
         }
+        if (reading && reading.humidity !== null) {
+            el.currentHumidity.textContent = reading.humidity.toFixed(0);
+        } else {
+            el.currentHumidity.textContent = "--";
+        }
+        if (reading && reading.confidence !== null) {
+            el.currentConfidence.textContent = String(Math.round(normalizeConfidencePercent(reading.confidence)));
+        } else {
+            el.currentConfidence.textContent = "--";
+        }
+
+        var threshold = recognitionThresholdPercent();
+        el.confidenceRule.textContent =
+            "OCR accepted at " + threshold.toFixed(0) + "% confidence or higher; below that it is rejected.";
 
         var parts = [];
         if (reading && reading.timestamp) {
@@ -309,6 +328,9 @@
         }
         if (reading && reading.humidity !== null) {
             parts.push("humidity " + reading.humidity.toFixed(0) + "%");
+        }
+        if (reading && reading.recognitionDurationMs !== null) {
+            parts.push("OCR " + reading.recognitionDurationMs.toFixed(0) + " ms");
         }
         if (reading && reading.error) {
             parts.push(reading.error);
@@ -354,6 +376,14 @@
             rows.push(["Minimum", Math.min.apply(null, values).toFixed(1) + " °C"]);
             rows.push(["Maximum", Math.max.apply(null, values).toFixed(1) + " °C"]);
             rows.push(["Average", average(values).toFixed(1) + " °C"]);
+        }
+        var durations = state.readings.map(function (reading) {
+            return reading.recognitionDurationMs;
+        }).filter(function (value) {
+            return value !== null;
+        });
+        if (durations.length) {
+            rows.push(["Average OCR runtime", average(durations).toFixed(0) + " ms"]);
         }
         if (state.lastError) {
             rows.push(["API error", state.lastError.message]);
@@ -536,8 +566,21 @@
         }).format(date);
     }
 
+    function normalizeConfidencePercent(value) {
+        return value <= 1 ? value * 100 : value;
+    }
+
+    function recognitionThresholdPercent() {
+        var raw = state.status && pick(state.status, ["recognition_min_confidence_percent", "recognition_min_confidence"]);
+        var value = toNumberOrNull(raw);
+        if (value === null) {
+            return 60;
+        }
+        return normalizeConfidencePercent(value);
+    }
+
     function formatConfidence(value) {
-        return value <= 1 ? Math.round(value * 100) + "%" : Math.round(value) + "%";
+        return Math.round(normalizeConfidencePercent(value)) + "%";
     }
 
     function average(values) {

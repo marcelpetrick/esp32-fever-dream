@@ -3,13 +3,15 @@
 namespace fever {
 
 ReadingRecord ReadingRecord::Success(uint32_t timestamp_s, int16_t temperature_centi_c, ConfidencePercent confidence,
-                                     ReadingFlags flags, uint8_t humidity_percent) {
-    return ReadingRecord{timestamp_s, temperature_centi_c, humidity_percent, ReadingStatus::kOk, confidence, flags};
+                                     ReadingFlags flags, uint8_t humidity_percent,
+                                     uint16_t recognition_duration_ms) {
+    return ReadingRecord{timestamp_s, temperature_centi_c, humidity_percent, ReadingStatus::kOk, confidence,
+                         recognition_duration_ms, flags};
 }
 
 ReadingRecord ReadingRecord::Failure(uint32_t timestamp_s, ReadingStatus status, ConfidencePercent confidence,
-                                     ReadingFlags flags) {
-    return ReadingRecord{timestamp_s, 0, kHumidityUnavailable, status, confidence, flags};
+                                     ReadingFlags flags, uint16_t recognition_duration_ms) {
+    return ReadingRecord{timestamp_s, 0, kHumidityUnavailable, status, confidence, recognition_duration_ms, flags};
 }
 
 bool ReadingRecord::IsSuccess() const { return status == ReadingStatus::kOk; }

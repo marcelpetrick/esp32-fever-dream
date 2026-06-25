@@ -43,12 +43,13 @@ std::array<uint8_t, RecordCodec::kEncodedSize> RecordCodec::Encode(const Reading
     out[7] = record.confidence.value;
     out[8] = static_cast<uint8_t>(record.flags);
     out[9] = record.humidity_percent;
-    PutU16(out, 10U, Checksum(out));
+    PutU16(out, 10U, record.recognition_duration_ms);
+    PutU16(out, 12U, Checksum(out));
     return out;
 }
 
 std::optional<ReadingRecord> RecordCodec::Decode(const std::array<uint8_t, kEncodedSize>& encoded) {
-    if (Checksum(encoded) != GetU16(encoded, 10U)) {
+    if (Checksum(encoded) != GetU16(encoded, 12U)) {
         return std::nullopt;
     }
     if (!IsValidStatus(encoded[6]) || encoded[7] > 100U || !IsValidFlags(encoded[8]) ||
@@ -62,13 +63,14 @@ std::optional<ReadingRecord> RecordCodec::Decode(const std::array<uint8_t, kEnco
         encoded[9],
         static_cast<ReadingStatus>(encoded[6]),
         ConfidencePercent{encoded[7]},
+        GetU16(encoded, 10U),
         static_cast<ReadingFlags>(encoded[8]),
     };
 }
 
 uint16_t RecordCodec::Checksum(const std::array<uint8_t, kEncodedSize>& encoded) {
     uint16_t checksum = 0xA5A5U;
-    for (std::size_t i = 0U; i < 10U; ++i) {
+    for (std::size_t i = 0U; i < 12U; ++i) {
         checksum = static_cast<uint16_t>((checksum << 5U) | (checksum >> 11U));
         checksum = static_cast<uint16_t>(checksum ^ encoded[i]);
     }

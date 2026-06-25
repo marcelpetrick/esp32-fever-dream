@@ -36,6 +36,8 @@ struct RecognitionResult {
     uint8_t humidity_percent;
     /** Recognition confidence percentage. */
     ConfidencePercent confidence;
+    /** End-to-end recognition runtime in milliseconds. */
+    uint32_t recognition_duration_ms;
     /** Status code describing success or failure. */
     ReadingStatus status;
     /** Stable diagnostic reason for failed recognition. */

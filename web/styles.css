@@ -182,15 +182,33 @@ input {
     padding: clamp(20px, 5vw, 34px);
 }
 
-.temperature-row {
+.current-values {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.3fr) repeat(2, minmax(120px, 0.7fr));
+    gap: 16px;
+    margin: 12px 0;
+}
+
+.value-tile {
+    min-width: 0;
+}
+
+.value-label {
+    display: block;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.value-row {
     display: flex;
     align-items: baseline;
     gap: 8px;
-    margin: 8px 0;
 }
 
-.temperature {
-    font-size: clamp(4.2rem, 18vw, 9.5rem);
+.value-number {
+    font-size: clamp(3.3rem, 11vw, 7.2rem);
     font-weight: 850;
     line-height: 0.9;
     font-variant-numeric: tabular-nums;
@@ -200,6 +218,13 @@ input {
     color: var(--muted);
     font-size: clamp(1.2rem, 5vw, 2.2rem);
     font-weight: 750;
+}
+
+.rule-text {
+    margin: 6px 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+    font-weight: 650;
 }
 
 .status-badge,
@@ -345,6 +370,15 @@ dd {
     .current-panel {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .current-values {
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .value-number {
+        font-size: clamp(3.2rem, 22vw, 5.8rem);
     }
 
     .grid {
