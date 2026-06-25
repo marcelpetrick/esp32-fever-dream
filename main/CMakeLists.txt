@@ -10,6 +10,7 @@ idf_component_register(
         "../firmware/src/diagnostics.cpp"
         "../firmware/src/image_preprocessor.cpp"
         "../firmware/src/measurement_controller.cpp"
+        "../firmware/src/record_codec.cpp"
         "../firmware/src/reading_record.cpp"
         "../firmware/src/recognition.cpp"
         "../firmware/src/storage_ring_buffer.cpp"

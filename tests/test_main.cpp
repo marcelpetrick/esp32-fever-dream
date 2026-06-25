@@ -4,6 +4,7 @@ void TestApiSerializer();
 void TestApiRouter();
 void TestImagePreprocessor();
 void TestMeasurementController();
+void TestRecordCodec();
 void TestRecognition();
 void TestStorageRingBuffer();
 void TestTimeManager();
@@ -13,6 +14,7 @@ int main() {
     TestRecognition();
     TestImagePreprocessor();
     TestMeasurementController();
+    TestRecordCodec();
     TestApiSerializer();
     TestApiRouter();
     TestTimeManager();
