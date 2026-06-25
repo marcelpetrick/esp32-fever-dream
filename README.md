@@ -4,6 +4,14 @@ Local ESP32-CAM thermometer readout firmware. The target device captures a fixed
 
 **Status: implementation bootstrap.** Host-side core modules, tests, static web UI, firmware skeleton, ESP-IDF firmware build, debug image capture endpoint, pipeline scripts, GPLv3 license, and SemVer source of truth are present. Persistent flash storage, production HTTP handlers, OCR training data, and the full one-minute device loop are still in progress.
 
+**Author: Marcel Petrick <mail@marcelpetrick.it>**
+
+**Note: projected is generated with AI.**
+
+**License: GPLv3 or later. See `LICENSE`.**
+
+![](media/esp32cam_c0_sensor.png)
+
 ## Current Web UI
 
 The static dashboard lives in `web/` and is designed to be served locally by the ESP32.
