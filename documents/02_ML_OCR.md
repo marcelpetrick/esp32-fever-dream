@@ -184,6 +184,7 @@ Decision:
 
 - Use this as fallback or verifier if classical OCR misses the target.
 - Do not make it the first implementation dependency.
+- Train this classifier from scratch on this thermometer and camera setup. Do not start from a pretrained generic OCR model; generic OCR solves the wrong problem and its model size is poorly matched to the ESP32-CAM.
 
 ### 5.4 External Training, On-Device Inference
 
@@ -406,4 +407,3 @@ Model sophistication is secondary. A small, well-lit, well-cropped seven-segment
 4. Build the host classical OCR benchmark.
 5. Decide whether TinyML is necessary from measured accuracy, not preference.
 6. If needed, add pinned `espressif/esp-tflite-micro` and train a tiny per-digit int8 classifier.
-

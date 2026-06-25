@@ -2,7 +2,7 @@
 
 Local ESP32-CAM thermometer readout firmware. The target device captures a fixed-position digital thermometer once per minute, recognizes the displayed temperature, stores readings in bounded local storage, and serves a dashboard plus raw API endpoints directly from the ESP32.
 
-**Status: implementation bootstrap.** Host-side core modules, tests, static web UI, firmware skeleton, ESP-IDF firmware build, pipeline scripts, GPLv3 license, and SemVer source of truth are present. Hardware capture, persistent flash storage, live HTTP handlers, and the full one-minute device loop are still in progress.
+**Status: implementation bootstrap.** Host-side core modules, tests, static web UI, firmware skeleton, ESP-IDF firmware build, debug image capture endpoint, pipeline scripts, GPLv3 license, and SemVer source of truth are present. Persistent flash storage, production HTTP handlers, OCR training data, and the full one-minute device loop are still in progress.
 
 ## Current Web UI
 
@@ -113,6 +113,25 @@ Boot mode on the ESP32-CAM-MB board:
 3. Release **BOOT**.
 4. Run the flash command within roughly one second.
 
+## Dataset Capture
+
+After flashing, configure `main/config.local.h` with Wi-Fi credentials and read the device IP from serial logs. The prototype debug endpoint serves one JPEG per request:
+
+```text
+GET /debug/capture.jpg
+```
+
+Capture a local training batch from the workstation:
+
+```bash
+./scripts/collect_dataset.sh \
+  --base-url http://DEVICE_IP \
+  --count 100 \
+  --lighting-label bright-room
+```
+
+Repeat with different `--lighting-label` values and optional camera controls such as `--brightness`, `--contrast`, `--saturation`, `--aec`, `--agc`, and `--awb`. Captures and manifests are written under ignored `tools/dataset/captures/` directories.
+
 ## Project Structure
 
 ```text
@@ -163,8 +182,7 @@ The project starts at `0.0.0`. Per the project rule, later implementation commit
 
 ## Current Limitations
 
-- Camera capture is not wired yet.
-- HTTP handlers are not wired yet; serializers and web UI define the contract first.
+- Production HTTP handlers are not wired yet; serializers and web UI define the contract first.
 - Ring-buffer persistence to flash is not implemented yet.
 - Recognition has primitives and validation, but no real thermometer dataset yet.
 

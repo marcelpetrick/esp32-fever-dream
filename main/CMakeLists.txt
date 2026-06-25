@@ -4,6 +4,7 @@ string(STRIP "${FEVER_DREAM_VERSION_RAW}" FEVER_DREAM_VERSION)
 idf_component_register(
     SRCS
         "app_main.cpp"
+        "debug_capture_server.cpp"
         "../firmware/src/api_serializer.cpp"
         "../firmware/src/api_router.cpp"
         "../firmware/src/camera_manager.cpp"
@@ -22,6 +23,8 @@ idf_component_register(
     REQUIRES
         esp_timer
         esp_http_server
+        esp_event
+        esp_netif
         esp_wifi
         nvs_flash
         esp32-camera
