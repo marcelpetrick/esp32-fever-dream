@@ -6,7 +6,7 @@
     "minimum_captures": false,
     "samples_per_digit": false
   },
-  "generated_at_utc": "2026-06-25T19:58:03+00:00",
+  "generated_at_utc": "2026-06-26T07:39:51+00:00",
   "labels_csv": "tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/labels_environment.csv",
   "next_actions": [
     "Capture more real images only when values have changed or lighting conditions are intentionally varied.",

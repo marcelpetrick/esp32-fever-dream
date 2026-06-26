@@ -106,6 +106,34 @@ Outputs:
 - `models/generated/confusion_matrix.csv`
 - `firmware/generated/digit_classifier_model.h`
 
+## Run Model On Images
+
+Use the batch inference wrapper to call the generated `.tflite` model against
+real full-frame captures.
+
+With labels, it reports exact image-level accuracy:
+
+```sh
+./scripts/run_model_on_images.sh \
+  --labels tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/labels_environment.csv
+```
+
+With arbitrary images or globs, it writes predictions without accuracy:
+
+```sh
+./scripts/run_model_on_images.sh \
+  --images 'tools/dataset/captures/checks/*.jpg'
+```
+
+Outputs:
+
+- `models/generated/digit_model_predictions.csv`
+- `models/generated/digit_model_predictions_summary.json`
+
+The CSV includes predicted temperature digits, predicted humidity digits,
+per-digit confidences, minimum confidence, expected labels when available, and a
+`match` column for labeled data.
+
 ## Validation Rule
 
 The prototype is useful for wiring and timing tests. It is not production-ready
