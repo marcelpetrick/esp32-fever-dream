@@ -1,6 +1,7 @@
 # Firmware Size Breakdown
 
-Last measured: 2026-06-26 from ESP-IDF build output for firmware `0.0.16`.
+Last measured: 2026-06-26 from ESP-IDF build output for the current
+autofocus-enabled firmware.
 
 ## Exact Flash Artifacts
 
@@ -10,14 +11,14 @@ These are file sizes from the build outputs that are flashed to the ESP32-CAM.
 | --- | ---: | ---: | --- |
 | Bootloader | `0x1000` | `26,128 B` (`0x6610`) | Bootloader partition has `2,544 B` free. |
 | Partition table | `0x8000` | `3,072 B` | Standard partition-table binary. |
-| App firmware | `0x10000` | `1,318,624 B` (`0x141ee0`) | Smallest app partition is `1,843,200 B` (`0x1c2000`). |
-| App partition free | n/a | `524,576 B` (`0x80120`) | About `28%` free. |
+| App firmware | `0x10000` | `1,348,992 B` (`0x149580`) | Smallest app partition is `1,843,200 B` (`0x1c2000`). |
+| App partition free | n/a | `494,208 B` (`0x78a80`) | About `27%` free. |
 
 ```mermaid
 pie showData
     title App Partition Usage
-    "App image" : 1318624
-    "Free app partition space" : 524576
+    "App image" : 1348992
+    "Free app partition space" : 494208
 ```
 
 ## Model Artifact
@@ -28,7 +29,7 @@ pie showData
 | `firmware/generated/digit_classifier_model.h` | `206,265 B` | C++ source representation of the model bytes. |
 | `kDigitClassifierModelSize` | `32,528 B` | Actual model byte array embedded in firmware flash data. |
 
-The model is about `2.47%` of the app image and about `1.76%` of the whole app
+The model is about `2.41%` of the app image and about `1.76%` of the whole app
 partition. The header file is much larger than the model because each byte is
 written as C++ source text; the compiled firmware stores the binary array.
 
@@ -97,6 +98,7 @@ flowchart TD
     App --> AppCode[Project firmware code]
 
     RAM[Runtime RAM] --> Arena[TFLM tensor arena: 96 KB]
+    RAM --> History[Reading history: 1,440 records]
     RAM --> Buffers[Camera/frame/server/task buffers]
 ```
 
@@ -106,6 +108,10 @@ flowchart TD
 - TFLite Micro runtime is about 64.6 KB of ELF contribution.
 - Wi-Fi, TCP/IP, C++ runtime, and camera support dominate flash usage.
 - The largest app-controlled RAM cost is the 96 KB tensor arena.
+- The reading history is RAM-backed. At 1,440 records it keeps one day of
+  one-minute samples and uses roughly 29 KiB plus vector overhead with the
+  current record layout; `/api/v1/status` reports the device-side
+  `storage_capacity_bytes`.
 - If flash gets tight later, first check unused ESP-IDF features and C++ stdlib
   use before shrinking this tiny model.
 - If RAM gets tight later, profile TFLM arena usage and reduce

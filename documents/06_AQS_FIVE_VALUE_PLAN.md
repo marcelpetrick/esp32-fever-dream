@@ -27,7 +27,7 @@ values plus history charts in the web UI.
 - The existing TinyML model recognizes single digits in fixed ROIs. It can be
   extended to more fixed digit boxes, but the current model was only validated
   for temperature and humidity geometry.
-- The current storage is an in-memory ring buffer of 240 records. It resets on
+- The current storage is an in-memory ring buffer of 1,440 records. It resets on
   reboot.
 - Future flash persistence needs a versioned binary format; JSON is fine for
   API output but too bulky for flash storage.
@@ -72,19 +72,19 @@ values and documentation should avoid pretending the unit is known.
 
 Current RAM storage:
 
-- Capacity configured in `main/app_main.cpp`: 240 records.
+- Capacity configured in `firmware/include/app_config.h`: 1,440 records.
 - Old two-value record is roughly 16 bytes after normal C++ alignment on ESP32.
 - Five-value record is expected to be roughly 24 bytes after alignment.
-- 240 records therefore cost about 5.6 KiB plus vector overhead, which is fine
-  for RAM.
+- 1,440 records cost roughly 29 KiB plus vector overhead with the current
+  record layout, which is acceptable for the current ESP32-CAM prototype and
+  keeps one day of one-minute samples.
 
 Practical maximum:
 
-- Keeping 240 records is conservative and safe.
-- 1,440 records, one day at one-minute cadence, would likely cost about
-  35 KiB RAM plus overhead. This is possible on some ESP32-CAM builds but should
-  not be the default until heap pressure is measured with camera, Wi-Fi, and
-  TFLite active.
+- Keeping 1,440 records aligns firmware storage with the dashboard request for
+  one day of history.
+- Further increases should be gated by runtime free-heap checks with camera,
+  Wi-Fi, HTTP, and TFLite active.
 - For durable history, use flash-backed fixed records instead of increasing RAM
   indefinitely.
 

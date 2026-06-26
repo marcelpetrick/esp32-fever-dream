@@ -37,7 +37,8 @@ http://esp32-fever-dream
   OV5640 module is detected.
 - Model runtime: `espressif/esp-tflite-micro`.
 - Measurement interval: 60 seconds.
-- Storage capacity: 240 records in RAM for the deployed app.
+- Storage capacity: 1,440 records in RAM for the deployed app, matching the
+  dashboard's one-day history request at the current one-minute interval.
 - In-memory record size from host ABI: exposed at runtime as
   `storage_record_size_bytes`; current API also reports used/capacity bytes.
 - Firmware image size from the autofocus-enabled build: `0x149580` bytes with
@@ -142,7 +143,8 @@ stable enough for unattended use:
 - Confidence threshold is relaxed to 60% for the mounted prototype.
 - Time is still unsynchronized, so timestamps are seconds since boot rather
   than wall-clock time.
-- Storage is RAM-only and resets on reboot.
+- Storage is RAM-only and resets on reboot. The ring buffer now keeps 1,440
+  samples, but durable multi-day history still needs flash-backed storage.
 
 ## Safe Continuation Tomorrow
 

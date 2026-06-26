@@ -49,7 +49,7 @@ C4Container
         Container(api, "HTTP API", "esp_http_server", "Health, capture, status, current reading, recent readings")
         Container(serial, "USB serial fallback", "UART console", "No-Wi-Fi JPEG capture for datasets")
         Container(web, "Static dashboard", "HTML/CSS/JS", "Browser UI served locally during development")
-        Container(storage, "Reading ring buffer", "RAM", "Last 240 records")
+        Container(storage, "Reading ring buffer", "RAM", "Last 1,440 records")
     }
     Container(training, "Training pipeline", "Python / TensorFlow", "Builds int8 digit model and firmware header")
 
