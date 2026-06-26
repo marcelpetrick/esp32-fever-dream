@@ -2,7 +2,7 @@
 
 Local ESP32-CAM air quality sensor readout firmware. The target device captures a fixed-position AQS display once per minute, recognizes CO2, HCHO, TVOC, temperature, and humidity, stores readings in bounded local storage, and serves a dashboard plus raw API endpoints directly from the ESP32.
 
-**Status: mounted AQS TinyML prototype.** The ESP32-CAM joins the configured Wi-Fi, captures the fixed display once per minute, runs an embedded int8 TFLite digit classifier, stores recent records in RAM, and serves local API data for the web dashboard. The current firmware has five-value AQS plumbing for `CO2`, `HCHO`, `TVOC`, temperature, and humidity; CO2/HCHO/TVOC OCR boxes are provisional and need fresh labeled captures before the values are production-trustworthy.
+**Status: mounted AQS TinyML prototype.** The ESP32-CAM joins the configured Wi-Fi, captures the fixed display once per minute, runs an embedded int8 TFLite digit classifier, stores recent records in RAM, and serves local API data for the web dashboard. The current firmware has five-value AQS plumbing for `CO2`, `HCHO`, `TVOC`, temperature, and humidity; CO2/HCHO/TVOC OCR boxes are provisional and need fresh labeled captures before the values are production-trustworthy. The attached camera currently detects as OV2640, which is fixed-focus; OV5640 autofocus support is compiled in and starts automatically only when an AF-capable OV5640 module is detected.
 
 **Author: Marcel Petrick <mail@marcelpetrick.it>**
 
@@ -50,7 +50,7 @@ Target hardware is borrowed from the existing ESP32-CAM notes in `/home/mpetrick
 | --- | --- |
 | Module | AI-Thinker ESP32-CAM |
 | Programmer | ESP32-CAM-MB with CH340 USB-serial |
-| Camera | OV2640 ribbon camera |
+| Camera | Current module detects as OV2640; firmware also supports OV5640 autofocus when an AF-capable OV5640 module is attached |
 | Chip | ESP32-D0WDQ6 rev 1.0, dual core, 240 MHz |
 | Flash | 4 MB Winbond, 3.3 V |
 | Serial port | `/dev/ttyUSB0` |

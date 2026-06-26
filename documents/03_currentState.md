@@ -31,14 +31,17 @@ http://esp32-fever-dream
 
 - Source version: `0.0.20` after the five-value implementation is committed.
 - ESP-IDF target: `esp32`.
-- Camera: AI-Thinker ESP32-CAM / OV2640.
+- Camera: AI-Thinker ESP32-CAM / OV2640 detected in boot logs.
+- Focus: current OV2640 module is fixed-focus. Firmware now compiles OV5640
+  autofocus support and enables continuous AF automatically if an AF-capable
+  OV5640 module is detected.
 - Model runtime: `espressif/esp-tflite-micro`.
 - Measurement interval: 60 seconds.
 - Storage capacity: 240 records in RAM for the deployed app.
 - In-memory record size from host ABI: exposed at runtime as
   `storage_record_size_bytes`; current API also reports used/capacity bytes.
-- Firmware image size from the latest build: about `0x143720` bytes with about
-  28% of the app partition free.
+- Firmware image size from the autofocus-enabled build: `0x149580` bytes with
+  `0x78a80` bytes, about 27%, of the app partition free.
 
 Useful endpoints:
 

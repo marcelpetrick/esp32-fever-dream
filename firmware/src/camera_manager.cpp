@@ -2,6 +2,7 @@
 
 #ifdef ESP_PLATFORM
 #include "app_config.h"
+#include "esp_camera_af.h"
 #include "esp_camera.h"
 #include "esp_log.h"
 #endif
@@ -10,6 +11,57 @@ namespace fever {
 namespace {
 #ifdef ESP_PLATFORM
 constexpr const char* kTag = "camera_manager";
+
+const char* SensorName(const sensor_t* sensor) {
+    if (sensor == nullptr) {
+        return "unknown";
+    }
+    switch (sensor->id.PID) {
+        case OV2640_PID:
+            return "OV2640";
+        case OV3660_PID:
+            return "OV3660";
+        case OV5640_PID:
+            return "OV5640";
+        default:
+            return "unknown";
+    }
+}
+
+void InitializeAutofocusIfSupported(sensor_t* sensor) {
+    if (sensor == nullptr) {
+        ESP_LOGW(kTag, "autofocus: unavailable; no sensor handle");
+        return;
+    }
+
+    if (!esp_camera_af_is_supported(sensor)) {
+        ESP_LOGI(kTag, "autofocus: not supported by %s sensor PID=0x%x", SensorName(sensor),
+                 static_cast<unsigned int>(sensor->id.PID));
+        return;
+    }
+
+    esp_camera_af_config_t autofocus_config = {};
+    autofocus_config.mode = ESP_CAMERA_AF_MODE_AUTO;
+    autofocus_config.step_size = 10;
+    autofocus_config.range_min = 0;
+    autofocus_config.range_max = 1023;
+    autofocus_config.timeout_ms = 2000;
+
+    const esp_err_t init_result = esp_camera_af_init(sensor, &autofocus_config);
+    if (init_result != ESP_OK) {
+        ESP_LOGW(kTag, "autofocus: init failed for %s: %s", SensorName(sensor), esp_err_to_name(init_result));
+        return;
+    }
+
+    esp_camera_af_status_t status = {};
+    const esp_err_t status_result = esp_camera_af_get_status(sensor, &status);
+    if (status_result == ESP_OK) {
+        ESP_LOGI(kTag, "autofocus: enabled for %s raw=0x%02x focused=%s busy=%s", SensorName(sensor), status.raw,
+                 status.focused ? "yes" : "no", status.busy ? "yes" : "no");
+    } else {
+        ESP_LOGI(kTag, "autofocus: enabled for %s", SensorName(sensor));
+    }
+}
 #endif
 }  // namespace
 
@@ -53,6 +105,8 @@ bool CameraManager::Initialize() {
     if (sensor != nullptr) {
         sensor->set_vflip(sensor, 1);
         sensor->set_hmirror(sensor, 1);
+        ESP_LOGI(kTag, "detected sensor: %s PID=0x%x", SensorName(sensor), static_cast<unsigned int>(sensor->id.PID));
+        InitializeAutofocusIfSupported(sensor);
     }
 
     last_error_.clear();
