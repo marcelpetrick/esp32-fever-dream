@@ -13,6 +13,7 @@
 #include "freertos/task.h"
 #include "measurement_controller.h"
 #include "nvs_flash.h"
+#include "serial_capture.h"
 #include "storage_ring_buffer.h"
 #include "tinyml_display_recognizer.h"
 #include "version.h"
@@ -141,6 +142,9 @@ extern "C" void app_main(void) {
 
     const bool camera_ready = camera.Initialize();
     ESP_LOGI(kTag, "camera ready: %s", camera_ready ? "yes" : camera.LastError().c_str());
+    if (camera_ready) {
+        fever::StartSerialCaptureTask(camera);
+    }
 
     const bool wifi_ready = InitializeWifi();
     ESP_LOGI(kTag, "wifi startup: %s", wifi_ready ? "started" : "failed");

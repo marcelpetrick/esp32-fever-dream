@@ -5,6 +5,7 @@ idf_component_register(
     SRCS
         "app_main.cpp"
         "debug_capture_server.cpp"
+        "serial_capture.cpp"
         "../firmware/src/api_serializer.cpp"
         "../firmware/src/api_router.cpp"
         "../firmware/src/camera_manager.cpp"
@@ -28,6 +29,7 @@ idf_component_register(
         esp_event
         esp_netif
         esp_wifi
+        mbedtls
         nvs_flash
         esp32-camera
         esp-tflite-micro

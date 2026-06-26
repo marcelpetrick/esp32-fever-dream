@@ -168,6 +168,22 @@ Capture a local training batch from the workstation:
 
 Repeat with different `--lighting-label` values and optional camera controls such as `--brightness`, `--contrast`, `--saturation`, `--aec`, `--agc`, and `--awb`. Captures and manifests are written under ignored `tools/dataset/captures/` directories.
 
+When Wi-Fi is unavailable, use the USB serial fallback. The firmware listens
+for a `CAPTURE_JPEG` command on the serial console and returns a base64 JPEG
+between explicit markers:
+
+```bash
+./scripts/collect_serial_dataset.sh \
+  --port /dev/ttyUSB0 \
+  --count 30 \
+  --lighting-label usb-fallback \
+  --framesize vga \
+  --quality 12
+```
+
+This writes JPEGs and a `manifest.csv` under an ignored
+`tools/dataset/captures/serial_<timestamp>/` directory.
+
 For the current mounted air-quality display, the best measured first-pass
 settings are:
 

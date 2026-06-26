@@ -28,12 +28,12 @@ C4Context
     title System Context
     Person(user, "Local user", "Views recent readings in a browser")
     System(device, "ESP32 Fever Dream", "ESP32-CAM firmware, camera capture, TinyML OCR, local API")
-    System_Ext(display, "Air quality display", "Fixed screen showing temperature and humidity")
+    System_Ext(display, "Air quality sensor (AQS)", "Fixed screen showing CO2, HCHO, TVOC, temperature, and humidity")
     System_Ext(workstation, "Developer workstation", "Dataset capture, labeling, training, flashing")
 
     Rel(user, device, "Reads dashboard/API over Wi-Fi")
     Rel(device, display, "Captures 640x480 JPEG frames")
-    Rel(workstation, device, "Captures datasets, flashes firmware, queries API")
+    Rel(workstation, device, "Captures datasets over Wi-Fi or USB serial, flashes firmware, queries API")
 ```
 
 ## C4 Containers
@@ -45,6 +45,7 @@ C4Container
     System_Boundary(system, "ESP32 Fever Dream") {
         Container(firmware, "ESP32 firmware", "C++ / ESP-IDF", "Wi-Fi station, camera driver, measurement loop, TFLite Micro OCR")
         Container(api, "HTTP API", "esp_http_server", "Health, capture, status, current reading, recent readings")
+        Container(serial, "USB serial fallback", "UART console", "No-Wi-Fi JPEG capture for datasets")
         Container(web, "Static dashboard", "HTML/CSS/JS", "Browser UI served locally during development")
         Container(storage, "Reading ring buffer", "RAM", "Last 240 records")
     }
@@ -55,6 +56,7 @@ C4Container
     Rel(firmware, storage, "Appends records")
     Rel(api, storage, "Serializes records")
     Rel(training, firmware, "Exports generated model header")
+    Rel(workstation, serial, "CAPTURE_JPEG command")
 ```
 
 ## Firmware Components
@@ -64,6 +66,7 @@ flowchart LR
     Boot[app_main] --> Wifi[Wi-Fi station]
     Boot --> Camera[CameraManager]
     Boot --> Server[debug/API HTTP server]
+    Boot --> Serial[USB serial capture task]
     Boot --> Task[Measurement task]
 
     Task --> Capture[Capture JPEG]
@@ -74,6 +77,7 @@ flowchart LR
     TFLM --> Validate[Confidence and range validation]
     Validate --> Buffer[StorageRingBuffer]
     Server --> Router[ApiRouter]
+    Serial --> Capture
     Router --> Buffer
     Router --> Json[ApiSerializer]
 ```

@@ -17,6 +17,20 @@ Repeat the command for different lighting labels. The script writes JPEG files
 and a `manifest.csv`; fill the `display_text` column after capture to create
 labels for OCR evaluation and TinyML training.
 
+If the ESP32-CAM is only reachable over USB serial, use:
+
+```sh
+./scripts/collect_serial_dataset.sh \
+  --port /dev/ttyUSB0 \
+  --count 30 \
+  --lighting-label usb-fallback \
+  --framesize vga \
+  --quality 12
+```
+
+The serial protocol sends `CAPTURE_JPEG` to the device and decodes the returned
+base64 JPEG into the same ignored capture directory structure.
+
 For the first fixed-layout acquisition loop, create a local label and ROI-quality
 report after visually confirming the temperature and humidity in the captures:
 
