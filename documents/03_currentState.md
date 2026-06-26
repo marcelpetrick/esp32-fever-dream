@@ -14,6 +14,13 @@ The ESP32-CAM has a working mounted AQS prototype path:
 - Serves JSON endpoints for the local browser UI.
 - Exposes CO2, HCHO, TVOC, temperature, humidity, confidence, and OCR runtime
   fields through the API and dashboard.
+- The dashboard renders five independent history charts, one each for CO2,
+  HCHO, TVOC, temperature, and humidity. Confidence is intentionally not
+  charted.
+- The dashboard shows the firmware measurement interval, a decreasing
+  countdown/progress bar for the next expected OCR sample, and an estimated
+  pipeline breadcrumb: snapping photo, evaluating corners, doing OCR, doing
+  update.
 
 Browser URL while the local web server is running:
 
@@ -36,9 +43,9 @@ http://esp32-fever-dream
   autofocus support and enables continuous AF automatically if an AF-capable
   OV5640 module is detected.
 - Model runtime: `espressif/esp-tflite-micro`.
-- Measurement interval: 60 seconds.
-- Storage capacity: 1,440 records in RAM for the deployed app, matching the
-  dashboard's one-day history request at the current one-minute interval.
+- Measurement interval: 10 seconds for current tuning.
+- Storage capacity: 1,440 records in RAM for the deployed app, giving about
+  four hours of history at the current 10-second interval.
 - In-memory record size from host ABI: exposed at runtime as
   `storage_record_size_bytes`; current API also reports used/capacity bytes.
 - Firmware image size from the current robust-locator build: `0x149e70` bytes
@@ -53,6 +60,12 @@ GET /api/v1/status
 GET /api/v1/current
 GET /api/v1/readings/latest?count=1440
 ```
+
+`/api/v1/status` includes `measurement_interval_seconds`. The dashboard uses
+that value for its polling cadence and countdown. Current readings update when
+the firmware's periodic measurement loop has captured a new image, run OCR, and
+stored the next record; with the current tuning build this is every 10 seconds
+plus the roughly 2.2 second OCR/runtime overhead observed on-device.
 
 Current five-value API shape:
 

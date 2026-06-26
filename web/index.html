@@ -64,6 +64,21 @@
                     </div>
                 </div>
                 <p id="confidenceRule" class="rule-text">Waiting for OCR threshold</p>
+                <div class="capture-cadence" aria-label="Measurement interval countdown">
+                    <div class="cadence-row">
+                        <span id="captureCountdown">Next OCR sample in --s</span>
+                        <span id="captureInterval">Interval --s</span>
+                    </div>
+                    <div class="progress-track" aria-hidden="true">
+                        <div id="captureProgress" class="progress-fill"></div>
+                    </div>
+                </div>
+                <div id="pipelineSteps" class="pipeline-steps" aria-label="Detection pipeline">
+                    <span data-step="snapping">Snapping photo</span>
+                    <span data-step="corners">Evaluating corners</span>
+                    <span data-step="ocr">Doing OCR</span>
+                    <span data-step="update">Doing update</span>
+                </div>
                 <p id="currentMeta" class="muted">Waiting for first reading</p>
             </div>
             <div id="statusBadge" class="status-badge status-unknown">Unknown</div>
@@ -77,7 +92,7 @@
                 </div>
                 <div id="chartSummary" class="muted">No samples loaded</div>
             </div>
-            <canvas id="historyChart" width="960" height="320" aria-label="AQS history chart"></canvas>
+            <div id="chartGrid" class="chart-grid" aria-label="AQS history charts"></div>
         </section>
 
         <section class="stream-panel panel" aria-labelledby="streamTitle">

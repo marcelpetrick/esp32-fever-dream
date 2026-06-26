@@ -7,7 +7,7 @@
         latest: "/api/v1/readings/latest?count=1440"
     };
     var STORAGE_KEY = "esp32-fever-dream-ui";
-    var POLL_MS = 60000;
+    var DEFAULT_MEASUREMENT_INTERVAL_SECONDS = 10;
     var SERIES = [
         { key: "co2", label: "CO2", unit: "ppm", color: "#b84222", decimals: 0 },
         { key: "hcho", label: "HCHO", unit: "", color: "#2e6f46", decimals: 3 },
@@ -21,6 +21,10 @@
         readings: [],
         loading: false,
         lastUpdated: null,
+        lastReadingKey: null,
+        lastReadingSeenAt: null,
+        refreshTimer: null,
+        countdownTimer: null,
         lastError: null,
         streamBase: "",
         streamTimer: null,
@@ -43,8 +47,12 @@
             confidenceRule: document.getElementById("confidenceRule"),
             currentMeta: document.getElementById("currentMeta"),
             statusBadge: document.getElementById("statusBadge"),
-            chart: document.getElementById("historyChart"),
+            chartGrid: document.getElementById("chartGrid"),
             chartSummary: document.getElementById("chartSummary"),
+            captureCountdown: document.getElementById("captureCountdown"),
+            captureInterval: document.getElementById("captureInterval"),
+            captureProgress: document.getElementById("captureProgress"),
+            pipelineSteps: document.getElementById("pipelineSteps"),
             statusList: document.getElementById("statusList"),
             diagnosticsList: document.getElementById("diagnosticsList"),
             refreshButton: document.getElementById("refreshButton"),
@@ -61,7 +69,8 @@
         bindControls();
         setupStreamFromLocation();
         refreshAll();
-        window.setInterval(refreshAll, POLL_MS);
+        scheduleRefresh();
+        state.countdownTimer = window.setInterval(renderCaptureCountdown, 250);
         window.addEventListener("resize", debounce(drawChart, 120));
         window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawChart);
     });
@@ -130,9 +139,11 @@
             state.status = responses[0];
             state.current = normalizeCurrent(responses[1]);
             state.readings = normalizeReadings(responses[2]);
+            rememberCurrentSample(state.current);
             state.lastUpdated = new Date();
             state.lastError = null;
             render();
+            syncStreamTimer();
             setApiState("Live");
         }).catch(function (error) {
             state.lastError = error;
@@ -141,7 +152,21 @@
         }).finally(function () {
             state.loading = false;
             el.refreshButton.disabled = false;
+            scheduleRefresh();
         });
+    }
+
+    function scheduleRefresh() {
+        window.clearTimeout(state.refreshTimer);
+        state.refreshTimer = window.setTimeout(refreshAll, measurementIntervalSeconds() * 1000);
+    }
+
+    function syncStreamTimer() {
+        if (!state.streamBase) {
+            return;
+        }
+        window.clearInterval(state.streamTimer);
+        state.streamTimer = window.setInterval(loadStreamFrame, measurementIntervalSeconds() * 1000);
     }
 
     function setupStreamFromLocation() {
@@ -168,8 +193,7 @@
         state.streamFrames = 0;
         setStreamState("Loading");
         loadStreamFrame();
-        window.clearInterval(state.streamTimer);
-        state.streamTimer = window.setInterval(loadStreamFrame, 5000);
+        syncStreamTimer();
     }
 
     function normalizeDeviceBase(raw) {
@@ -267,6 +291,7 @@
         var humidity = pick(raw, ["humidity_percent", "humidity", "rh_percent"]);
         var duration = pick(raw, ["recognition_duration_ms", "ocr_duration_ms", "duration_ms"]);
         return {
+            timestampRaw: timestamp,
             timestamp: normalizeTimestamp(timestamp),
             co2: toNumberOrNull(co2),
             hcho: toNumberOrNull(hcho),
@@ -284,6 +309,91 @@
     function hasAnyValue(reading) {
         return SERIES.some(function (series) {
             return reading[series.key] !== null;
+        });
+    }
+
+    function rememberCurrentSample(reading) {
+        if (!reading) {
+            return;
+        }
+        var key = sampleKey(reading);
+        if (key && key !== state.lastReadingKey) {
+            state.lastReadingKey = key;
+            state.lastReadingSeenAt = new Date();
+        } else if (key && !state.lastReadingSeenAt) {
+            state.lastReadingSeenAt = new Date();
+        }
+    }
+
+    function sampleKey(reading) {
+        if (!reading) {
+            return "";
+        }
+        if (reading.timestampRaw !== null && reading.timestampRaw !== undefined && reading.timestampRaw !== "") {
+            return String(reading.timestampRaw);
+        }
+        return [
+            reading.status,
+            reading.co2,
+            reading.hcho,
+            reading.tvoc,
+            reading.temperature,
+            reading.humidity,
+            reading.confidence
+        ].join("|");
+    }
+
+    function measurementIntervalSeconds() {
+        var direct = state.status && pick(state.status, ["measurement_interval_seconds", "measurementIntervalSeconds"]);
+        var interval = toNumberOrNull(direct);
+        if (interval !== null && interval > 0) {
+            return Math.max(1, interval);
+        }
+        var capacity = state.status && toNumberOrNull(pick(state.status, ["storage_capacity_records"]));
+        var retention = state.status && toNumberOrNull(pick(state.status, ["storage_retention_minutes"]));
+        if (capacity && retention) {
+            return Math.max(1, Math.round((retention * 60) / capacity));
+        }
+        return DEFAULT_MEASUREMENT_INTERVAL_SECONDS;
+    }
+
+    function renderCaptureCountdown() {
+        if (!el.captureCountdown || !el.captureInterval || !el.captureProgress) {
+            return;
+        }
+        var interval = measurementIntervalSeconds();
+        el.captureInterval.textContent = "Interval " + interval.toFixed(0) + "s";
+        if (!state.lastReadingSeenAt) {
+            el.captureCountdown.textContent = "Next OCR sample in --s";
+            el.captureProgress.style.width = "0%";
+            return;
+        }
+        var elapsed = Math.max(0, (Date.now() - state.lastReadingSeenAt.getTime()) / 1000);
+        var remaining = Math.max(0, interval - elapsed);
+        var progress = Math.min(100, (elapsed / interval) * 100);
+        el.captureCountdown.textContent = remaining <= 0.3 ? "Waiting for new OCR sample" : "Next OCR sample in " + Math.ceil(remaining) + "s";
+        el.captureProgress.style.width = progress.toFixed(1) + "%";
+        renderPipelineStep(remaining, interval);
+    }
+
+    function renderPipelineStep(remaining, interval) {
+        if (!el.pipelineSteps) {
+            return;
+        }
+        var active = "update";
+        if (state.loading) {
+            active = "update";
+        } else if (!state.lastReadingSeenAt) {
+            active = "snapping";
+        } else if (remaining <= Math.max(1, interval * 0.18)) {
+            active = "snapping";
+        } else if (remaining <= Math.max(2, interval * 0.38)) {
+            active = "corners";
+        } else if (remaining <= Math.max(3, interval * 0.58)) {
+            active = "ocr";
+        }
+        Array.prototype.forEach.call(el.pipelineSteps.querySelectorAll("[data-step]"), function (item) {
+            item.classList.toggle("is-active", item.dataset.step === active);
         });
     }
 
@@ -338,7 +448,7 @@
 
         var parts = [];
         if (reading && reading.timestamp) {
-            parts.push("Measured " + formatDateTime(reading.timestamp));
+            parts.push("Measured " + formatSampleTimestamp(reading));
         }
         if (reading && reading.confidence !== null) {
             parts.push("confidence " + formatConfidence(reading.confidence));
@@ -369,6 +479,7 @@
         var status = reading ? reading.status : "unknown";
         el.statusBadge.textContent = humanize(status);
         el.statusBadge.className = "status-badge " + statusClass(status);
+        renderCaptureCountdown();
     }
 
     function renderDetails() {
@@ -443,14 +554,49 @@
     }
 
     function drawChart() {
-        if (!el.chart) {
+        if (!el.chartGrid) {
             return;
         }
-        var ctx = el.chart.getContext("2d");
-        var rect = el.chart.getBoundingClientRect();
+        ensureMetricCanvases();
+        var valid = state.readings.filter(function (reading) {
+            return hasAnyValue(reading);
+        });
+        SERIES.forEach(function (series) {
+            var canvas = document.getElementById("chart-" + series.key);
+            if (canvas) {
+                drawMetricChart(canvas, valid, series);
+            }
+        });
+        if (!valid.length) {
+            el.chartSummary.textContent = state.lastError ? "API unavailable" : "No valid samples";
+            return;
+        }
+        el.chartSummary.textContent = valid.length + " valid · five independent scales";
+    }
+
+    function ensureMetricCanvases() {
+        SERIES.forEach(function (series) {
+            if (document.getElementById("chart-" + series.key)) {
+                return;
+            }
+            var card = document.createElement("article");
+            var canvas = document.createElement("canvas");
+            card.className = "metric-chart";
+            canvas.id = "chart-" + series.key;
+            canvas.width = 520;
+            canvas.height = 220;
+            canvas.setAttribute("aria-label", series.label + " history chart");
+            card.appendChild(canvas);
+            el.chartGrid.appendChild(card);
+        });
+    }
+
+    function drawMetricChart(canvas, readings, series) {
+        var ctx = canvas.getContext("2d");
+        var rect = canvas.getBoundingClientRect();
         var ratio = window.devicePixelRatio || 1;
-        el.chart.width = Math.max(320, Math.floor(rect.width * ratio));
-        el.chart.height = Math.max(220, Math.floor(rect.height * ratio));
+        canvas.width = Math.max(280, Math.floor(rect.width * ratio));
+        canvas.height = Math.max(180, Math.floor(rect.height * ratio));
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
         var width = rect.width;
@@ -460,112 +606,119 @@
         var text = styles.getPropertyValue("--text").trim();
         var muted = styles.getPropertyValue("--muted").trim();
         var line = styles.getPropertyValue("--line").trim();
-        var accent = styles.getPropertyValue("--accent").trim();
-        var bad = styles.getPropertyValue("--bad").trim();
 
         ctx.clearRect(0, 0, width, height);
         ctx.fillStyle = surface;
         ctx.fillRect(0, 0, width, height);
 
-        var valid = state.readings.filter(function (reading) {
-            return hasAnyValue(reading);
-        });
-        if (!valid.length) {
-            ctx.fillStyle = muted;
-            ctx.font = "700 15px system-ui, sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText(state.lastError ? "API unavailable" : "No history samples", width / 2, height / 2);
-            el.chartSummary.textContent = "No valid samples";
-            return;
-        }
-
-        var padding = { top: 28, right: 18, bottom: 34, left: 52 };
-        var plotW = width - padding.left - padding.right;
-        var plotH = height - padding.top - padding.bottom;
-
-        ctx.strokeStyle = line;
-        ctx.lineWidth = 1;
-        ctx.fillStyle = muted;
-        ctx.font = "12px system-ui, sans-serif";
-        ctx.textAlign = "right";
-        for (var tick = 0; tick <= 4; tick += 1) {
-            var y = padding.top + (plotH * tick / 4);
-            ctx.beginPath();
-            ctx.moveTo(padding.left, y);
-            ctx.lineTo(width - padding.right, y);
-            ctx.stroke();
-            ctx.fillText(String(100 - (tick * 25)) + "%", padding.left - 8, y + 4);
-        }
-
-        SERIES.forEach(function (series) {
-            drawSeries(ctx, valid, series, padding, plotW, plotH);
-        });
-
-        ctx.fillStyle = bad;
-        state.readings.forEach(function (reading, index) {
-            if (!hasAnyValue(reading)) {
-                var x = padding.left + (state.readings.length === 1 ? plotW : plotW * index / (state.readings.length - 1));
-                ctx.fillRect(x - 1, padding.top, 2, plotH);
-            }
-        });
-
-        drawLegend(ctx, padding.left, 14);
-
-        ctx.fillStyle = text;
-        ctx.textAlign = "left";
-        var first = valid[0].timestamp ? formatTime(valid[0].timestamp) : "start";
-        var last = valid[valid.length - 1].timestamp ? formatTime(valid[valid.length - 1].timestamp) : "latest";
-        ctx.fillText(first, padding.left, height - 10);
-        ctx.textAlign = "right";
-        ctx.fillText(last, width - padding.right, height - 10);
-
-        el.chartSummary.textContent = valid.length + " valid · normalized AQS trends";
-    }
-
-    function drawSeries(ctx, readings, series, padding, plotW, plotH) {
         var values = readings.map(function (reading) {
             return reading[series.key];
         }).filter(function (value) {
             return value !== null;
         });
+
+        var padding = { top: 30, right: 18, bottom: 30, left: 58 };
+        var plotW = Math.max(1, width - padding.left - padding.right);
+        var plotH = Math.max(1, height - padding.top - padding.bottom);
+
+        ctx.fillStyle = text;
+        ctx.font = "800 13px system-ui, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(series.label, padding.left, 18);
+
         if (!values.length) {
+            ctx.fillStyle = muted;
+            ctx.font = "700 13px system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("No samples", width / 2, height / 2);
             return;
         }
-        var min = Math.min.apply(null, values);
-        var max = Math.max.apply(null, values);
-        var span = Math.max(1, max - min);
+
+        var range = paddedRange(values);
+        drawMetricGrid(ctx, series, range, padding, plotW, plotH, line, muted);
+        drawMetricLine(ctx, readings, series, range, padding, plotW, plotH);
+        drawMetricMarkers(ctx, readings, series, range, padding, plotW, plotH);
+
+        ctx.fillStyle = muted;
+        ctx.font = "11px system-ui, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(sampleLabel(readings[0]), padding.left, height - 9);
+        ctx.textAlign = "right";
+        ctx.fillText(sampleLabel(readings[readings.length - 1]), width - padding.right, height - 9);
+    }
+
+    function drawMetricGrid(ctx, series, range, padding, plotW, plotH, line, muted) {
+        ctx.strokeStyle = line;
+        ctx.lineWidth = 1;
+        ctx.fillStyle = muted;
+        ctx.font = "11px system-ui, sans-serif";
+        ctx.textAlign = "right";
+        for (var tick = 0; tick <= 3; tick += 1) {
+            var ratio = tick / 3;
+            var y = padding.top + (plotH * ratio);
+            var value = range.max - ((range.max - range.min) * ratio);
+            ctx.beginPath();
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(padding.left + plotW, y);
+            ctx.stroke();
+            ctx.fillText(formatSeriesValue(value, series), padding.left - 8, y + 4);
+        }
+    }
+
+    function drawMetricLine(ctx, readings, series, range, padding, plotW, plotH) {
         var started = false;
-        ctx.strokeStyle = series.color;
+        ctx.strokeStyle = colorWithAlpha(series.color, 0.5);
         ctx.lineWidth = 2;
         ctx.beginPath();
         readings.forEach(function (reading, index) {
-            var value = reading[series.key];
-            if (value === null) {
+            var point = metricPoint(reading, index, readings.length, series, range, padding, plotW, plotH);
+            if (!point) {
                 started = false;
                 return;
             }
-            var x = padding.left + (readings.length === 1 ? plotW : plotW * index / (readings.length - 1));
-            var y = padding.top + plotH - ((value - min) / span) * plotH;
             if (!started) {
-                ctx.moveTo(x, y);
+                ctx.moveTo(point.x, point.y);
                 started = true;
             } else {
-                ctx.lineTo(x, y);
+                ctx.lineTo(point.x, point.y);
             }
         });
         ctx.stroke();
     }
 
-    function drawLegend(ctx, x, y) {
-        ctx.textAlign = "left";
-        ctx.font = "700 12px system-ui, sans-serif";
-        var offset = 0;
-        SERIES.forEach(function (series) {
-            ctx.fillStyle = series.color;
-            ctx.fillRect(x + offset, y - 8, 10, 10);
-            ctx.fillText(series.label, x + offset + 14, y);
-            offset += 78;
+    function drawMetricMarkers(ctx, readings, series, range, padding, plotW, plotH) {
+        ctx.strokeStyle = series.color;
+        ctx.lineWidth = 1.3;
+        readings.forEach(function (reading, index) {
+            var point = metricPoint(reading, index, readings.length, series, range, padding, plotW, plotH);
+            if (!point) {
+                return;
+            }
+            ctx.beginPath();
+            ctx.moveTo(point.x - 3, point.y - 3);
+            ctx.lineTo(point.x + 3, point.y + 3);
+            ctx.moveTo(point.x + 3, point.y - 3);
+            ctx.lineTo(point.x - 3, point.y + 3);
+            ctx.stroke();
         });
+    }
+
+    function metricPoint(reading, index, total, series, range, padding, plotW, plotH) {
+        var value = reading[series.key];
+        if (value === null) {
+            return null;
+        }
+        var x = padding.left + (total === 1 ? plotW : plotW * index / (total - 1));
+        var y = padding.top + plotH - ((value - range.min) / (range.max - range.min)) * plotH;
+        return { x: x, y: y };
+    }
+
+    function paddedRange(values) {
+        var min = Math.min.apply(null, values);
+        var max = Math.max.apply(null, values);
+        var span = max - min;
+        var pad = span <= 0 ? Math.max(1, Math.abs(max) * 0.08) : span * 0.12;
+        return { min: min - pad, max: max + pad };
     }
 
     function statusClass(status) {
@@ -615,11 +768,28 @@
         }).format(date);
     }
 
+    function formatSampleTimestamp(reading) {
+        if (reading && typeof reading.timestampRaw === "number" && reading.timestampRaw < 1000000000) {
+            return "t+" + Math.round(reading.timestampRaw) + "s";
+        }
+        return reading && reading.timestamp ? formatDateTime(reading.timestamp) : "unknown time";
+    }
+
     function formatTime(date) {
         return new Intl.DateTimeFormat(undefined, {
             hour: "2-digit",
             minute: "2-digit"
         }).format(date);
+    }
+
+    function sampleLabel(reading) {
+        if (!reading) {
+            return "";
+        }
+        if (typeof reading.timestampRaw === "number" && reading.timestampRaw < 1000000000) {
+            return "t+" + Math.round(reading.timestampRaw) + "s";
+        }
+        return reading.timestamp ? formatTime(reading.timestamp) : "";
     }
 
     function normalizeConfidencePercent(value) {
@@ -666,6 +836,14 @@
         return values.reduce(function (sum, value) {
             return sum + value;
         }, 0) / values.length;
+    }
+
+    function colorWithAlpha(hex, alpha) {
+        var match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        if (!match) {
+            return hex;
+        }
+        return "rgba(" + parseInt(match[1], 16) + "," + parseInt(match[2], 16) + "," + parseInt(match[3], 16) + "," + alpha + ")";
     }
 
     function debounce(fn, delay) {

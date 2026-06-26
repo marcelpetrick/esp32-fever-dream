@@ -123,6 +123,7 @@ std::string SerializeStatus(const DiagnosticsSnapshot& diagnostics, std::size_t 
         << ",\"storage_record_size_bytes\":" << storage_record_size_bytes
         << ",\"storage_used_bytes\":" << storage_used_bytes
         << ",\"storage_capacity_bytes\":" << storage_capacity_bytes
+        << ",\"measurement_interval_seconds\":" << config::kMeasurementIntervalSeconds
         << ",\"storage_retention_minutes\":" << (storage_capacity * config::kMeasurementIntervalSeconds / 60U)
         << ",\"storage_retention_hours\":"
         << (static_cast<double>(storage_capacity * config::kMeasurementIntervalSeconds) / 3600.0)
