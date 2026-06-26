@@ -186,13 +186,25 @@ def wait_for_serial_capture_ready(serial: SerialPort, timeout_s: float) -> bool:
     return saw_ready
 
 
+def next_capture_index(output_dir: Path) -> int:
+    highest = 0
+    for image_path in output_dir.glob("capture_*.jpg"):
+        try:
+            highest = max(highest, int(image_path.stem.split("_", 1)[1]))
+        except (IndexError, ValueError):
+            continue
+    return highest + 1
+
+
 def main(argv: Iterable[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = args.output_dir / "manifest.csv"
     command = "CAPTURE_JPEG " + " ".join(camera_settings(args))
+    start_index = next_capture_index(args.output_dir)
+    write_header = not manifest_path.exists() or manifest_path.stat().st_size == 0
 
-    with manifest_path.open("w", encoding="utf-8", newline="") as manifest_file:
+    with manifest_path.open("a", encoding="utf-8", newline="") as manifest_file:
         writer = csv.DictWriter(
             manifest_file,
             fieldnames=[
@@ -216,7 +228,8 @@ def main(argv: Iterable[str] | None = None) -> int:
                 "notes",
             ],
         )
-        writer.writeheader()
+        if write_header:
+            writer.writeheader()
 
         serial = SerialPort(args.port, args.baud)
         try:
@@ -224,10 +237,10 @@ def main(argv: Iterable[str] | None = None) -> int:
                 serial.reset_board()
             if args.startup_wait > 0:
                 if wait_for_serial_capture_ready(serial, args.startup_wait):
-                    print("[INFO] serial capture task is ready")
+                    print("[INFO] serial capture task is ready", flush=True)
                 else:
                     print("[WARN] did not see FEVER_SERIAL_CAPTURE_READY before first request", file=sys.stderr)
-            for index in range(1, args.count + 1):
+            for index in range(start_index, start_index + args.count):
                 sample_id = f"capture_{index:04d}"
                 image_path = args.output_dir / f"{sample_id}.jpg"
                 captured_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -236,13 +249,13 @@ def main(argv: Iterable[str] | None = None) -> int:
                     image_path.write_bytes(data)
                     status = "ok"
                     notes = "serial_capture"
-                    print(f"[INFO] {sample_id}: wrote {image_path} ({len(data)} bytes)")
+                    print(f"[INFO] {sample_id}: wrote {image_path} ({len(data)} bytes)", flush=True)
                 except Exception as exc:
                     data = b""
                     metadata = {}
                     status = "failed"
                     notes = str(exc)
-                    print(f"[WARN] {sample_id}: {exc}", file=sys.stderr)
+                    print(f"[WARN] {sample_id}: {exc}", file=sys.stderr, flush=True)
 
                 writer.writerow(
                     {
@@ -272,7 +285,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         finally:
             serial.close()
 
-    print(f"[INFO] wrote {manifest_path}")
+    print(f"[INFO] wrote {manifest_path}", flush=True)
     return 0
 
 
