@@ -10,6 +10,10 @@ std::size_t StorageRingBuffer::Capacity() const { return records_.size(); }
 
 std::size_t StorageRingBuffer::Count() const { return count_; }
 
+std::size_t StorageRingBuffer::CapacityBytes() const { return records_.size() * RecordSizeBytes(); }
+
+std::size_t StorageRingBuffer::UsedBytes() const { return count_ * RecordSizeBytes(); }
+
 bool StorageRingBuffer::Empty() const { return count_ == 0U; }
 
 bool StorageRingBuffer::Full() const { return count_ == records_.size() && !records_.empty(); }

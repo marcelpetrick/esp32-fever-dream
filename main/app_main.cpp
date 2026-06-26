@@ -33,7 +33,7 @@ fever::StorageRingBuffer* g_readings = nullptr;
 fever::Diagnostics* g_diagnostics = nullptr;
 fever::TimeManager g_time;
 fever::CameraManager g_camera_runtime;
-fever::StorageRingBuffer g_readings_runtime(240);
+fever::StorageRingBuffer g_readings_runtime(fever::config::kRuntimeStorageRecords);
 fever::Diagnostics g_diagnostics_runtime;
 
 const char* WifiDisconnectReasonName(uint8_t reason) {

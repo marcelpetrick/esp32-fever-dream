@@ -30,10 +30,8 @@ struct DigitSegments {
 struct RecognitionResult {
     /** True when a plausible temperature was recognized. */
     bool ok;
-    /** Temperature in centi-degrees Celsius when `ok` is true. */
-    int16_t temperature_centi_c;
-    /** Relative humidity percent, or kHumidityUnavailable when unknown. */
-    uint8_t humidity_percent;
+    /** Five-value AQS payload when `ok` is true. */
+    AqsValues values;
     /** Recognition confidence percentage. */
     ConfidencePercent confidence;
     /** End-to-end recognition runtime in milliseconds. */

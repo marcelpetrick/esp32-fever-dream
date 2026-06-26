@@ -4,14 +4,16 @@ Last updated: 2026-06-26.
 
 ## Summary
 
-The ESP32-CAM has a working mounted prototype path:
+The ESP32-CAM has a working mounted AQS prototype path:
 
 - Connects to the ignored `wifi.env` network as a Wi-Fi station.
 - Is reachable by hostname as `esp32-fever-dream`.
-- Captures the fixed display once per minute.
+- Captures the fixed AQS display once per minute.
 - Runs an embedded int8 TFLite Micro digit classifier on the ESP32.
 - Stores readings in an in-memory ring buffer.
 - Serves JSON endpoints for the local browser UI.
+- Exposes CO2, HCHO, TVOC, temperature, humidity, confidence, and OCR runtime
+  fields through the API and dashboard.
 
 Browser URL while the local web server is running:
 
@@ -27,13 +29,15 @@ http://esp32-fever-dream
 
 ## Deployed Firmware
 
-- Source version: `0.0.16`.
+- Source version: `0.0.20` after the five-value implementation is committed.
 - ESP-IDF target: `esp32`.
 - Camera: AI-Thinker ESP32-CAM / OV2640.
 - Model runtime: `espressif/esp-tflite-micro`.
 - Measurement interval: 60 seconds.
 - Storage capacity: 240 records in RAM for the deployed app.
-- Firmware image size from the latest build: about `0x141ec0` bytes with about
+- In-memory record size from host ABI: exposed at runtime as
+  `storage_record_size_bytes`; current API also reports used/capacity bytes.
+- Firmware image size from the latest build: about `0x143720` bytes with about
   28% of the app partition free.
 
 Useful endpoints:
@@ -50,6 +54,23 @@ Observed during deployment before the final no-more-flashing stop:
 
 ```json
 {"temperature_c":29.00,"humidity_percent":41,"status":"ok","confidence":0.89}
+```
+
+Current five-value API shape:
+
+```json
+{
+  "co2_ppm": 794,
+  "hcho": 0.057,
+  "hcho_raw": 57,
+  "tvoc": 0.159,
+  "tvoc_raw": 159,
+  "temperature_c": 23.00,
+  "humidity_percent": 41,
+  "status": "ok",
+  "confidence": 0.89,
+  "recognition_duration_ms": 180
+}
 ```
 
 The display later changed to a visually confirmed `27C / 41%`. The host-side
@@ -107,9 +128,12 @@ remain ignored.
 The prototype has an end-to-end implementation, but the OCR result is not yet
 stable enough for unattended use:
 
-- The mounted model is trained on only one real reading value, plus synthetic
+- The mounted model is trained on only one real temperature/humidity reading
+  value, plus synthetic
   augmentation.
 - The digit ROIs are fixed to the current physical camera/display alignment.
+- CO2, HCHO, and TVOC boxes are provisional from an older visible AQS capture
+  and must be recalibrated from a new serial or HTTP dataset.
 - Temporary firmware corrections map observed mounted-display misreads back to
   the visually confirmed values `29C / 41%` and `27C / 41%`.
 - Confidence threshold is relaxed to 60% for the mounted prototype.
@@ -126,9 +150,9 @@ Continue from the working prototype, not from scratch:
    24x32 digit tensors. This is the fastest way to remove host/device
    preprocessing uncertainty.
 
-2. Capture new real batches when the display changes.
+2. Capture new real AQS batches when the display changes.
    Do not take hundreds of identical frames. Capture 10-30 frames per changed
-   reading and label temperature plus humidity.
+   reading and label CO2, HCHO, TVOC, temperature, and humidity.
 
 3. Expand real digit coverage.
    The blocker for production is real samples for all digits `0` through `9`,

@@ -8,6 +8,13 @@
     };
     var STORAGE_KEY = "esp32-fever-dream-ui";
     var POLL_MS = 60000;
+    var SERIES = [
+        { key: "co2", label: "CO2", unit: "ppm", color: "#b84222", decimals: 0 },
+        { key: "hcho", label: "HCHO", unit: "", color: "#2e6f46", decimals: 3 },
+        { key: "tvoc", label: "TVOC", unit: "", color: "#6f4fb5", decimals: 3 },
+        { key: "temperature", label: "Temp", unit: "°C", color: "#1f6fb2", decimals: 1 },
+        { key: "humidity", label: "Humidity", unit: "%", color: "#9a6500", decimals: 0 }
+    ];
     var state = {
         status: null,
         current: null,
@@ -27,6 +34,9 @@
         el = {
             modeSelect: document.getElementById("modeSelect"),
             themeSelect: document.getElementById("themeSelect"),
+            currentCo2: document.getElementById("currentCo2"),
+            currentHcho: document.getElementById("currentHcho"),
+            currentTvoc: document.getElementById("currentTvoc"),
             currentTemp: document.getElementById("currentTemp"),
             currentHumidity: document.getElementById("currentHumidity"),
             currentConfidence: document.getElementById("currentConfidence"),
@@ -243,18 +253,24 @@
             raw = payload.data;
         }
         return raw.map(normalizeReading).filter(function (reading) {
-            return reading.timestamp || reading.temperature !== null || reading.status !== "unknown";
+            return reading.timestamp || hasAnyValue(reading) || reading.status !== "unknown";
         });
     }
 
     function normalizeReading(raw) {
         var timestamp = pick(raw, ["timestamp", "time", "ts", "created_at"]);
+        var co2 = pick(raw, ["co2_ppm", "co2", "co2ppm"]);
+        var hcho = pick(raw, ["hcho", "hcho_value"]);
+        var tvoc = pick(raw, ["tvoc", "tvoc_value"]);
         var temperature = pick(raw, ["temperature_c", "temperature", "temp_c", "value"]);
         var confidence = pick(raw, ["confidence", "quality", "score"]);
         var humidity = pick(raw, ["humidity_percent", "humidity", "rh_percent"]);
         var duration = pick(raw, ["recognition_duration_ms", "ocr_duration_ms", "duration_ms"]);
         return {
             timestamp: normalizeTimestamp(timestamp),
+            co2: toNumberOrNull(co2),
+            hcho: toNumberOrNull(hcho),
+            tvoc: toNumberOrNull(tvoc),
             temperature: toNumberOrNull(temperature),
             humidity: toNumberOrNull(humidity),
             status: String(pick(raw, ["status", "state"], "unknown") || "unknown"),
@@ -263,6 +279,12 @@
             source: pick(raw, ["source", "recognition_source"], ""),
             error: pick(raw, ["error", "message"], "")
         };
+    }
+
+    function hasAnyValue(reading) {
+        return SERIES.some(function (series) {
+            return reading[series.key] !== null;
+        });
     }
 
     function normalizeTimestamp(value) {
@@ -299,16 +321,11 @@
 
     function renderCurrent() {
         var reading = state.current;
-        if (reading && reading.temperature !== null) {
-            el.currentTemp.textContent = reading.temperature.toFixed(1);
-        } else {
-            el.currentTemp.textContent = "--.-";
-        }
-        if (reading && reading.humidity !== null) {
-            el.currentHumidity.textContent = reading.humidity.toFixed(0);
-        } else {
-            el.currentHumidity.textContent = "--";
-        }
+        el.currentCo2.textContent = formatMetric(reading, "co2", "----");
+        el.currentHcho.textContent = formatMetric(reading, "hcho", "-.---");
+        el.currentTvoc.textContent = formatMetric(reading, "tvoc", "-.---");
+        el.currentTemp.textContent = formatMetric(reading, "temperature", "--.-");
+        el.currentHumidity.textContent = formatMetric(reading, "humidity", "--");
         if (reading && reading.confidence !== null) {
             el.currentConfidence.textContent = String(Math.round(normalizeConfidencePercent(reading.confidence)));
         } else {
@@ -325,6 +342,15 @@
         }
         if (reading && reading.confidence !== null) {
             parts.push("confidence " + formatConfidence(reading.confidence));
+        }
+        if (reading && reading.co2 !== null) {
+            parts.push("CO2 " + reading.co2.toFixed(0) + " ppm");
+        }
+        if (reading && reading.hcho !== null) {
+            parts.push("HCHO " + reading.hcho.toFixed(3));
+        }
+        if (reading && reading.tvoc !== null) {
+            parts.push("TVOC " + reading.tvoc.toFixed(3));
         }
         if (reading && reading.humidity !== null) {
             parts.push("humidity " + reading.humidity.toFixed(0) + "%");
@@ -361,22 +387,21 @@
 
     function collectDiagnostics() {
         var valid = state.readings.filter(function (reading) {
-            return reading.temperature !== null;
+            return hasAnyValue(reading);
         });
         var failed = state.readings.length - valid.length;
-        var values = valid.map(function (reading) {
-            return reading.temperature;
-        });
         var rows = [
             ["Samples loaded", String(state.readings.length)],
             ["Valid readings", String(valid.length)],
             ["Failed readings", String(failed)]
         ];
-        if (values.length) {
-            rows.push(["Minimum", Math.min.apply(null, values).toFixed(1) + " °C"]);
-            rows.push(["Maximum", Math.max.apply(null, values).toFixed(1) + " °C"]);
-            rows.push(["Average", average(values).toFixed(1) + " °C"]);
-        }
+        SERIES.forEach(function (series) {
+            var values = metricValues(series.key);
+            if (values.length) {
+                rows.push([series.label + " avg", formatSeriesValue(average(values), series)]);
+                rows.push([series.label + " range", formatSeriesValue(Math.min.apply(null, values), series) + " to " + formatSeriesValue(Math.max.apply(null, values), series)]);
+            }
+        });
         var durations = state.readings.map(function (reading) {
             return reading.recognitionDurationMs;
         }).filter(function (value) {
@@ -443,7 +468,7 @@
         ctx.fillRect(0, 0, width, height);
 
         var valid = state.readings.filter(function (reading) {
-            return reading.temperature !== null;
+            return hasAnyValue(reading);
         });
         if (!valid.length) {
             ctx.fillStyle = muted;
@@ -454,15 +479,9 @@
             return;
         }
 
-        var padding = { top: 22, right: 18, bottom: 32, left: 44 };
+        var padding = { top: 28, right: 18, bottom: 34, left: 52 };
         var plotW = width - padding.left - padding.right;
         var plotH = height - padding.top - padding.bottom;
-        var values = valid.map(function (reading) { return reading.temperature; });
-        var min = Math.min.apply(null, values);
-        var max = Math.max.apply(null, values);
-        var span = Math.max(1, max - min);
-        min -= span * 0.15;
-        max += span * 0.15;
 
         ctx.strokeStyle = line;
         ctx.lineWidth = 1;
@@ -471,35 +490,26 @@
         ctx.textAlign = "right";
         for (var tick = 0; tick <= 4; tick += 1) {
             var y = padding.top + (plotH * tick / 4);
-            var value = max - ((max - min) * tick / 4);
             ctx.beginPath();
             ctx.moveTo(padding.left, y);
             ctx.lineTo(width - padding.right, y);
             ctx.stroke();
-            ctx.fillText(value.toFixed(1), padding.left - 8, y + 4);
+            ctx.fillText(String(100 - (tick * 25)) + "%", padding.left - 8, y + 4);
         }
 
-        ctx.strokeStyle = accent;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        valid.forEach(function (reading, index) {
-            var x = padding.left + (valid.length === 1 ? plotW : plotW * index / (valid.length - 1));
-            var yPoint = padding.top + plotH - ((reading.temperature - min) / (max - min)) * plotH;
-            if (index === 0) {
-                ctx.moveTo(x, yPoint);
-            } else {
-                ctx.lineTo(x, yPoint);
-            }
+        SERIES.forEach(function (series) {
+            drawSeries(ctx, valid, series, padding, plotW, plotH);
         });
-        ctx.stroke();
 
         ctx.fillStyle = bad;
         state.readings.forEach(function (reading, index) {
-            if (reading.temperature === null) {
+            if (!hasAnyValue(reading)) {
                 var x = padding.left + (state.readings.length === 1 ? plotW : plotW * index / (state.readings.length - 1));
                 ctx.fillRect(x - 1, padding.top, 2, plotH);
             }
         });
+
+        drawLegend(ctx, padding.left, 14);
 
         ctx.fillStyle = text;
         ctx.textAlign = "left";
@@ -509,7 +519,53 @@
         ctx.textAlign = "right";
         ctx.fillText(last, width - padding.right, height - 10);
 
-        el.chartSummary.textContent = valid.length + " valid · " + minMaxLabel(values);
+        el.chartSummary.textContent = valid.length + " valid · normalized AQS trends";
+    }
+
+    function drawSeries(ctx, readings, series, padding, plotW, plotH) {
+        var values = readings.map(function (reading) {
+            return reading[series.key];
+        }).filter(function (value) {
+            return value !== null;
+        });
+        if (!values.length) {
+            return;
+        }
+        var min = Math.min.apply(null, values);
+        var max = Math.max.apply(null, values);
+        var span = Math.max(1, max - min);
+        var started = false;
+        ctx.strokeStyle = series.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        readings.forEach(function (reading, index) {
+            var value = reading[series.key];
+            if (value === null) {
+                started = false;
+                return;
+            }
+            var x = padding.left + (readings.length === 1 ? plotW : plotW * index / (readings.length - 1));
+            var y = padding.top + plotH - ((value - min) / span) * plotH;
+            if (!started) {
+                ctx.moveTo(x, y);
+                started = true;
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        ctx.stroke();
+    }
+
+    function drawLegend(ctx, x, y) {
+        ctx.textAlign = "left";
+        ctx.font = "700 12px system-ui, sans-serif";
+        var offset = 0;
+        SERIES.forEach(function (series) {
+            ctx.fillStyle = series.color;
+            ctx.fillRect(x + offset, y - 8, 10, 10);
+            ctx.fillText(series.label, x + offset + 14, y);
+            offset += 78;
+        });
     }
 
     function statusClass(status) {
@@ -583,14 +639,33 @@
         return Math.round(normalizeConfidencePercent(value)) + "%";
     }
 
+    function formatMetric(reading, key, fallback) {
+        if (!reading || reading[key] === null) {
+            return fallback;
+        }
+        var series = SERIES.filter(function (item) {
+            return item.key === key;
+        })[0];
+        return reading[key].toFixed(series ? series.decimals : 1);
+    }
+
+    function metricValues(key) {
+        return state.readings.map(function (reading) {
+            return reading[key];
+        }).filter(function (value) {
+            return value !== null;
+        });
+    }
+
+    function formatSeriesValue(value, series) {
+        var formatted = value.toFixed(series.decimals);
+        return series.unit ? formatted + " " + series.unit : formatted;
+    }
+
     function average(values) {
         return values.reduce(function (sum, value) {
             return sum + value;
         }, 0) / values.length;
-    }
-
-    function minMaxLabel(values) {
-        return Math.min.apply(null, values).toFixed(1) + " to " + Math.max.apply(null, values).toFixed(1) + " °C";
     }
 
     function debounce(fn, delay) {

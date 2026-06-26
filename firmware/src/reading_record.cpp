@@ -2,22 +2,44 @@
 
 namespace fever {
 
-ReadingRecord ReadingRecord::Success(uint32_t timestamp_s, int16_t temperature_centi_c, ConfidencePercent confidence,
-                                     ReadingFlags flags, uint8_t humidity_percent,
-                                     uint16_t recognition_duration_ms) {
-    return ReadingRecord{timestamp_s, temperature_centi_c, humidity_percent, ReadingStatus::kOk, confidence,
-                         recognition_duration_ms, flags};
+ReadingRecord ReadingRecord::Success(uint32_t timestamp_s, AqsValues values, ConfidencePercent confidence,
+                                     ReadingFlags flags, uint16_t recognition_duration_ms) {
+    return ReadingRecord{timestamp_s, values.co2_ppm, values.hcho_raw, values.tvoc_raw, values.temperature_centi_c,
+                         values.humidity_percent, ReadingStatus::kOk, confidence, recognition_duration_ms, flags};
 }
 
 ReadingRecord ReadingRecord::Failure(uint32_t timestamp_s, ReadingStatus status, ConfidencePercent confidence,
                                      ReadingFlags flags, uint16_t recognition_duration_ms) {
-    return ReadingRecord{timestamp_s, 0, kHumidityUnavailable, status, confidence, recognition_duration_ms, flags};
+    return ReadingRecord{timestamp_s, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                         kTemperatureUnavailable, kHumidityUnavailable, status, confidence, recognition_duration_ms,
+                         flags};
 }
 
 bool ReadingRecord::IsSuccess() const { return status == ReadingStatus::kOk; }
 
+std::optional<uint16_t> ReadingRecord::Co2Ppm() const {
+    if (!IsSuccess() || co2_ppm == kAqsUnsignedUnavailable) {
+        return std::nullopt;
+    }
+    return co2_ppm;
+}
+
+std::optional<uint16_t> ReadingRecord::HchoRaw() const {
+    if (!IsSuccess() || hcho_raw == kAqsUnsignedUnavailable) {
+        return std::nullopt;
+    }
+    return hcho_raw;
+}
+
+std::optional<uint16_t> ReadingRecord::TvocRaw() const {
+    if (!IsSuccess() || tvoc_raw == kAqsUnsignedUnavailable) {
+        return std::nullopt;
+    }
+    return tvoc_raw;
+}
+
 std::optional<float> ReadingRecord::TemperatureCelsius() const {
-    if (!IsSuccess()) {
+    if (!IsSuccess() || temperature_centi_c == kTemperatureUnavailable) {
         return std::nullopt;
     }
     return static_cast<float>(temperature_centi_c) / 100.0F;

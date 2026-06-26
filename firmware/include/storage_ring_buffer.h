@@ -18,6 +18,12 @@ class StorageRingBuffer {
     [[nodiscard]] std::size_t Capacity() const;
     /** Return current number of stored records. */
     [[nodiscard]] std::size_t Count() const;
+    /** Return the byte size of one in-memory record. */
+    [[nodiscard]] static constexpr std::size_t RecordSizeBytes() { return sizeof(ReadingRecord); }
+    /** Return approximate bytes reserved for records. */
+    [[nodiscard]] std::size_t CapacityBytes() const;
+    /** Return approximate bytes used by currently stored records. */
+    [[nodiscard]] std::size_t UsedBytes() const;
     /** Return true when no records are stored. */
     [[nodiscard]] bool Empty() const;
     /** Return true when the next append overwrites the oldest record. */

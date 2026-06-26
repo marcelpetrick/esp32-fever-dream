@@ -13,7 +13,9 @@ namespace fever {
 class RecordCodec {
    public:
     /** Serialized record size in bytes. */
-    static constexpr std::size_t kEncodedSize = 14U;
+    static constexpr std::size_t kEncodedSize = 22U;
+    /** Serialized record schema version. */
+    static constexpr uint8_t kSchemaVersion = 2U;
 
     /** Encode a reading record into a fixed-size little-endian byte array. */
     [[nodiscard]] static std::array<uint8_t, kEncodedSize> Encode(const ReadingRecord& record);

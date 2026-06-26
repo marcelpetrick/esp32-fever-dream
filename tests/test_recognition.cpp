@@ -9,11 +9,11 @@ void TestRecognition() {
 
     const auto parsed = fever::ParseDisplayText("21.7", fever::ConfidencePercent{95U});
     REQUIRE(parsed.ok);
-    REQUIRE(parsed.temperature_centi_c == 2170);
+    REQUIRE(parsed.values.temperature_centi_c == 2170);
 
     const auto negative = fever::ParseDisplayText("-1.25", fever::ConfidencePercent{99U});
     REQUIRE(negative.ok);
-    REQUIRE(negative.temperature_centi_c == -125);
+    REQUIRE(negative.values.temperature_centi_c == -125);
 
     const auto low_confidence = fever::ParseDisplayText("21.7", fever::ConfidencePercent{10U});
     REQUIRE(!low_confidence.ok);

@@ -7,8 +7,13 @@ namespace fever::config {
 
 inline constexpr uint32_t kMeasurementIntervalSeconds = 60U;
 inline constexpr std::size_t kDefaultStorageRecords = 100000U;
+inline constexpr std::size_t kRuntimeStorageRecords = 240U;
+inline constexpr uint16_t kCo2MaxPpm = 9999U;
+inline constexpr uint16_t kHchoMaxRaw = 9999U;
+inline constexpr uint16_t kTvocMaxRaw = 9999U;
 inline constexpr int16_t kTemperatureMinCentiC = -2000;
 inline constexpr int16_t kTemperatureMaxCentiC = 6000;
+inline constexpr uint8_t kHumidityMaxPercent = 100U;
 inline constexpr uint8_t kRecognitionMinConfidencePercent = 60U;
 
 inline constexpr uint16_t kRoiX = 40U;

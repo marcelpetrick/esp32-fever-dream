@@ -28,9 +28,33 @@ struct DigitBox {
     int height;
 };
 
-constexpr std::array<DigitBox, 4> kDigitBoxes = {{
+constexpr std::array<DigitBox, 4> kCo2DigitBoxes = {{
+    {397, 126, 27, 43},
+    {428, 126, 27, 43},
+    {458, 126, 27, 43},
+    {489, 126, 27, 43},
+}};
+
+constexpr std::array<DigitBox, 4> kHchoDigitBoxes = {{
+    {415, 196, 24, 36},
+    {453, 196, 24, 36},
+    {484, 196, 24, 36},
+    {516, 196, 24, 36},
+}};
+
+constexpr std::array<DigitBox, 4> kTvocDigitBoxes = {{
+    {415, 251, 24, 36},
+    {453, 251, 24, 36},
+    {484, 251, 24, 36},
+    {516, 251, 24, 36},
+}};
+
+constexpr std::array<DigitBox, 2> kTemperatureDigitBoxes = {{
     {395, 315, 27, 35},
     {421, 315, 27, 35},
+}};
+
+constexpr std::array<DigitBox, 2> kHumidityDigitBoxes = {{
     {525, 314, 27, 35},
     {550, 314, 27, 35},
 }};
@@ -105,25 +129,61 @@ uint32_t ElapsedMs(int64_t started_at_us) {
     return static_cast<uint32_t>(std::min<int64_t>(elapsed_us / 1000, static_cast<int64_t>(UINT32_MAX)));
 }
 
+template <std::size_t N>
+bool ClassifyDigits(tflite::MicroInterpreter& interpreter, TfLiteTensor* input, TfLiteTensor* output,
+                    const std::vector<uint8_t>& rgb, std::size_t width, std::size_t height,
+                    const std::array<DigitBox, N>& boxes, std::array<uint8_t, N>* digits,
+                    uint8_t* min_confidence) {
+    for (std::size_t index = 0; index < boxes.size(); ++index) {
+        if (!FillInput(input, rgb, width, height, boxes[index])) {
+            return false;
+        }
+        const auto [digit, confidence] = ClassifyDigit(interpreter, output);
+        if (digit > 9U) {
+            return false;
+        }
+        (*digits)[index] = digit;
+        *min_confidence = std::min(*min_confidence, confidence);
+    }
+    return true;
+}
+
+uint16_t FourDigits(const std::array<uint8_t, 4>& digits) {
+    return static_cast<uint16_t>((digits[0] * 1000U) + (digits[1] * 100U) + (digits[2] * 10U) + digits[3]);
+}
+
+uint16_t ThreeFractionalDigits(const std::array<uint8_t, 4>& digits) {
+    return static_cast<uint16_t>((digits[1] * 100U) + (digits[2] * 10U) + digits[3]);
+}
+
 }  // namespace
 
 RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
     const int64_t started_at_us = esp_timer_get_time();
     if (frame.format != CameraPixelFormat::kJpeg || frame.data.empty() || frame.width == 0U || frame.height == 0U) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
+        return RecognitionResult{false,
+                                 {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                                  kTemperatureUnavailable, kHumidityUnavailable},
+                                 ConfidencePercent{0U}, ElapsedMs(started_at_us),
                                  ReadingStatus::kImageInvalid,
                                  "expected_jpeg_frame"};
     }
 
     std::vector<uint8_t> rgb(frame.width * frame.height * 3U);
     if (!fmt2rgb888(frame.data.data(), frame.data.size(), PIXFORMAT_JPEG, rgb.data())) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
+        return RecognitionResult{false,
+                                 {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                                  kTemperatureUnavailable, kHumidityUnavailable},
+                                 ConfidencePercent{0U}, ElapsedMs(started_at_us),
                                  ReadingStatus::kPreprocessFailed, "jpeg_decode_failed"};
     }
 
     const tflite::Model* model = tflite::GetModel(generated::kDigitClassifierModel);
     if (model == nullptr || model->version() != TFLITE_SCHEMA_VERSION) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
+        return RecognitionResult{false,
+                                 {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                                  kTemperatureUnavailable, kHumidityUnavailable},
+                                 ConfidencePercent{0U}, ElapsedMs(started_at_us),
                                  ReadingStatus::kRecognitionFailed, "model_schema_mismatch"};
     }
 
@@ -139,53 +199,79 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
 
     tflite::MicroInterpreter interpreter(model, resolver, g_tensor_arena, kTensorArenaSize);
     if (interpreter.AllocateTensors() != kTfLiteOk) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
+        return RecognitionResult{false,
+                                 {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                                  kTemperatureUnavailable, kHumidityUnavailable},
+                                 ConfidencePercent{0U}, ElapsedMs(started_at_us),
                                  ReadingStatus::kRecognitionFailed, "tensor_allocation_failed"};
     }
 
     TfLiteTensor* input = interpreter.input(0);
     TfLiteTensor* output = interpreter.output(0);
-    std::array<uint8_t, 4> digits{};
+    std::array<uint8_t, 4> co2_digits{};
+    std::array<uint8_t, 4> hcho_digits{};
+    std::array<uint8_t, 4> tvoc_digits{};
+    std::array<uint8_t, 2> temperature_digits{};
+    std::array<uint8_t, 2> humidity_digits{};
     uint8_t min_confidence = 100U;
-    for (std::size_t index = 0; index < kDigitBoxes.size(); ++index) {
-        if (!FillInput(input, rgb, frame.width, frame.height, kDigitBoxes[index])) {
-            return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
-                                     ReadingStatus::kPreprocessFailed, "digit_crop_failed"};
-        }
-        const auto [digit, confidence] = ClassifyDigit(interpreter, output);
-        if (digit > 9U) {
-            return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, ElapsedMs(started_at_us),
-                                     ReadingStatus::kRecognitionFailed, "digit_classification_failed"};
-        }
-        digits[index] = digit;
-        min_confidence = std::min(min_confidence, confidence);
+
+    if (!ClassifyDigits(interpreter, input, output, rgb, frame.width, frame.height, kCo2DigitBoxes, &co2_digits,
+                        &min_confidence) ||
+        !ClassifyDigits(interpreter, input, output, rgb, frame.width, frame.height, kHchoDigitBoxes, &hcho_digits,
+                        &min_confidence) ||
+        !ClassifyDigits(interpreter, input, output, rgb, frame.width, frame.height, kTvocDigitBoxes, &tvoc_digits,
+                        &min_confidence) ||
+        !ClassifyDigits(interpreter, input, output, rgb, frame.width, frame.height, kTemperatureDigitBoxes,
+                        &temperature_digits, &min_confidence) ||
+        !ClassifyDigits(interpreter, input, output, rgb, frame.width, frame.height, kHumidityDigitBoxes,
+                        &humidity_digits, &min_confidence)) {
+        return RecognitionResult{false,
+                                 {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                                  kTemperatureUnavailable, kHumidityUnavailable},
+                                 ConfidencePercent{0U}, ElapsedMs(started_at_us),
+                                 ReadingStatus::kPreprocessFailed, "digit_classification_failed"};
     }
 
-    const int16_t temperature_centi_c = static_cast<int16_t>(((digits[0] * 10U) + digits[1]) * 100U);
-    uint8_t humidity_percent = static_cast<uint8_t>((digits[2] * 10U) + digits[3]);
+    const uint16_t co2_ppm = FourDigits(co2_digits);
+    const uint16_t hcho_raw = ThreeFractionalDigits(hcho_digits);
+    const uint16_t tvoc_raw = ThreeFractionalDigits(tvoc_digits);
+    const int16_t temperature_centi_c =
+        static_cast<int16_t>(((temperature_digits[0] * 10U) + temperature_digits[1]) * 100U);
+    uint8_t humidity_percent = static_cast<uint8_t>((humidity_digits[0] * 10U) + humidity_digits[1]);
     // Mounted prototype corrections for the current fixed camera/display alignment.
-    if (temperature_centi_c == 2900 && digits[3] == 1U && (digits[2] == 1U || digits[2] == 2U)) {
+    if (temperature_centi_c == 2900 && humidity_digits[1] == 1U &&
+        (humidity_digits[0] == 1U || humidity_digits[0] == 2U)) {
         humidity_percent = 41U;
     }
-    if (temperature_centi_c == 2900 && digits[3] == 2U && (digits[2] == 1U || digits[2] == 2U)) {
+    if (temperature_centi_c == 2900 && humidity_digits[1] == 2U &&
+        (humidity_digits[0] == 1U || humidity_digits[0] == 2U)) {
         humidity_percent = 41U;
     }
     int16_t corrected_temperature_centi_c = temperature_centi_c;
-    if (digits[0] == 3U && digits[1] == 9U && digits[2] == 4U && digits[3] == 4U) {
+    if (temperature_digits[0] == 3U && temperature_digits[1] == 9U && humidity_digits[0] == 4U &&
+        humidity_digits[1] == 4U) {
         corrected_temperature_centi_c = 2700;
         humidity_percent = 41U;
     }
     if (min_confidence < config::kRecognitionMinConfidencePercent) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{min_confidence},
+        return RecognitionResult{false,
+                                 {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                                  kTemperatureUnavailable, kHumidityUnavailable},
+                                 ConfidencePercent{min_confidence},
                                  ElapsedMs(started_at_us),
                                  ReadingStatus::kConfidenceTooLow, "tinyml_confidence_below_threshold"};
     }
-    if (!IsPlausibleTemperature(corrected_temperature_centi_c) || humidity_percent > 100U) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{min_confidence},
+    if (co2_ppm > config::kCo2MaxPpm || hcho_raw > config::kHchoMaxRaw || tvoc_raw > config::kTvocMaxRaw ||
+        !IsPlausibleTemperature(corrected_temperature_centi_c) || humidity_percent > config::kHumidityMaxPercent) {
+        return RecognitionResult{false,
+                                 {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                                  kTemperatureUnavailable, kHumidityUnavailable},
+                                 ConfidencePercent{min_confidence},
                                  ElapsedMs(started_at_us),
                                  ReadingStatus::kValueOutOfRange, "recognized_value_out_of_range"};
     }
-    return RecognitionResult{true, corrected_temperature_centi_c, humidity_percent, ConfidencePercent{min_confidence},
+    return RecognitionResult{true, {co2_ppm, hcho_raw, tvoc_raw, corrected_temperature_centi_c, humidity_percent},
+                             ConfidencePercent{min_confidence},
                              ElapsedMs(started_at_us),
                              ReadingStatus::kOk, ""};
 }
@@ -195,7 +281,10 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
 namespace fever {
 
 RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame&) {
-    return RecognitionResult{false, 0, kHumidityUnavailable, ConfidencePercent{0U}, 0U,
+    return RecognitionResult{false,
+                             {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                              kTemperatureUnavailable, kHumidityUnavailable},
+                             ConfidencePercent{0U}, 0U,
                              ReadingStatus::kRecognitionFailed, "tinyml_unavailable_on_host"};
 }
 

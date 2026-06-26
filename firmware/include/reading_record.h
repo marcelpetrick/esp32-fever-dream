@@ -1,11 +1,14 @@
 #pragma once
 
+#include <climits>
 #include <cstdint>
 #include <optional>
 
 namespace fever {
 
 inline constexpr uint8_t kHumidityUnavailable = 255U;
+inline constexpr uint16_t kAqsUnsignedUnavailable = 65535U;
+inline constexpr int16_t kTemperatureUnavailable = INT16_MIN;
 
 /** Stable reading status codes exposed in storage and API responses. */
 enum class ReadingStatus : uint8_t {
@@ -45,11 +48,31 @@ struct ConfidencePercent {
     uint8_t value;
 };
 
-/** Compact temperature reading or explicit failed measurement record. */
+/** Five-value air quality sensor reading payload. */
+struct AqsValues {
+    /** Carbon dioxide concentration in parts per million. */
+    uint16_t co2_ppm;
+    /** HCHO display value, integer-scaled until the exact unit/decimal is confirmed. */
+    uint16_t hcho_raw;
+    /** TVOC display value, integer-scaled until the exact unit/decimal is confirmed. */
+    uint16_t tvoc_raw;
+    /** Temperature in centi-degrees Celsius. */
+    int16_t temperature_centi_c;
+    /** Relative humidity percent. */
+    uint8_t humidity_percent;
+};
+
+/** Compact AQS reading or explicit failed measurement record. */
 struct ReadingRecord {
     /** Unix timestamp in seconds, synchronized or estimated depending on flags. */
     uint32_t timestamp_s;
-    /** Temperature in centi-degrees Celsius; valid only for successful records. */
+    /** CO2 concentration in ppm, or kAqsUnsignedUnavailable when unknown. */
+    uint16_t co2_ppm;
+    /** HCHO display value, or kAqsUnsignedUnavailable when unknown. */
+    uint16_t hcho_raw;
+    /** TVOC display value, or kAqsUnsignedUnavailable when unknown. */
+    uint16_t tvoc_raw;
+    /** Temperature in centi-degrees Celsius, or kTemperatureUnavailable when unknown. */
     int16_t temperature_centi_c;
     /** Relative humidity percent, or kHumidityUnavailable when unknown. */
     uint8_t humidity_percent;
@@ -62,16 +85,21 @@ struct ReadingRecord {
     /** Metadata flags for this reading. */
     ReadingFlags flags;
 
-    /** Construct a successful temperature reading. */
-    static ReadingRecord Success(uint32_t timestamp_s, int16_t temperature_centi_c, ConfidencePercent confidence,
-                                 ReadingFlags flags, uint8_t humidity_percent = kHumidityUnavailable,
-                                 uint16_t recognition_duration_ms = 0U);
+    /** Construct a successful AQS reading. */
+    static ReadingRecord Success(uint32_t timestamp_s, AqsValues values, ConfidencePercent confidence,
+                                 ReadingFlags flags, uint16_t recognition_duration_ms = 0U);
     /** Construct an explicit failed reading. */
     static ReadingRecord Failure(uint32_t timestamp_s, ReadingStatus status, ConfidencePercent confidence,
                                  ReadingFlags flags, uint16_t recognition_duration_ms = 0U);
 
     /** Return true when this record contains a valid temperature. */
     [[nodiscard]] bool IsSuccess() const;
+    /** Return CO2 ppm when available. */
+    [[nodiscard]] std::optional<uint16_t> Co2Ppm() const;
+    /** Return HCHO display value when available. */
+    [[nodiscard]] std::optional<uint16_t> HchoRaw() const;
+    /** Return TVOC display value when available. */
+    [[nodiscard]] std::optional<uint16_t> TvocRaw() const;
     /** Return the temperature in degrees Celsius when the record is successful. */
     [[nodiscard]] std::optional<float> TemperatureCelsius() const;
     /** Return humidity percent when available. */

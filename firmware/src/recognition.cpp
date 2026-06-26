@@ -8,6 +8,12 @@
 #include "app_config.h"
 
 namespace fever {
+namespace {
+
+constexpr AqsValues kUnavailableValues{kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                                       kTemperatureUnavailable, kHumidityUnavailable};
+
+}  // namespace
 
 std::optional<uint8_t> DecodeSevenSegmentDigit(const DigitSegments& segments) {
     const std::array<bool, 7> mask = {segments.top,        segments.upper_left,  segments.upper_right, segments.middle,
@@ -34,11 +40,11 @@ std::optional<uint8_t> DecodeSevenSegmentDigit(const DigitSegments& segments) {
 
 RecognitionResult ParseDisplayText(const std::string& display_text, ConfidencePercent confidence) {
     if (display_text.empty()) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, confidence, 0U, ReadingStatus::kRecognitionFailed,
+        return RecognitionResult{false, kUnavailableValues, confidence, 0U, ReadingStatus::kRecognitionFailed,
                                  "empty_display_text"};
     }
     if (confidence.value < config::kRecognitionMinConfidencePercent) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, confidence, 0U, ReadingStatus::kConfidenceTooLow,
+        return RecognitionResult{false, kUnavailableValues, confidence, 0U, ReadingStatus::kConfidenceTooLow,
                                  "confidence_below_threshold"};
     }
 
@@ -59,7 +65,7 @@ RecognitionResult ParseDisplayText(const std::string& display_text, ConfidencePe
         const char ch = display_text[index];
         if (ch == '.') {
             if (seen_decimal) {
-                return RecognitionResult{false, 0, kHumidityUnavailable, confidence, 0U,
+                return RecognitionResult{false, kUnavailableValues, confidence, 0U,
                                          ReadingStatus::kRecognitionFailed,
                                          "duplicate_decimal"};
             }
@@ -67,7 +73,7 @@ RecognitionResult ParseDisplayText(const std::string& display_text, ConfidencePe
             continue;
         }
         if (!std::isdigit(static_cast<unsigned char>(ch))) {
-            return RecognitionResult{false, 0, kHumidityUnavailable, confidence, 0U,
+            return RecognitionResult{false, kUnavailableValues, confidence, 0U,
                                      ReadingStatus::kRecognitionFailed,
                                      "invalid_character"};
         }
@@ -75,7 +81,7 @@ RecognitionResult ParseDisplayText(const std::string& display_text, ConfidencePe
         const int32_t digit = ch - '0';
         if (seen_decimal) {
             if (fractional_scale >= 100) {
-                return RecognitionResult{false, 0, kHumidityUnavailable, confidence, 0U,
+                return RecognitionResult{false, kUnavailableValues, confidence, 0U,
                                          ReadingStatus::kRecognitionFailed,
                                          "too_many_decimals"};
             }
@@ -87,7 +93,7 @@ RecognitionResult ParseDisplayText(const std::string& display_text, ConfidencePe
     }
 
     if (!seen_digit) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, confidence, 0U, ReadingStatus::kRecognitionFailed,
+        return RecognitionResult{false, kUnavailableValues, confidence, 0U, ReadingStatus::kRecognitionFailed,
                                  "no_digits"};
     }
 
@@ -98,15 +104,18 @@ RecognitionResult ParseDisplayText(const std::string& display_text, ConfidencePe
 
     const int32_t centi = sign * ((whole * 100) + fractional);
     if (centi < INT16_MIN || centi > INT16_MAX) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, confidence, 0U, ReadingStatus::kValueOutOfRange,
+        return RecognitionResult{false, kUnavailableValues, confidence, 0U, ReadingStatus::kValueOutOfRange,
                                  "value_overflows_record"};
     }
     if (!IsPlausibleTemperature(static_cast<int16_t>(centi))) {
-        return RecognitionResult{false, 0, kHumidityUnavailable, confidence, 0U, ReadingStatus::kValueOutOfRange,
+        return RecognitionResult{false, kUnavailableValues, confidence, 0U, ReadingStatus::kValueOutOfRange,
                                  "temperature_out_of_range"};
     }
 
-    return RecognitionResult{true, static_cast<int16_t>(centi), kHumidityUnavailable, confidence, 0U,
+    return RecognitionResult{true,
+                             {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
+                              static_cast<int16_t>(centi), kHumidityUnavailable},
+                             confidence, 0U,
                              ReadingStatus::kOk,
                              ""};
 }

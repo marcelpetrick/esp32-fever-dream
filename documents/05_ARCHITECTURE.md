@@ -11,6 +11,8 @@ training loop.
 - A mounted reading was validated during deployment (`29.00 C`, `41%`), but the
   final post-flash check ended in `confidence_too_low`; OCR is integrated but
   not stable yet.
+- The current data model and API are five-value AQS records: CO2, HCHO, TVOC,
+  temperature, and humidity.
 - Recognition interval: one automatic sample per minute after boot.
 - The TFLite model is an int8 digit classifier embedded as
   `firmware/generated/digit_classifier_model.h`.
@@ -112,12 +114,12 @@ sequenceDiagram
     ESP->>ESP: Start HTTP server
     loop every minute
         ESP->>Display: Capture 640x480 JPEG
-        ESP->>ESP: Decode, crop 4 digit ROIs
+        ESP->>ESP: Decode, crop fixed AQS digit ROIs
         ESP->>ESP: Run TFLite Micro classifier
         ESP->>ESP: Validate and store reading
     end
     Browser->>ESP: GET /api/v1/current
-    ESP-->>Browser: temperature_c, humidity_percent, status, confidence
+    ESP-->>Browser: co2_ppm, hcho, tvoc, temperature_c, humidity_percent, status, confidence
     Browser->>ESP: GET /api/v1/readings/latest?count=1440
     ESP-->>Browser: recent reading records
 ```

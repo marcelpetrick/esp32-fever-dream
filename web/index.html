@@ -4,14 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>ESP32 Temperature Dashboard</title>
+    <title>ESP32 AQS Dashboard</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header class="app-header">
         <div>
-            <p class="eyebrow">Local sensor</p>
-            <h1>Temperature</h1>
+            <p class="eyebrow">Local AQS</p>
+            <h1>Air quality</h1>
         </div>
         <div class="toolbar" aria-label="Display settings">
             <label class="select-field">
@@ -39,6 +39,18 @@
                 <p class="eyebrow" id="currentTitle">Current reading</p>
                 <div class="current-values" aria-label="Current measurement values">
                     <div class="value-tile">
+                        <span class="value-label">CO2</span>
+                        <span class="value-row"><span id="currentCo2" class="value-number">----</span><span class="unit">ppm</span></span>
+                    </div>
+                    <div class="value-tile">
+                        <span class="value-label">HCHO</span>
+                        <span class="value-row"><span id="currentHcho" class="value-number">-.---</span></span>
+                    </div>
+                    <div class="value-tile">
+                        <span class="value-label">TVOC</span>
+                        <span class="value-row"><span id="currentTvoc" class="value-number">-.---</span></span>
+                    </div>
+                    <div class="value-tile">
                         <span class="value-label">Temperature</span>
                         <span class="value-row"><span id="currentTemp" class="value-number">--.-</span><span class="unit">°C</span></span>
                     </div>
@@ -61,11 +73,11 @@
             <div class="section-head">
                 <div>
                     <p class="eyebrow" id="chartTitle">History</p>
-                    <h2>Last 1,440 readings</h2>
+                    <h2>Last 1,440 AQS readings</h2>
                 </div>
                 <div id="chartSummary" class="muted">No samples loaded</div>
             </div>
-            <canvas id="historyChart" width="960" height="320" aria-label="Temperature history chart"></canvas>
+            <canvas id="historyChart" width="960" height="320" aria-label="AQS history chart"></canvas>
         </section>
 
         <section class="stream-panel panel" aria-labelledby="streamTitle">

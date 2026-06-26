@@ -77,6 +77,8 @@ ApiResponse ApiRouter::Handle(const ApiRequest& request) const {
     if (path == "/api/v1/status") {
         const auto latest = storage_.Latest();
         return Json(200, SerializeStatus(diagnostics_.Snapshot(), storage_.Count(), storage_.Capacity(),
+                                         storage_.UsedBytes(), storage_.CapacityBytes(),
+                                         StorageRingBuffer::RecordSizeBytes(),
                                          latest.has_value() ? &(*latest) : nullptr));
     }
     if (path == "/api/v1/current") {
@@ -92,6 +94,8 @@ ApiResponse ApiRouter::Handle(const ApiRequest& request) const {
     if (path == "/api/v1/diagnostics") {
         const auto latest = storage_.Latest();
         return Json(200, SerializeStatus(diagnostics_.Snapshot(), storage_.Count(), storage_.Capacity(),
+                                         storage_.UsedBytes(), storage_.CapacityBytes(),
+                                         StorageRingBuffer::RecordSizeBytes(),
                                          latest.has_value() ? &(*latest) : nullptr));
     }
 

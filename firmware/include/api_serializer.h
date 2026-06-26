@@ -23,7 +23,9 @@ struct ApiError {
 [[nodiscard]] std::string SerializeReadings(const std::vector<ReadingRecord>& records);
 /** Serialize device health and storage state as the `/api/v1/status` response body. */
 [[nodiscard]] std::string SerializeStatus(const DiagnosticsSnapshot& diagnostics, std::size_t storage_count,
-                                          std::size_t storage_capacity, const ReadingRecord* latest);
+                                          std::size_t storage_capacity, std::size_t storage_used_bytes,
+                                          std::size_t storage_capacity_bytes, std::size_t storage_record_size_bytes,
+                                          const ReadingRecord* latest);
 /** Serialize a structured API error response. */
 [[nodiscard]] std::string SerializeError(ApiError error);
 
