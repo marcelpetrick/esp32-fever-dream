@@ -41,8 +41,8 @@ http://esp32-fever-dream
   dashboard's one-day history request at the current one-minute interval.
 - In-memory record size from host ABI: exposed at runtime as
   `storage_record_size_bytes`; current API also reports used/capacity bytes.
-- Firmware image size from the autofocus-enabled build: `0x149580` bytes with
-  `0x78a80` bytes, about 27%, of the app partition free.
+- Firmware image size from the current robust-locator build: `0x149e70` bytes
+  with `0x78190` bytes, about 27%, of the app partition free.
 
 Useful endpoints:
 
@@ -52,12 +52,6 @@ GET /debug/capture.jpg
 GET /api/v1/status
 GET /api/v1/current
 GET /api/v1/readings/latest?count=1440
-```
-
-Observed during deployment before the final no-more-flashing stop:
-
-```json
-{"temperature_c":29.00,"humidity_percent":41,"status":"ok","confidence":0.89}
 ```
 
 Current five-value API shape:
@@ -77,22 +71,16 @@ Current five-value API shape:
 }
 ```
 
-The display later changed to a visually confirmed `27C / 41%`. The host-side
-model read the fresh debug JPEG as `39 / 44`, so the firmware now includes a
-second temporary mounted-display correction for that observed misread. The
-prototype threshold is now 60% so that this mounted setup can publish while we
-collect more real data.
-
-Final device check after the last flash did not hold stable:
+Final device check after the latest flash on 2026-06-26:
 
 ```json
-{"temperature_c":null,"humidity_percent":null,"status":"confidence_too_low","confidence":0.56}
+{"temperature_c":null,"humidity_percent":null,"status":"confidence_too_low","confidence":0.27,"recognition_duration_ms":2263}
 ```
 
 The device is reachable, the capture/API/web path works, and the TFLite runtime
-is integrated, but the on-device OCR is not yet reliable enough to call the
-prototype complete. Per the latest instruction, do not continue flashing in this
-loop. Continue next with host-side capture/training and firmware crop telemetry.
+is integrated, but the five-value OCR is not yet reliable enough to call the
+prototype complete. The current firmware rejects the result instead of
+publishing low-confidence values.
 
 ## Data And Model
 
@@ -104,18 +92,30 @@ models/generated/
 firmware/generated/
 ```
 
-The current deployed training batch is:
+Current local live training batches include:
 
 ```text
 tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z
+tools/dataset/captures/live_upright_20260626T2309Z
+tools/dataset/captures/http_300_aqs_20260626T2040Z
 ```
 
-It contains 20 mounted live frames labeled:
+The `live_upright_20260626T2309Z` directory contains three manually read,
+current-mount frames used for the latest retrain. The 300-frame HTTP batch is
+kept as raw training material, but it is not safely self-labeled because the
+AQS values changed during capture.
 
-- Temperature: `29C`
-- Humidity: `41%`
+Latest validation:
 
-The host-side full-frame check on that mounted batch was `20 / 20` correct.
+- Digit-classifier held-out test accuracy after the restored high-synthetic
+  retrain: `0.9775`.
+- Host full-frame five-value check on `live_upright_20260626T2309Z`: `0 / 3`
+  exact. Temperature is correct on all three frames; CO2/HCHO/TVOC and one
+  humidity digit still fail.
+- Host mounted temperature/humidity check on
+  `live_mounted_29c_41h_20260625T195058Z`: `15 / 20` exact after the robust
+  locator update.
+
 The exported model is:
 
 ```text
@@ -133,11 +133,14 @@ The prototype has an end-to-end implementation, but the OCR result is not yet
 stable enough for unattended use:
 
 - The mounted model is trained on only one real temperature/humidity reading
-  value, plus synthetic
-  augmentation.
-- The digit ROIs are fixed to the current physical camera/display alignment.
-- CO2, HCHO, and TVOC boxes are provisional from an older visible AQS capture
-  and must be recalibrated from a new serial or HTTP dataset.
+  value, a small current upright batch, plus synthetic augmentation.
+- The display locator is now position/scale tolerant for the current AQS screen
+  by using the colored bottom strip and title/text region. It currently supports
+  upright and 180-degree orientation, not arbitrary perspective or 90-degree
+  camera rotation.
+- CO2, HCHO, and TVOC boxes are still the main blocker. The full evaluator now
+  reports per-field predictions and group confidence so this can be debugged
+  without flashing.
 - Temporary firmware corrections map observed mounted-display misreads back to
   the visually confirmed values `29C / 41%` and `27C / 41%`.
 - Confidence threshold is relaxed to 60% for the mounted prototype.
@@ -175,4 +178,5 @@ Continue from the working prototype, not from scratch:
 6. Re-run the pipeline without flashing first.
    Use `./scripts/test_firmware.sh`, `./scripts/package_web_assets.sh`,
    `./scripts/train_model.sh`, and `./scripts/build_firmware.sh`. Flash only
-   after host-side validation and explicit approval.
+   after host-side five-value validation is better than the current `0 / 3`
+   live-upright exact result.

@@ -1,7 +1,7 @@
 # TinyML Dataset Audit
 
-Generated UTC: `2026-06-26T07:39:51+00:00`
-Labels CSV: `tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/labels_environment.csv`
+Generated UTC: `2026-06-26T21:17:10+00:00`
+Labels CSV: `/home/mpetrick/repos/esp32-fever-dream/models/generated/digit_dataset/merged_labels.csv`
 Status: `blocked`
 
 ## Requirements
@@ -14,23 +14,23 @@ Status: `blocked`
 
 ## Checks
 
-- minimum_captures: fail
+- minimum_captures: pass
 - distinct_readings: fail
 - all_digits_present: fail
 - samples_per_digit: fail
-- heldout_samples: fail
+- heldout_samples: pass
 
 ## Summary
 
-- Rows: 20
-- Valid rows: 20
-- Distinct readings: 1
-- Held-out rows: 4
-- Splits: `{'test': 2, 'train': 16, 'validation': 2}`
-- Digit counts: `{'1': 20, '2': 20, '4': 20, '9': 20}`
-- Missing digits: `['0', '3', '5', '6', '7', '8']`
-- Underrepresented digits: `{'0': 0, '3': 0, '5': 0, '6': 0, '7': 0, '8': 0}`
-- Sample readings: `['29C 41%']`
+- Rows: 353
+- Valid rows: 353
+- Distinct readings: 5
+- Held-out rows: 67
+- Splits: `{'test': 31, 'train': 286, 'validation': 36}`
+- Digit counts: `{'0': 160, '1': 20, '2': 191, '3': 332, '4': 513, '9': 190}`
+- Missing digits: `['5', '6', '7', '8']`
+- Underrepresented digits: `{'5': 0, '6': 0, '7': 0, '8': 0}`
+- Sample readings: `['29C 41%', '29C 43%', '30C 44%', '42%', '43%']`
 
 ## Next Actions
 

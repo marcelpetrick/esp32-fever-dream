@@ -19,23 +19,24 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
-    fieldnames: list[str] | None = None
+    fieldnames: list[str] = []
     rows: list[dict[str, str]] = []
     for path in args.labels:
         with path.open("r", encoding="utf-8", newline="") as csv_file:
             reader = csv.DictReader(csv_file)
             if reader.fieldnames is None:
                 raise ValueError(f"{path} has no header")
-            if fieldnames is None:
-                fieldnames = list(reader.fieldnames)
-                if "source_labels" not in fieldnames:
-                    fieldnames.append("source_labels")
+            for fieldname in reader.fieldnames:
+                if fieldname not in fieldnames:
+                    fieldnames.append(fieldname)
+            if "source_labels" not in fieldnames:
+                fieldnames.append("source_labels")
             for row in reader:
                 row["sample_id"] = f"{path.parent.name}_{row['sample_id']}"
                 row["source_labels"] = str(path)
                 rows.append(row)
 
-    if fieldnames is None:
+    if not fieldnames:
         raise ValueError("no labels provided")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8", newline="") as csv_file:

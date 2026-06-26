@@ -15,7 +15,21 @@ from typing import Iterable
 import numpy as np
 from PIL import Image, ImageOps
 
-from build_digit_dataset import HUMIDITY_DIGIT_BOXES, TARGET_SIZE, TEMP_DIGIT_BOXES
+from build_digit_dataset import (
+    CO2_DIGIT_BOXES,
+    HCHO_DIGIT_BOXES,
+    HUMIDITY_DIGIT_BOXES,
+    RELATIVE_CO2_DIGIT_BOXES,
+    RELATIVE_HCHO_DIGIT_BOXES,
+    RELATIVE_HUMIDITY_DIGIT_BOXES,
+    RELATIVE_TVOC_DIGIT_BOXES,
+    TARGET_SIZE,
+    TEMP_DIGIT_BOXES,
+    TVOC_DIGIT_BOXES,
+    crop_digit,
+    locate_display,
+    relative_temp_boxes,
+)
 
 
 @dataclass(frozen=True)
@@ -23,6 +37,9 @@ class ImageCase:
     image_path: Path
     expected_temperature: str | None
     expected_humidity: str | None
+    expected_co2: str | None
+    expected_hcho: str | None
+    expected_tvoc: str | None
     sample_id: str
 
 
@@ -73,6 +90,13 @@ def truthy(value: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "ok"}
 
 
+def optional_four_digit(row: dict[str, str], field: str) -> str | None:
+    value = row.get(field, "").strip()
+    if not value:
+        return None
+    return f"{int(value):04d}"[-4:]
+
+
 def read_label_cases(paths: list[Path]) -> list[ImageCase]:
     cases: list[ImageCase] = []
     for path in paths:
@@ -91,6 +115,9 @@ def read_label_cases(paths: list[Path]) -> list[ImageCase]:
                         image_path=image_path,
                         expected_temperature=f"{float(row['temperature_c']):.0f}".zfill(2)[-2:],
                         expected_humidity=f"{int(row['humidity_percent']):02d}"[-2:],
+                        expected_co2=optional_four_digit(row, "co2_ppm"),
+                        expected_hcho=optional_four_digit(row, "hcho_raw"),
+                        expected_tvoc=optional_four_digit(row, "tvoc_raw"),
                         sample_id=row.get("sample_id") or image_path.stem,
                     )
                 )
@@ -112,6 +139,9 @@ def read_image_cases(patterns: list[str]) -> list[ImageCase]:
                     image_path=image_path,
                     expected_temperature=None,
                     expected_humidity=None,
+                    expected_co2=None,
+                    expected_hcho=None,
+                    expected_tvoc=None,
                     sample_id=image_path.stem,
                 )
             )
@@ -129,8 +159,14 @@ def require_tensorflow():
     return tf
 
 
-def crop_to_input(image: Image.Image, box: tuple[int, int, int, int], resample: Image.Resampling) -> np.ndarray:
-    crop = ImageOps.grayscale(image.crop(box))
+def crop_to_input(
+    image: Image.Image,
+    bounds,
+    relative_box: tuple[int, int, int, int],
+    fallback_box: tuple[int, int, int, int],
+    resample: Image.Resampling,
+) -> np.ndarray:
+    crop = ImageOps.grayscale(crop_digit(image, bounds, relative_box, fallback_box))
     crop = ImageOps.autocontrast(crop, cutoff=1)
     crop = crop.resize(TARGET_SIZE, resample)
     values = np.asarray(crop, dtype=np.int16) - 128
@@ -149,45 +185,75 @@ def predict_digit(interpreter, input_detail: dict, output_detail: dict, tensor: 
 
 def run_case(case: ImageCase, interpreter, input_detail: dict, output_detail: dict, resample: Image.Resampling) -> dict:
     image = Image.open(case.image_path).convert("RGB")
-    boxes = [
-        TEMP_DIGIT_BOXES[0],
-        TEMP_DIGIT_BOXES[1],
-        HUMIDITY_DIGIT_BOXES[0],
-        HUMIDITY_DIGIT_BOXES[1],
+    bounds = locate_display(image)
+    temp_boxes = relative_temp_boxes(bounds)
+    digit_groups = [
+        ("co2", [RELATIVE_CO2_DIGIT_BOXES[index] for index in range(4)], [CO2_DIGIT_BOXES[index] for index in range(4)]),
+        ("hcho", [RELATIVE_HCHO_DIGIT_BOXES[index] for index in range(4)], [HCHO_DIGIT_BOXES[index] for index in range(4)]),
+        ("tvoc", [RELATIVE_TVOC_DIGIT_BOXES[index] for index in range(4)], [TVOC_DIGIT_BOXES[index] for index in range(4)]),
+        ("temperature", [temp_boxes[0], temp_boxes[1]], [TEMP_DIGIT_BOXES[0], TEMP_DIGIT_BOXES[1]]),
+        (
+            "humidity",
+            [RELATIVE_HUMIDITY_DIGIT_BOXES[0], RELATIVE_HUMIDITY_DIGIT_BOXES[1]],
+            [HUMIDITY_DIGIT_BOXES[0], HUMIDITY_DIGIT_BOXES[1]],
+        ),
     ]
-    digits: list[str] = []
-    confidences: list[int] = []
-    for box in boxes:
-        digit, confidence, _ = predict_digit(
-            interpreter,
-            input_detail,
-            output_detail,
-            crop_to_input(image, box, resample),
-        )
-        digits.append(digit)
-        confidences.append(confidence)
+    predicted: dict[str, str] = {}
+    group_confidences: dict[str, list[int]] = {}
+    all_digits: list[str] = []
+    all_confidences: list[int] = []
+    for group_name, relative_boxes, fallback_boxes in digit_groups:
+        group_digits: list[str] = []
+        group_values: list[int] = []
+        for relative_box, fallback_box in zip(relative_boxes, fallback_boxes, strict=True):
+            digit, confidence, _ = predict_digit(
+                interpreter,
+                input_detail,
+                output_detail,
+                crop_to_input(image, bounds, relative_box, fallback_box, resample),
+            )
+            group_digits.append(digit)
+            group_values.append(confidence)
+        predicted[group_name] = "".join(group_digits)
+        group_confidences[group_name] = group_values
+        all_digits.extend(group_digits)
+        all_confidences.extend(group_values)
 
-    predicted_temperature = "".join(digits[:2])
-    predicted_humidity = "".join(digits[2:])
-    expected_temperature = case.expected_temperature
-    expected_humidity = case.expected_humidity
-    is_match = (
-        expected_temperature is not None
-        and expected_humidity is not None
-        and predicted_temperature == expected_temperature
-        and predicted_humidity == expected_humidity
-    )
+    expected = {
+        "co2": case.expected_co2,
+        "hcho": case.expected_hcho,
+        "tvoc": case.expected_tvoc,
+        "temperature": case.expected_temperature,
+        "humidity": case.expected_humidity,
+    }
+    comparable = {key: value for key, value in expected.items() if value is not None}
+    is_match = bool(comparable) and all(predicted[key] == value for key, value in comparable.items())
+    field_match = {
+        key: ("true" if expected_value is not None and predicted[key] == expected_value else "false")
+        for key, expected_value in expected.items()
+        if expected_value is not None
+    }
     return {
         "sample_id": case.sample_id,
         "image_path": str(case.image_path),
-        "predicted_temperature_c": predicted_temperature,
-        "predicted_humidity_percent": predicted_humidity,
-        "predicted_digits": "".join(digits),
-        "min_confidence_percent": min(confidences),
-        "digit_confidences_percent": "/".join(str(value) for value in confidences),
-        "expected_temperature_c": expected_temperature or "",
-        "expected_humidity_percent": expected_humidity or "",
-        "match": "true" if is_match else "false" if expected_temperature is not None else "",
+        "predicted_co2_ppm": predicted["co2"],
+        "predicted_hcho_raw": predicted["hcho"],
+        "predicted_tvoc_raw": predicted["tvoc"],
+        "predicted_temperature_c": predicted["temperature"],
+        "predicted_humidity_percent": predicted["humidity"],
+        "predicted_digits": "".join(all_digits),
+        "min_confidence_percent": min(all_confidences),
+        "digit_confidences_percent": "/".join(str(value) for value in all_confidences),
+        "group_min_confidences_percent": ";".join(
+            f"{group_name}:{min(values)}" for group_name, values in group_confidences.items()
+        ),
+        "expected_co2_ppm": case.expected_co2 or "",
+        "expected_hcho_raw": case.expected_hcho or "",
+        "expected_tvoc_raw": case.expected_tvoc or "",
+        "expected_temperature_c": case.expected_temperature or "",
+        "expected_humidity_percent": case.expected_humidity or "",
+        "field_match": ";".join(f"{key}:{value}" for key, value in field_match.items()),
+        "match": "true" if is_match else "false" if comparable else "",
     }
 
 
@@ -196,13 +262,21 @@ def write_csv(rows: list[dict], output_path: Path) -> None:
     fieldnames = [
         "sample_id",
         "image_path",
+        "predicted_co2_ppm",
+        "predicted_hcho_raw",
+        "predicted_tvoc_raw",
         "predicted_temperature_c",
         "predicted_humidity_percent",
         "predicted_digits",
         "min_confidence_percent",
         "digit_confidences_percent",
+        "group_min_confidences_percent",
+        "expected_co2_ppm",
+        "expected_hcho_raw",
+        "expected_tvoc_raw",
         "expected_temperature_c",
         "expected_humidity_percent",
+        "field_match",
         "match",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as csv_file:

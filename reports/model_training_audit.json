@@ -2,12 +2,12 @@
   "checks": {
     "all_digits_present": false,
     "distinct_readings": false,
-    "heldout_samples": false,
-    "minimum_captures": false,
+    "heldout_samples": true,
+    "minimum_captures": true,
     "samples_per_digit": false
   },
-  "generated_at_utc": "2026-06-26T07:39:51+00:00",
-  "labels_csv": "tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/labels_environment.csv",
+  "generated_at_utc": "2026-06-26T21:17:10+00:00",
+  "labels_csv": "/home/mpetrick/repos/esp32-fever-dream/models/generated/digit_dataset/merged_labels.csv",
   "next_actions": [
     "Capture more real images only when values have changed or lighting conditions are intentionally varied.",
     "Collect readings until every digit 0-9 appears at least 20 times.",
@@ -24,39 +24,41 @@
   },
   "summary": {
     "digit_counts": {
+      "0": 160,
       "1": 20,
-      "2": 20,
-      "4": 20,
-      "9": 20
+      "2": 191,
+      "3": 332,
+      "4": 513,
+      "9": 190
     },
-    "distinct_readings": 1,
-    "heldout_count": 4,
+    "distinct_readings": 5,
+    "heldout_count": 67,
     "missing_digits": [
-      "0",
-      "3",
       "5",
       "6",
       "7",
       "8"
     ],
-    "rows": 20,
+    "rows": 353,
     "sample_readings": [
-      "29C 41%"
+      "29C 41%",
+      "29C 43%",
+      "30C 44%",
+      "42%",
+      "43%"
     ],
     "split_counts": {
-      "test": 2,
-      "train": 16,
-      "validation": 2
+      "test": 31,
+      "train": 286,
+      "validation": 36
     },
     "underrepresented_digits": {
-      "0": 0,
-      "3": 0,
       "5": 0,
       "6": 0,
       "7": 0,
       "8": 0
     },
-    "valid_rows": 20
+    "valid_rows": 353
   },
   "tool": "model_training.audit_dataset"
 }
