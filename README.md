@@ -178,7 +178,8 @@ between explicit markers:
   --count 30 \
   --lighting-label usb-fallback \
   --framesize vga \
-  --quality 12
+  --quality 12 \
+  --startup-wait 10
 ```
 
 This writes JPEGs and a `manifest.csv` under an ignored

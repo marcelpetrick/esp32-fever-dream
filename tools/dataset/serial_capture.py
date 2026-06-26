@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import array
 import base64
 import csv
+import fcntl
 import os
 import select
 import sys
@@ -52,6 +54,13 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser.add_argument("--agc", type=int, choices=[0, 1], help="Auto gain control.")
     parser.add_argument("--awb", type=int, choices=[0, 1], help="Auto white balance.")
     parser.add_argument("--timeout", type=float, default=20.0, help="Seconds to wait for each serial response.")
+    parser.add_argument(
+        "--startup-wait",
+        type=float,
+        default=8.0,
+        help="Seconds to drain boot logs and wait for FEVER_SERIAL_CAPTURE_READY after opening the port.",
+    )
+    parser.add_argument("--no-reset", action="store_true", help="Do not toggle RTS/DTR to reset the board on open.")
     return parser.parse_args(list(argv))
 
 
@@ -79,6 +88,16 @@ class SerialPort:
 
     def write_line(self, line: str) -> None:
         os.write(self.fd, line.encode("ascii") + b"\n")
+
+    def reset_board(self) -> None:
+        bits = array.array("i", [0])
+        fcntl.ioctl(self.fd, termios.TIOCMGET, bits, True)
+        bits[0] |= termios.TIOCM_RTS
+        bits[0] &= ~termios.TIOCM_DTR
+        fcntl.ioctl(self.fd, termios.TIOCMSET, bits)
+        time.sleep(0.1)
+        bits[0] &= ~termios.TIOCM_RTS
+        fcntl.ioctl(self.fd, termios.TIOCMSET, bits)
 
     def read_line(self, timeout_s: float) -> str | None:
         deadline = time.monotonic() + timeout_s
@@ -154,6 +173,19 @@ def request_capture(serial: SerialPort, command: str, timeout_s: float) -> tuple
     return data, begin
 
 
+def wait_for_serial_capture_ready(serial: SerialPort, timeout_s: float) -> bool:
+    deadline = time.monotonic() + timeout_s
+    saw_ready = False
+    while time.monotonic() < deadline:
+        line = serial.read_line(max(0.1, min(0.5, deadline - time.monotonic())))
+        if line is None:
+            continue
+        if line.startswith("FEVER_SERIAL_CAPTURE_READY"):
+            saw_ready = True
+            break
+    return saw_ready
+
+
 def main(argv: Iterable[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -188,6 +220,13 @@ def main(argv: Iterable[str] | None = None) -> int:
 
         serial = SerialPort(args.port, args.baud)
         try:
+            if not args.no_reset:
+                serial.reset_board()
+            if args.startup_wait > 0:
+                if wait_for_serial_capture_ready(serial, args.startup_wait):
+                    print("[INFO] serial capture task is ready")
+                else:
+                    print("[WARN] did not see FEVER_SERIAL_CAPTURE_READY before first request", file=sys.stderr)
             for index in range(1, args.count + 1):
                 sample_id = f"capture_{index:04d}"
                 image_path = args.output_dir / f"{sample_id}.jpg"
