@@ -13,12 +13,12 @@ training loop.
   not stable yet.
 - The current data model and API are five-value AQS records: CO2, HCHO, TVOC,
   temperature, and humidity.
-- Recognition interval: one automatic sample per minute after boot.
+- Recognition interval: one automatic sample every 10 seconds after boot.
 - The TFLite model is an int8 digit classifier embedded as
   `firmware/generated/digit_classifier_model.h`.
 - The mounted prototype includes temporary corrections for observed
   mounted-display misreads around `29C / 41%` and `27C / 41%`.
-- The mounted prototype confidence threshold is currently relaxed to 60%.
+- The mounted prototype confidence threshold is currently relaxed to 30%.
 - The model is useful for integration testing. It is not production-ready across
   the current mounted setup, arbitrary camera shifts, display values, or bad
   lighting.
@@ -48,7 +48,7 @@ C4Container
         Container(firmware, "ESP32 firmware", "C++ / ESP-IDF", "Wi-Fi station, camera driver, measurement loop, TFLite Micro OCR")
         Container(api, "HTTP API", "esp_http_server", "Health, capture, status, current reading, recent readings")
         Container(serial, "USB serial fallback", "UART console", "No-Wi-Fi JPEG capture for datasets")
-        Container(web, "Static dashboard", "HTML/CSS/JS", "Browser UI served locally during development")
+        Container(web, "Embedded dashboard", "HTML/CSS/JS in firmware flash", "Browser UI served directly by the ESP32")
         Container(storage, "Reading ring buffer", "RAM", "Last 1,440 records")
     }
     Container(training, "Training pipeline", "Python / TensorFlow", "Builds int8 digit model and firmware header")

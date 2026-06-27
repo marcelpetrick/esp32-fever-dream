@@ -1,8 +1,8 @@
 # ESP32 Fever Dream
 
-Local ESP32-CAM air quality sensor readout firmware. The target device captures a fixed-position AQS display once per minute, recognizes CO2, HCHO, TVOC, temperature, and humidity, stores readings in bounded local storage, and serves a dashboard plus raw API endpoints directly from the ESP32.
+Local ESP32-CAM air quality sensor readout firmware. The current prototype captures an AQS display every 10 seconds, recognizes CO2, HCHO, TVOC, temperature, and humidity, stores readings in bounded local storage, and serves a dashboard plus raw API endpoints directly from the ESP32.
 
-**Status: mounted AQS TinyML prototype.** The ESP32-CAM joins the configured Wi-Fi, captures the fixed display once per minute, runs an embedded int8 TFLite digit classifier, stores recent records in RAM, and serves local API data for the web dashboard. The current firmware has five-value AQS plumbing for `CO2`, `HCHO`, `TVOC`, temperature, and humidity; CO2/HCHO/TVOC OCR boxes are provisional and need fresh labeled captures before the values are production-trustworthy. The attached camera currently detects as OV2640, which is fixed-focus; OV5640 autofocus support is compiled in and starts automatically only when an AF-capable OV5640 module is detected.
+**Status: mounted AQS TinyML prototype.** The ESP32-CAM joins the configured Wi-Fi, captures the fixed display every 10 seconds, runs an embedded int8 TFLite digit classifier, stores recent records in RAM, and serves the dashboard and API directly from the device. The current firmware has five-value AQS plumbing for `CO2`, `HCHO`, `TVOC`, temperature, and humidity; CO2/HCHO/TVOC OCR boxes are provisional and need fresh labeled captures before the values are production-trustworthy. The attached camera currently detects as OV2640, which is fixed-focus; OV5640 autofocus support is compiled in and starts automatically only when an AF-capable OV5640 module is detected.
 
 **Author: Marcel Petrick <mail@marcelpetrick.it>**
 
@@ -18,7 +18,12 @@ Local ESP32-CAM air quality sensor readout firmware. The target device captures 
 
 ## Current Web UI
 
-The static dashboard lives in `web/` and is designed to be served locally by the ESP32.
+The static dashboard lives in `web/` and is embedded into the firmware image.
+Open the device directly after it joins Wi-Fi:
+
+```text
+http://esp32-fever-dream/
+```
 
 It expects:
 
@@ -30,7 +35,8 @@ GET /api/v1/readings/latest?count=1440
 
 It renders the current CO2, HCHO, TVOC, temperature, humidity, OCR confidence, device diagnostics, API state, theme controls, and a canvas history chart. No external CDN or internet dependency is used.
 
-During local development, serve the dashboard from the workstation and point it at the device:
+For frontend-only development, it can also be served from the workstation and
+pointed at the device:
 
 ```bash
 python3 -m http.server 8080 --bind 127.0.0.1 --directory web

@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-06-26.
+Last updated: 2026-06-27.
 
 ## Summary
 
@@ -11,7 +11,7 @@ The ESP32-CAM has a working mounted AQS prototype path:
 - Captures the fixed AQS display once per minute.
 - Runs an embedded int8 TFLite Micro digit classifier on the ESP32.
 - Stores readings in an in-memory ring buffer.
-- Serves JSON endpoints for the local browser UI.
+- Serves the embedded browser UI and JSON endpoints directly from the device.
 - Exposes CO2, HCHO, TVOC, temperature, humidity, confidence, and OCR runtime
   fields through the API and dashboard.
 - The dashboard renders five independent history charts, one each for CO2,
@@ -22,21 +22,24 @@ The ESP32-CAM has a working mounted AQS prototype path:
   pipeline breadcrumb: snapping photo, evaluating corners, doing OCR, doing
   update.
 
-Browser URL while the local web server is running:
+Standalone device UI:
 
 ```text
-http://127.0.0.1:8080/?device=esp32-fever-dream
+http://esp32-fever-dream/
 ```
 
-Device/API base URL:
+IP fallback for the currently attached device:
 
 ```text
-http://esp32-fever-dream
+http://192.168.178.98/
 ```
+
+The workstation server on port 8080 remains an optional frontend-development
+tool; it is not required to use the deployed dashboard.
 
 ## Deployed Firmware
 
-- Source version: `0.0.21`.
+- Source version: `0.0.22`.
 - Dashboard order: live camera, current readings, per-metric history, then
   device status and runtime diagnostics.
 - ESP-IDF target: `esp32`.
@@ -50,8 +53,8 @@ http://esp32-fever-dream
   four hours of history at the current 10-second interval.
 - In-memory record size from host ABI: exposed at runtime as
   `storage_record_size_bytes`; current API also reports used/capacity bytes.
-- Firmware image size from the current robust-locator build: `0x149e70` bytes
-  with `0x78190` bytes, about 27%, of the app partition free.
+- Firmware image size: `0x1559f0` bytes with `0x6c610` bytes, about 24%, of
+  the app partition free. This includes 47,226 bytes of dashboard assets.
 
 Useful endpoints:
 

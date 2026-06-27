@@ -23,6 +23,10 @@ idf_component_register(
     INCLUDE_DIRS
         "../firmware/include"
         "../firmware/generated"
+    EMBED_FILES
+        "../web/index.html"
+        "../web/styles.css"
+        "../web/app.js"
     REQUIRES
         esp_timer
         esp_http_server

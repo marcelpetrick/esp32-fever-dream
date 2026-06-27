@@ -21,4 +21,4 @@ if command -v node >/dev/null 2>&1 && [[ -f "${WEB_DIR}/app.js" ]]; then
     node --check "${WEB_DIR}/app.js"
 fi
 
-printf '[INFO] web assets are local-only\n'
+printf '[INFO] web assets are self-contained and ready for firmware embedding\n'

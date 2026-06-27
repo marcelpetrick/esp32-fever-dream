@@ -17,6 +17,13 @@ namespace {
 constexpr const char* kTag = "debug_capture";
 constexpr std::size_t kQueryBufferSize = 256U;
 
+extern const char kIndexHtmlStart[] asm("_binary_index_html_start");
+extern const char kIndexHtmlEnd[] asm("_binary_index_html_end");
+extern const char kStylesCssStart[] asm("_binary_styles_css_start");
+extern const char kStylesCssEnd[] asm("_binary_styles_css_end");
+extern const char kAppJsStart[] asm("_binary_app_js_start");
+extern const char kAppJsEnd[] asm("_binary_app_js_end");
+
 CameraManager* g_camera = nullptr;
 StorageRingBuffer* g_storage = nullptr;
 Diagnostics* g_diagnostics = nullptr;
@@ -159,6 +166,24 @@ esp_err_t OptionsHandler(httpd_req_t* request) {
 
 esp_err_t HealthHandler(httpd_req_t* request) { return SendJson(request, 200, "{\"ok\":true}"); }
 
+esp_err_t SendStaticAsset(httpd_req_t* request, const char* content_type, const char* start, const char* end) {
+    httpd_resp_set_type(request, content_type);
+    httpd_resp_set_hdr(request, "Cache-Control", "no-cache");
+    return httpd_resp_send(request, start, static_cast<ssize_t>(end - start));
+}
+
+esp_err_t IndexHandler(httpd_req_t* request) {
+    return SendStaticAsset(request, "text/html; charset=utf-8", kIndexHtmlStart, kIndexHtmlEnd);
+}
+
+esp_err_t StylesHandler(httpd_req_t* request) {
+    return SendStaticAsset(request, "text/css; charset=utf-8", kStylesCssStart, kStylesCssEnd);
+}
+
+esp_err_t AppScriptHandler(httpd_req_t* request) {
+    return SendStaticAsset(request, "application/javascript; charset=utf-8", kAppJsStart, kAppJsEnd);
+}
+
 esp_err_t ApiHandler(httpd_req_t* request) {
     if (g_storage == nullptr || g_diagnostics == nullptr) {
         return SendJson(request, 500, "{\"error\":{\"code\":\"api_not_ready\",\"message\":\"API state not registered\"}}");
@@ -226,6 +251,24 @@ bool StartDebugCaptureServer(CameraManager& camera, StorageRingBuffer& storage, 
         .handler = HealthHandler,
         .user_ctx = nullptr,
     };
+    const httpd_uri_t index_uri = {
+        .uri = "/",
+        .method = HTTP_GET,
+        .handler = IndexHandler,
+        .user_ctx = nullptr,
+    };
+    const httpd_uri_t styles_uri = {
+        .uri = "/styles.css",
+        .method = HTTP_GET,
+        .handler = StylesHandler,
+        .user_ctx = nullptr,
+    };
+    const httpd_uri_t app_script_uri = {
+        .uri = "/app.js",
+        .method = HTTP_GET,
+        .handler = AppScriptHandler,
+        .user_ctx = nullptr,
+    };
     const httpd_uri_t capture_uri = {
         .uri = "/debug/capture.jpg",
         .method = HTTP_GET,
@@ -245,6 +288,9 @@ bool StartDebugCaptureServer(CameraManager& camera, StorageRingBuffer& storage, 
         .user_ctx = nullptr,
     };
 
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &index_uri));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &styles_uri));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &app_script_uri));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &health_uri));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &capture_uri));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &api_uri));
