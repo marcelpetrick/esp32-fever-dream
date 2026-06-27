@@ -201,15 +201,15 @@ esp_err_t CaptureJpegHandler(httpd_req_t* request) {
     const std::string query = QueryString(request);
     ApplyCameraSettings(query);
 
-    const CameraCaptureResult capture = g_camera->Capture();
+    const CameraCaptureResult capture = g_camera->LatestFrame();
     if (!capture.ok || capture.frame.format != CameraPixelFormat::kJpeg) {
         ESP_LOGW(kTag, "capture failed: %s", capture.error.c_str());
-        if (capture.error == "camera_busy") {
+        if (capture.error == "capture_not_ready") {
             SetCorsHeaders(request);
             httpd_resp_set_type(request, "application/json");
             httpd_resp_set_status(request, "503 Service Unavailable");
             httpd_resp_set_hdr(request, "Retry-After", "1");
-            return httpd_resp_sendstr(request, "{\"ok\":false,\"error\":\"camera_busy\"}");
+            return httpd_resp_sendstr(request, "{\"ok\":false,\"error\":\"capture_not_ready\"}");
         }
         return SendJson(request, 500, "{\"ok\":false,\"error\":\"capture_failed\"}");
     }
@@ -225,6 +225,7 @@ esp_err_t CaptureJpegHandler(httpd_req_t* request) {
     httpd_resp_set_hdr(request, "Connection", "close");
     httpd_resp_set_hdr(request, "X-Fever-Frame-Width", width);
     httpd_resp_set_hdr(request, "X-Fever-Frame-Height", height);
+    httpd_resp_set_hdr(request, "X-Fever-Capture-Source", "periodic-cache");
     return httpd_resp_send(request, reinterpret_cast<const char*>(capture.frame.data.data()), capture.frame.data.size());
 }
 

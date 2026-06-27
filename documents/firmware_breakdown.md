@@ -1,6 +1,6 @@
 # Firmware Size Breakdown
 
-Last measured: 2026-06-27 from ESP-IDF build output for firmware `0.0.26`,
+Last measured: 2026-06-27 from ESP-IDF build output for firmware `0.0.27`,
 including the dashboard embedded in flash.
 
 ## Exact Flash Artifacts
@@ -11,14 +11,14 @@ These are file sizes from the build outputs that are flashed to the ESP32-CAM.
 | --- | ---: | ---: | --- |
 | Bootloader | `0x1000` | `26,128 B` (`0x6610`) | Bootloader partition has `2,544 B` free. |
 | Partition table | `0x8000` | `3,072 B` | Standard partition-table binary. |
-| App firmware | `0x10000` | `1,403,136 B` (`0x156900`) | Smallest app partition is `1,843,200 B` (`0x1c2000`). |
-| App partition free | n/a | `440,064 B` (`0x6b700`) | About `24%` free. |
+| App firmware | `0x10000` | `1,403,856 B` (`0x156bd0`) | Smallest app partition is `1,843,200 B` (`0x1c2000`). |
+| App partition free | n/a | `439,344 B` (`0x6b430`) | About `24%` free. |
 
 ```mermaid
 pie showData
     title App Partition Usage
-    "App image" : 1403136
-    "Free app partition space" : 440064
+    "App image" : 1403856
+    "Free app partition space" : 439344
 ```
 
 ## Embedded Dashboard

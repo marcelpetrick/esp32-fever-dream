@@ -1,5 +1,7 @@
 #include "camera_manager.h"
 
+#include <utility>
+
 #ifdef ESP_PLATFORM
 #include "app_config.h"
 #include "esp_camera_af.h"
@@ -141,12 +143,24 @@ CameraCaptureResult CameraManager::Capture() {
     frame.format = CameraPixelFormat::kJpeg;
     esp_camera_fb_return(frame_buffer);
 
+    {
+        std::lock_guard<std::mutex> lock(latest_frame_mutex_);
+        latest_frame_ = frame;
+    }
     last_error_.clear();
-    return CameraCaptureResult{true, frame, ""};
+    return CameraCaptureResult{true, std::move(frame), ""};
 #else
     last_error_ = "camera_unavailable_on_host";
     return CameraCaptureResult{false, {}, last_error_};
 #endif
+}
+
+CameraCaptureResult CameraManager::LatestFrame() const {
+    std::lock_guard<std::mutex> lock(latest_frame_mutex_);
+    if (latest_frame_.data.empty()) {
+        return CameraCaptureResult{false, {}, "capture_not_ready"};
+    }
+    return CameraCaptureResult{true, latest_frame_, ""};
 }
 
 const std::string& CameraManager::LastError() const { return last_error_; }

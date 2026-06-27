@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -44,12 +45,16 @@ class CameraManager {
     [[nodiscard]] bool Initialize();
     /** Capture one frame from the camera. */
     [[nodiscard]] CameraCaptureResult Capture();
+    /** Return a copy of the latest successful periodic capture. */
+    [[nodiscard]] CameraCaptureResult LatestFrame() const;
     /** Return the last hardware-facing error. */
     [[nodiscard]] const std::string& LastError() const;
 
    private:
     std::string last_error_;
     std::atomic_flag capture_in_progress_ = ATOMIC_FLAG_INIT;
+    mutable std::mutex latest_frame_mutex_;
+    CameraFrame latest_frame_;
 };
 
 }  // namespace fever
