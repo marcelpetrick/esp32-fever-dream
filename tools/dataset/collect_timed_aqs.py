@@ -57,14 +57,6 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser.add_argument("--poll-seconds", type=float, default=0.25)
     parser.add_argument("--timeout-seconds", type=float, default=8.0)
     parser.add_argument("--lighting-label", default="unspecified")
-    parser.add_argument("--framesize", choices=["qvga", "vga", "svga"], default="vga")
-    parser.add_argument("--quality", type=int, default=8)
-    parser.add_argument("--brightness", type=int, choices=range(-2, 3), default=2)
-    parser.add_argument("--contrast", type=int, choices=range(-2, 3), default=2)
-    parser.add_argument("--saturation", type=int, choices=range(-2, 3))
-    parser.add_argument("--aec", type=int, choices=[0, 1], default=0)
-    parser.add_argument("--agc", type=int, choices=[0, 1], default=0)
-    parser.add_argument("--awb", type=int, choices=[0, 1], default=0)
     return parser.parse_args(list(argv))
 
 
@@ -78,21 +70,6 @@ def get_bytes(url: str, timeout: float) -> bytes:
 
 def get_json(url: str, timeout: float) -> dict[str, object]:
     return json.loads(get_bytes(url, timeout).decode("utf-8"))
-
-
-def capture_query(args: argparse.Namespace) -> str:
-    values: dict[str, object] = {
-        "framesize": args.framesize,
-        "quality": args.quality,
-        "brightness": args.brightness,
-        "contrast": args.contrast,
-        "aec": args.aec,
-        "agc": args.agc,
-        "awb": args.awb,
-    }
-    if args.saturation is not None:
-        values["saturation"] = args.saturation
-    return urllib.parse.urlencode(values)
 
 
 def existing_rows(manifest: Path) -> list[dict[str, str]]:
@@ -112,8 +89,8 @@ def append_row(manifest: Path, row: dict[str, object]) -> None:
         csv_file.flush()
 
 
-def validate_jpeg(data: bytes, framesize: str) -> tuple[int, int]:
-    expected = {"qvga": (320, 240), "vga": (640, 480), "svga": (800, 600)}[framesize]
+def validate_jpeg(data: bytes) -> tuple[int, int]:
+    expected = (640, 480)
     with Image.open(io.BytesIO(data)) as image:
         image.load()
         if image.format != "JPEG":
@@ -138,7 +115,6 @@ def main(argv: Iterable[str] | None = None) -> int:
     rows = existing_rows(manifest)
     accepted = len(rows)
     last_cycle = max((int(row["pipeline_cycle"]) for row in rows), default=-1)
-    query = capture_query(args)
     print(f"[INFO] output={args.output} accepted={accepted} target={args.count}", flush=True)
 
     while accepted < args.count:
@@ -150,8 +126,9 @@ def main(argv: Iterable[str] | None = None) -> int:
                 continue
 
             current = get_json(f"{base_url}/api/v1/current", args.timeout_seconds)
+            query = urllib.parse.urlencode({"sample_cycle": cycle})
             data = get_bytes(f"{base_url}/debug/capture.jpg?{query}", args.timeout_seconds)
-            width, height = validate_jpeg(data, args.framesize)
+            width, height = validate_jpeg(data)
             sample_id = f"capture_{accepted + 1:04d}"
             relative_path = args.output / f"{sample_id}.jpg"
             relative_path.write_bytes(data)
@@ -173,14 +150,14 @@ def main(argv: Iterable[str] | None = None) -> int:
                 "device_temperature_c": value(current, "temperature_c"),
                 "device_humidity_percent": value(current, "humidity_percent"),
                 "device_recognition_duration_ms": value(current, "recognition_duration_ms"),
-                "framesize": args.framesize,
-                "quality": args.quality,
-                "brightness": args.brightness,
-                "contrast": args.contrast,
-                "saturation": "" if args.saturation is None else args.saturation,
-                "aec": args.aec,
-                "agc": args.agc,
-                "awb": args.awb,
+                "framesize": "vga",
+                "quality": 8,
+                "brightness": 2,
+                "contrast": 2,
+                "saturation": 0,
+                "aec": 0,
+                "agc": 0,
+                "awb": 0,
             }
             append_row(manifest, row)
             accepted += 1

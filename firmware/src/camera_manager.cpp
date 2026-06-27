@@ -91,7 +91,7 @@ bool CameraManager::Initialize() {
     config.ledc_channel = LEDC_CHANNEL_0;
     config.pixel_format = PIXFORMAT_JPEG;
     config.frame_size = FRAMESIZE_VGA;
-    config.jpeg_quality = 12;
+    config.jpeg_quality = 8;
     config.fb_count = 1;
     config.fb_location = CAMERA_FB_IN_PSRAM;
     config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
@@ -107,6 +107,13 @@ bool CameraManager::Initialize() {
     if (sensor != nullptr) {
         sensor->set_vflip(sensor, 1);
         sensor->set_hmirror(sensor, 1);
+        sensor->set_quality(sensor, 8);
+        sensor->set_brightness(sensor, 2);
+        sensor->set_contrast(sensor, 2);
+        sensor->set_saturation(sensor, 0);
+        sensor->set_whitebal(sensor, 0);
+        sensor->set_exposure_ctrl(sensor, 0);
+        sensor->set_gain_ctrl(sensor, 0);
         ESP_LOGI(kTag, "detected sensor: %s PID=0x%x", SensorName(sensor), static_cast<unsigned int>(sensor->id.PID));
         InitializeAutofocusIfSupported(sensor);
     }

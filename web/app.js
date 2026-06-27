@@ -224,17 +224,7 @@
     }
 
     function streamCaptureUrl() {
-        var params = [
-            "framesize=vga",
-            "quality=12",
-            "brightness=2",
-            "contrast=2",
-            "awb=0",
-            "aec=0",
-            "agc=0",
-            "ui_ts=" + Date.now()
-        ];
-        return state.streamBase + "/debug/capture.jpg?" + params.join("&");
+        return state.streamBase + "/debug/capture.jpg?ui_ts=" + Date.now();
     }
 
     function apiUrl(path) {

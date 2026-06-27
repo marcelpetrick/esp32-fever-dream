@@ -39,7 +39,7 @@ tool; it is not required to use the deployed dashboard.
 
 ## Deployed Firmware
 
-- Source version: `0.0.27`.
+- Source version: `0.0.28`.
 - Dashboard order: live camera, current readings, per-metric history, then
   device status and runtime diagnostics.
 - ESP-IDF target: `esp32`.
@@ -53,8 +53,8 @@ tool; it is not required to use the deployed dashboard.
   four hours of history at the current 10-second interval.
 - In-memory record size from host ABI: exposed at runtime as
   `storage_record_size_bytes`; current API also reports used/capacity bytes.
-- Firmware image size: `0x156bd0` bytes with `0x6b430` bytes, about 24%, of
-  the app partition free. This includes 49,654 bytes of dashboard assets.
+- Firmware image size: `0x156540` bytes with `0x6bac0` bytes, about 24%, of
+  the app partition free. This includes 49,414 bytes of dashboard assets.
 
 Useful endpoints:
 
@@ -69,6 +69,8 @@ GET /api/v1/readings/latest?count=1440
 The JPEG endpoint serves the latest frame captured by the periodic measurement
 cycle. It does not acquire the camera from the HTTP worker, so browser and
 dataset downloads cannot block on `esp_camera_fb_get()` or interfere with OCR.
+The tuned VGA/quality-8/manual exposure profile is applied once during camera
+initialization; HTTP requests cannot mutate sensor registers.
 
 `/api/v1/status` includes `measurement_interval_seconds`. The dashboard uses
 that value for its polling cadence and countdown. Current readings update when
