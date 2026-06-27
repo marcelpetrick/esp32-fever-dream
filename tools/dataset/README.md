@@ -78,3 +78,50 @@ display_text
 
 Add `predicted_display_text` when a recognizer can emit decoded values for the
 same samples.
+
+## Capture corpus audit
+
+Audit captures before labeling or training so malformed, badly exposed, blurry,
+unlocatable, and near-duplicate frames do not inflate the dataset:
+
+```sh
+python3 tools/dataset/audit_capture_corpus.py \
+  tools/dataset/captures/serial20260626 \
+  tools/dataset/captures/another_session \
+  --output-dir tools/dataset/captures/audit_20260627 \
+  --strict \
+  --min-accepted 500
+```
+
+The command recursively scans `.jpg` and `.jpeg` files. It verifies JPEG decode
+and the expected 640x480 dimensions, invokes the same orientation-aware display
+locator used by `tools/model_training/build_digit_dataset.py`, and measures the
+located display's mean brightness, contrast standard deviation, and Laplacian
+sharpness variance. A 64-bit perceptual difference hash rejects frames that are
+effectively duplicates of an earlier accepted frame.
+
+Outputs are `capture_corpus_audit.csv`, with one decision and rejection reason
+per image, and `capture_corpus_audit.json`, with thresholds, counts, rejection
+totals, and metric distributions. `--strict` returns exit code 2 when fewer than
+`--min-accepted` frames pass all gates. Default gates can be adjusted with
+`--min-brightness`, `--max-brightness`, `--min-contrast`, `--min-sharpness`, and
+`--duplicate-distance`; set duplicate distance to `-1` only when intentionally
+retaining repeated frames for diagnostics.
+## Cycle-Aware AQS Capture
+
+For long-running five-value collection, capture once after each completed
+firmware measurement cycle. This avoids competing with the camera while OCR is
+active and records the simultaneous device result as untrusted prediction
+provenance:
+
+```sh
+./scripts/collect_timed_aqs.sh \
+  --base-url http://esp32-fever-dream \
+  --output tools/dataset/captures/timed_upright_<timestamp> \
+  --count 520 \
+  --lighting-label timed_daylight_upright
+```
+
+The command validates JPEG decoding and dimensions before appending a row to
+`manifest.csv`. Fields prefixed with `device_` are model predictions and must
+not be treated as training labels until independently reviewed.

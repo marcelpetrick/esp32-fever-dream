@@ -1,6 +1,6 @@
 # Firmware Size Breakdown
 
-Last measured: 2026-06-27 from ESP-IDF build output for firmware `0.0.25`,
+Last measured: 2026-06-27 from ESP-IDF build output for firmware `0.0.26`,
 including the dashboard embedded in flash.
 
 ## Exact Flash Artifacts

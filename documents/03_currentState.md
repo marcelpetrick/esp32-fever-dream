@@ -39,7 +39,7 @@ tool; it is not required to use the deployed dashboard.
 
 ## Deployed Firmware
 
-- Source version: `0.0.25`.
+- Source version: `0.0.26`.
 - Dashboard order: live camera, current readings, per-metric history, then
   device status and runtime diagnostics.
 - ESP-IDF target: `esp32`.
