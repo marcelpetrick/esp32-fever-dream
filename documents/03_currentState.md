@@ -36,7 +36,9 @@ http://esp32-fever-dream
 
 ## Deployed Firmware
 
-- Source version: `0.0.20` after the five-value implementation is committed.
+- Source version: `0.0.21`.
+- Dashboard order: live camera, current readings, per-metric history, then
+  device status and runtime diagnostics.
 - ESP-IDF target: `esp32`.
 - Camera: AI-Thinker ESP32-CAM / OV2640 detected in boot logs.
 - Focus: current OV2640 module is fixed-focus. Firmware now compiles OV5640
