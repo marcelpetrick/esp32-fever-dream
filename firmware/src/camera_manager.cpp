@@ -111,9 +111,9 @@ bool CameraManager::Initialize() {
         sensor->set_brightness(sensor, 2);
         sensor->set_contrast(sensor, 2);
         sensor->set_saturation(sensor, 0);
-        sensor->set_whitebal(sensor, 0);
-        sensor->set_exposure_ctrl(sensor, 0);
-        sensor->set_gain_ctrl(sensor, 0);
+        sensor->set_whitebal(sensor, 1);
+        sensor->set_exposure_ctrl(sensor, 1);
+        sensor->set_gain_ctrl(sensor, 1);
         ESP_LOGI(kTag, "detected sensor: %s PID=0x%x", SensorName(sensor), static_cast<unsigned int>(sensor->id.PID));
         InitializeAutofocusIfSupported(sensor);
     }
