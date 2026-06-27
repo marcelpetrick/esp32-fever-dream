@@ -119,6 +119,14 @@ bool CameraManager::Initialize() {
 }
 
 CameraCaptureResult CameraManager::Capture() {
+    if (capture_in_progress_.test_and_set(std::memory_order_acquire)) {
+        return CameraCaptureResult{false, {}, "camera_busy"};
+    }
+    struct CaptureGuard {
+        std::atomic_flag& flag;
+        ~CaptureGuard() { flag.clear(std::memory_order_release); }
+    } guard{capture_in_progress_};
+
 #ifdef ESP_PLATFORM
     camera_fb_t* frame_buffer = esp_camera_fb_get();
     if (frame_buffer == nullptr) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -48,6 +49,7 @@ class CameraManager {
 
    private:
     std::string last_error_;
+    std::atomic_flag capture_in_progress_ = ATOMIC_FLAG_INIT;
 };
 
 }  // namespace fever

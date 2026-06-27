@@ -201,19 +201,23 @@ esp_err_t CaptureJpegHandler(httpd_req_t* request) {
     const std::string query = QueryString(request);
     ApplyCameraSettings(query);
 
-    camera_fb_t* frame_buffer = esp_camera_fb_get();
-    if (frame_buffer == nullptr || frame_buffer->format != PIXFORMAT_JPEG) {
-        if (frame_buffer != nullptr) {
-            esp_camera_fb_return(frame_buffer);
+    const CameraCaptureResult capture = g_camera->Capture();
+    if (!capture.ok || capture.frame.format != CameraPixelFormat::kJpeg) {
+        ESP_LOGW(kTag, "capture failed: %s", capture.error.c_str());
+        if (capture.error == "camera_busy") {
+            SetCorsHeaders(request);
+            httpd_resp_set_type(request, "application/json");
+            httpd_resp_set_status(request, "503 Service Unavailable");
+            httpd_resp_set_hdr(request, "Retry-After", "1");
+            return httpd_resp_sendstr(request, "{\"ok\":false,\"error\":\"camera_busy\"}");
         }
-        ESP_LOGW(kTag, "capture failed");
         return SendJson(request, 500, "{\"ok\":false,\"error\":\"capture_failed\"}");
     }
 
     char width[16] = {};
     char height[16] = {};
-    snprintf(width, sizeof(width), "%u", static_cast<unsigned int>(frame_buffer->width));
-    snprintf(height, sizeof(height), "%u", static_cast<unsigned int>(frame_buffer->height));
+    snprintf(width, sizeof(width), "%u", static_cast<unsigned int>(capture.frame.width));
+    snprintf(height, sizeof(height), "%u", static_cast<unsigned int>(capture.frame.height));
 
     httpd_resp_set_type(request, "image/jpeg");
     SetCorsHeaders(request);
@@ -221,10 +225,7 @@ esp_err_t CaptureJpegHandler(httpd_req_t* request) {
     httpd_resp_set_hdr(request, "Connection", "close");
     httpd_resp_set_hdr(request, "X-Fever-Frame-Width", width);
     httpd_resp_set_hdr(request, "X-Fever-Frame-Height", height);
-    const esp_err_t send_result =
-        httpd_resp_send(request, reinterpret_cast<const char*>(frame_buffer->buf), frame_buffer->len);
-    esp_camera_fb_return(frame_buffer);
-    return send_result;
+    return httpd_resp_send(request, reinterpret_cast<const char*>(capture.frame.data.data()), capture.frame.data.size());
 }
 
 }  // namespace
