@@ -71,13 +71,14 @@ flowchart LR
     Boot --> Serial[USB serial capture task]
     Boot --> Task[Measurement task]
 
-    Task --> Capture[Capture JPEG]
-    Capture --> Decode[JPEG to RGB888]
-    Decode --> Roi[Fixed digit ROIs]
-    Roi --> Tensor[24x32 int8 tensor]
-    Tensor --> TFLM[TFLite Micro interpreter]
-    TFLM --> Validate[Confidence and range validation]
+    Task --> Capture[1. Capture image]
+    Capture --> Decode[2. Decode JPEG to RGB888]
+    Decode --> Locate[3. Locate and orient display]
+    Locate --> OCR[4. Run TFLite digit OCR]
+    OCR --> Validate[5. Validate and save]
     Validate --> Buffer[StorageRingBuffer]
+    Task -. pipeline stage and cycle .-> API[Status API]
+    API -. 400 ms status polling .-> Web[Embedded dashboard]
     Server --> Router[ApiRouter]
     Serial --> Capture
     Router --> Buffer

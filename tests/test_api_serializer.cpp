@@ -19,9 +19,12 @@ void TestApiSerializer() {
     diagnostics.time_synced = true;
     diagnostics.last_error = "none";
     const std::string status = fever::SerializeStatus(diagnostics, 1U, 10U, sizeof(record), sizeof(record) * 10U,
-                                                      sizeof(record), &record);
+                                                      sizeof(record), &record, fever::PipelineStage::kRunOcr, 7U);
     REQUIRE(status.find(std::string{"\"firmware_version\":\""} + fever::version::ProjectVersion() + "\"") !=
             std::string::npos);
     REQUIRE(status.find("\"time_synced\":true") != std::string::npos);
     REQUIRE(status.find("\"storage_backend\":\"ram_ring_buffer\"") != std::string::npos);
+    REQUIRE(status.find("\"pipeline_stage\":\"run_ocr\"") != std::string::npos);
+    REQUIRE(status.find("\"pipeline_stage_index\":4") != std::string::npos);
+    REQUIRE(status.find("\"pipeline_cycle\":7") != std::string::npos);
 }

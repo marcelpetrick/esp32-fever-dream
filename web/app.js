@@ -25,6 +25,8 @@
         lastReadingSeenAt: null,
         refreshTimer: null,
         countdownTimer: null,
+        pipelineTimer: null,
+        pipelineLoading: false,
         lastError: null,
         streamBase: "",
         streamTimer: null,
@@ -38,6 +40,7 @@
         el = {
             modeSelect: document.getElementById("modeSelect"),
             themeSelect: document.getElementById("themeSelect"),
+            firmwareVersion: document.getElementById("firmwareVersion"),
             currentCo2: document.getElementById("currentCo2"),
             currentHcho: document.getElementById("currentHcho"),
             currentTvoc: document.getElementById("currentTvoc"),
@@ -71,6 +74,7 @@
         refreshAll();
         scheduleRefresh();
         state.countdownTimer = window.setInterval(renderCaptureCountdown, 250);
+        state.pipelineTimer = window.setInterval(refreshPipelineStatus, 400);
         window.addEventListener("resize", debounce(drawChart, 120));
         window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawChart);
     });
@@ -136,7 +140,7 @@
             getJson(apiUrl(ENDPOINTS.current)),
             getJson(apiUrl(ENDPOINTS.latest))
         ]).then(function (responses) {
-            state.status = responses[0];
+            state.status = newerPipelineStatus(state.status, responses[0]);
             state.current = normalizeCurrent(responses[1]);
             state.readings = normalizeReadings(responses[2]);
             rememberCurrentSample(state.current);
@@ -159,6 +163,22 @@
     function scheduleRefresh() {
         window.clearTimeout(state.refreshTimer);
         state.refreshTimer = window.setTimeout(refreshAll, measurementIntervalSeconds() * 1000);
+    }
+
+    function refreshPipelineStatus() {
+        if (!state.streamBase || state.pipelineLoading) {
+            return;
+        }
+        state.pipelineLoading = true;
+        getJson(apiUrl(ENDPOINTS.status)).then(function (status) {
+            state.status = newerPipelineStatus(state.status, status);
+            renderHeader();
+            renderPipeline();
+        }).catch(function () {
+            // The full refresh owns user-visible connection errors.
+        }).finally(function () {
+            state.pipelineLoading = false;
+        });
     }
 
     function syncStreamTimer() {
@@ -357,6 +377,22 @@
         return DEFAULT_MEASUREMENT_INTERVAL_SECONDS;
     }
 
+    function newerPipelineStatus(current, incoming) {
+        if (!current) {
+            return incoming;
+        }
+        var currentCycle = toNumberOrNull(current.pipeline_cycle) || 0;
+        var incomingCycle = toNumberOrNull(incoming && incoming.pipeline_cycle) || 0;
+        if (incomingCycle !== currentCycle) {
+            return incomingCycle > currentCycle ? incoming : current;
+        }
+        var currentStage = toNumberOrNull(current.pipeline_stage_index) || 0;
+        var incomingStage = toNumberOrNull(incoming && incoming.pipeline_stage_index) || 0;
+        var currentOrder = currentStage === 0 && currentCycle > 0 ? 6 : currentStage;
+        var incomingOrder = incomingStage === 0 && incomingCycle > 0 ? 6 : incomingStage;
+        return incomingOrder >= currentOrder ? incoming : current;
+    }
+
     function renderCaptureCountdown() {
         if (!el.captureCountdown || !el.captureInterval || !el.captureProgress) {
             return;
@@ -373,27 +409,19 @@
         var progress = Math.min(100, (elapsed / interval) * 100);
         el.captureCountdown.textContent = remaining <= 0.3 ? "Waiting for new OCR sample" : "Next OCR sample in " + Math.ceil(remaining) + "s";
         el.captureProgress.style.width = progress.toFixed(1) + "%";
-        renderPipelineStep(remaining, interval);
     }
 
-    function renderPipelineStep(remaining, interval) {
+    function renderPipeline() {
         if (!el.pipelineSteps) {
             return;
         }
-        var active = "update";
-        if (state.loading) {
-            active = "update";
-        } else if (!state.lastReadingSeenAt) {
-            active = "snapping";
-        } else if (remaining <= Math.max(1, interval * 0.18)) {
-            active = "snapping";
-        } else if (remaining <= Math.max(2, interval * 0.38)) {
-            active = "corners";
-        } else if (remaining <= Math.max(3, interval * 0.58)) {
-            active = "ocr";
-        }
-        Array.prototype.forEach.call(el.pipelineSteps.querySelectorAll("[data-step]"), function (item) {
-            item.classList.toggle("is-active", item.dataset.step === active);
+        var stage = toNumberOrNull(state.status && state.status.pipeline_stage_index);
+        var cycle = toNumberOrNull(state.status && state.status.pipeline_cycle) || 0;
+        var active = stage !== null && stage >= 1 && stage <= 5 ? stage : 0;
+        Array.prototype.forEach.call(el.pipelineSteps.querySelectorAll("[data-stage-index]"), function (item) {
+            var itemStage = Number(item.dataset.stageIndex);
+            item.classList.toggle("is-active", itemStage === active);
+            item.classList.toggle("is-complete", active > 0 ? itemStage < active : cycle > 0);
         });
     }
 
@@ -424,9 +452,19 @@
     }
 
     function render() {
+        renderHeader();
         renderCurrent();
         renderDetails();
+        renderPipeline();
         drawChart();
+    }
+
+    function renderHeader() {
+        if (!el.firmwareVersion) {
+            return;
+        }
+        var version = state.status && pick(state.status, ["firmware_version", "firmwareVersion"]);
+        el.firmwareVersion.textContent = version ? "v" + String(version).replace(/^v/, "") : "v...";
     }
 
     function renderCurrent() {

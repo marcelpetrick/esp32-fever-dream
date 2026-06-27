@@ -114,15 +114,14 @@ std::string SerializeReadings(const std::vector<ReadingRecord>& records) {
 std::string SerializeStatus(const DiagnosticsSnapshot& diagnostics, std::size_t storage_count,
                             std::size_t storage_capacity, std::size_t storage_used_bytes,
                             std::size_t storage_capacity_bytes, std::size_t storage_record_size_bytes,
-                            const ReadingRecord* latest) {
+                            const ReadingRecord* latest, PipelineStage pipeline_stage, uint32_t pipeline_cycle) {
     std::ostringstream out;
     out << "{\"device\":\"esp32-cam-aqs\",\"display\":\"AQS\",\"firmware_version\":\"" << version::ProjectVersion()
         << "\",\"time_synced\":" << (diagnostics.time_synced ? "true" : "false")
         << ",\"storage_records\":" << storage_count << ",\"storage_capacity_records\":" << storage_capacity
         << ",\"storage_backend\":\"ram_ring_buffer\""
         << ",\"storage_record_size_bytes\":" << storage_record_size_bytes
-        << ",\"storage_used_bytes\":" << storage_used_bytes
-        << ",\"storage_capacity_bytes\":" << storage_capacity_bytes
+        << ",\"storage_used_bytes\":" << storage_used_bytes << ",\"storage_capacity_bytes\":" << storage_capacity_bytes
         << ",\"measurement_interval_seconds\":" << config::kMeasurementIntervalSeconds
         << ",\"storage_retention_minutes\":" << (storage_capacity * config::kMeasurementIntervalSeconds / 60U)
         << ",\"storage_retention_hours\":"
@@ -130,11 +129,14 @@ std::string SerializeStatus(const DiagnosticsSnapshot& diagnostics, std::size_t 
         << ",\"boot_count\":" << diagnostics.boot_count << ",\"capture_failures\":" << diagnostics.capture_failures
         << ",\"recognition_failures\":" << diagnostics.recognition_failures
         << ",\"storage_failures\":" << diagnostics.storage_failures << ",\"wifi_rssi\":" << diagnostics.wifi_rssi
-        << ",\"recognition_min_confidence\":" << (static_cast<unsigned int>(config::kRecognitionMinConfidencePercent) / 100.0)
+        << ",\"recognition_min_confidence\":"
+        << (static_cast<unsigned int>(config::kRecognitionMinConfidencePercent) / 100.0)
         << ",\"recognition_min_confidence_percent\":"
-        << static_cast<unsigned int>(config::kRecognitionMinConfidencePercent)
-        << ",\"last_reading_status\":\"" << (latest == nullptr ? "none" : ToString(latest->status))
-        << "\",\"last_error\":";
+        << static_cast<unsigned int>(config::kRecognitionMinConfidencePercent) << ",\"pipeline_stage\":\""
+        << ToString(pipeline_stage) << "\""
+        << ",\"pipeline_stage_index\":" << static_cast<unsigned int>(pipeline_stage)
+        << ",\"pipeline_cycle\":" << pipeline_cycle << ",\"last_reading_status\":\""
+        << (latest == nullptr ? "none" : ToString(latest->status)) << "\",\"last_error\":";
     AppendJsonString(out, diagnostics.last_error);
     out << "}";
     return out.str();

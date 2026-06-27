@@ -17,10 +17,10 @@ The ESP32-CAM has a working mounted AQS prototype path:
 - The dashboard renders five independent history charts, one each for CO2,
   HCHO, TVOC, temperature, and humidity. Confidence is intentionally not
   charted.
-- The dashboard shows the firmware measurement interval, a decreasing
-  countdown/progress bar for the next expected OCR sample, and an estimated
-  pipeline breadcrumb: snapping photo, evaluating corners, doing OCR, doing
-  update.
+- The dashboard shows the firmware version in its title, the measurement
+  interval, a decreasing countdown/progress bar, and the five real pipeline
+  stages reported by firmware: capture image, decode JPEG, locate display, run
+  OCR, validate and save.
 
 Standalone device UI:
 
@@ -39,7 +39,7 @@ tool; it is not required to use the deployed dashboard.
 
 ## Deployed Firmware
 
-- Source version: `0.0.22`.
+- Source version: `0.0.23`.
 - Dashboard order: live camera, current readings, per-metric history, then
   device status and runtime diagnostics.
 - ESP-IDF target: `esp32`.
@@ -53,8 +53,8 @@ tool; it is not required to use the deployed dashboard.
   four hours of history at the current 10-second interval.
 - In-memory record size from host ABI: exposed at runtime as
   `storage_record_size_bytes`; current API also reports used/capacity bytes.
-- Firmware image size: `0x1559f0` bytes with `0x6c610` bytes, about 24%, of
-  the app partition free. This includes 47,226 bytes of dashboard assets.
+- Firmware image size: `0x156600` bytes with `0x6ba00` bytes, about 24%, of
+  the app partition free. This includes 49,364 bytes of dashboard assets.
 
 Useful endpoints:
 

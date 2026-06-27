@@ -36,6 +36,12 @@ fever::CameraManager g_camera_runtime;
 fever::StorageRingBuffer g_readings_runtime(fever::config::kRuntimeStorageRecords);
 fever::Diagnostics g_diagnostics_runtime;
 
+void RecordPipelineStage(fever::PipelineStage stage) {
+    if (g_diagnostics != nullptr) {
+        g_diagnostics->SetPipelineStage(stage);
+    }
+}
+
 const char* WifiDisconnectReasonName(uint8_t reason) {
     switch (reason) {
         case WIFI_REASON_AUTH_EXPIRE:
@@ -114,7 +120,7 @@ void MeasurementTask(void*) {
     vTaskDelay(pdMS_TO_TICKS(10000));
     fever::MeasurementController controller(
         *g_readings, *g_diagnostics, g_time, []() { return g_camera->Capture(); },
-        [](const fever::CameraFrame& frame) { return fever::RecognizeDisplayWithTinyMl(frame); });
+        [](const fever::CameraFrame& frame) { return fever::RecognizeDisplayWithTinyMl(frame, &RecordPipelineStage); });
 
     while (true) {
         const uint32_t now_s = static_cast<uint32_t>(esp_timer_get_time() / 1000000LL);

@@ -25,7 +25,8 @@ struct ApiError {
 [[nodiscard]] std::string SerializeStatus(const DiagnosticsSnapshot& diagnostics, std::size_t storage_count,
                                           std::size_t storage_capacity, std::size_t storage_used_bytes,
                                           std::size_t storage_capacity_bytes, std::size_t storage_record_size_bytes,
-                                          const ReadingRecord* latest);
+                                          const ReadingRecord* latest, PipelineStage pipeline_stage,
+                                          uint32_t pipeline_cycle);
 /** Serialize a structured API error response. */
 [[nodiscard]] std::string SerializeError(ApiError error);
 

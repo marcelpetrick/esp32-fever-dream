@@ -14,6 +14,7 @@ MeasurementController::MeasurementController(StorageRingBuffer& storage, Diagnos
       recognize_(std::move(recognize)) {}
 
 ReadingRecord MeasurementController::RunOnce() {
+    diagnostics_.BeginPipelineCycle();
     const TimestampState timestamp = time_.Now();
     const CameraCaptureResult capture = capture_();
     if (!capture.ok) {
@@ -24,6 +25,7 @@ ReadingRecord MeasurementController::RunOnce() {
         if (!storage_.Append(record)) {
             diagnostics_.RecordStorageFailure("append_failed");
         }
+        diagnostics_.SetPipelineStage(PipelineStage::kWaiting);
         return record;
     }
 
@@ -39,12 +41,14 @@ ReadingRecord MeasurementController::RunOnce() {
                                      static_cast<uint16_t>(std::min<uint32_t>(recognition.recognition_duration_ms,
                                                                               UINT16_MAX)));
 
+    diagnostics_.SetPipelineStage(PipelineStage::kValidateAndSave);
     if (!recognition.ok) {
         diagnostics_.RecordRecognitionFailure(recognition.error);
     }
     if (!storage_.Append(record)) {
         diagnostics_.RecordStorageFailure("append_failed");
     }
+    diagnostics_.SetPipelineStage(PipelineStage::kWaiting);
     return record;
 }
 

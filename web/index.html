@@ -11,7 +11,7 @@
     <header class="app-header">
         <div>
             <p class="eyebrow">Local AQS</p>
-            <h1>Air quality</h1>
+            <h1>Air quality - <span id="firmwareVersion">v...</span></h1>
         </div>
         <div class="toolbar" aria-label="Display settings">
             <label class="select-field">
@@ -96,10 +96,11 @@
                     </div>
                 </div>
                 <div id="pipelineSteps" class="pipeline-steps" aria-label="Detection pipeline">
-                    <span data-step="snapping">Snapping photo</span>
-                    <span data-step="corners">Evaluating corners</span>
-                    <span data-step="ocr">Doing OCR</span>
-                    <span data-step="update">Doing update</span>
+                    <span data-stage-index="1">Capture image</span>
+                    <span data-stage-index="2">Decode JPEG</span>
+                    <span data-stage-index="3">Locate display</span>
+                    <span data-stage-index="4">Run OCR</span>
+                    <span data-stage-index="5">Validate &amp; save</span>
                 </div>
                 <p id="currentMeta" class="muted">Waiting for first reading</p>
             </div>

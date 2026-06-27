@@ -33,7 +33,10 @@ GET /api/v1/current
 GET /api/v1/readings/latest?count=1440
 ```
 
-It renders the current CO2, HCHO, TVOC, temperature, humidity, OCR confidence, device diagnostics, API state, theme controls, and a canvas history chart. No external CDN or internet dependency is used.
+It renders the current CO2, HCHO, TVOC, temperature, humidity, OCR confidence,
+device diagnostics, API state, firmware version, five-stage live measurement
+progress, and per-metric history charts. No external CDN or internet dependency
+is used.
 
 For frontend-only development, it can also be served from the workstation and
 pointed at the device:

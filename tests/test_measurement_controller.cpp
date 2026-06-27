@@ -28,6 +28,8 @@ void TestMeasurementController() {
     REQUIRE(success.humidity_percent == 48U);
     REQUIRE(success.recognition_duration_ms == 37U);
     REQUIRE(storage.Count() == 1U);
+    REQUIRE(diagnostics.PipelineCycle() == 1U);
+    REQUIRE(diagnostics.CurrentPipelineStage() == fever::PipelineStage::kWaiting);
 
     fever::MeasurementController failure_controller(
         storage, diagnostics, time, []() { return fever::CameraCaptureResult{false, {}, "camera_timeout"}; },
@@ -44,4 +46,6 @@ void TestMeasurementController() {
     REQUIRE(failure.status == fever::ReadingStatus::kCameraFailed);
     REQUIRE(diagnostics.Snapshot().capture_failures == 1U);
     REQUIRE(storage.Count() == 2U);
+    REQUIRE(diagnostics.PipelineCycle() == 2U);
+    REQUIRE(diagnostics.CurrentPipelineStage() == fever::PipelineStage::kWaiting);
 }

@@ -76,10 +76,11 @@ ApiResponse ApiRouter::Handle(const ApiRequest& request) const {
     const std::string_view path = PathOnly(request.target);
     if (path == "/api/v1/status") {
         const auto latest = storage_.Latest();
-        return Json(200, SerializeStatus(diagnostics_.Snapshot(), storage_.Count(), storage_.Capacity(),
-                                         storage_.UsedBytes(), storage_.CapacityBytes(),
-                                         StorageRingBuffer::RecordSizeBytes(),
-                                         latest.has_value() ? &(*latest) : nullptr));
+        return Json(
+            200, SerializeStatus(diagnostics_.Snapshot(), storage_.Count(), storage_.Capacity(), storage_.UsedBytes(),
+                                 storage_.CapacityBytes(), StorageRingBuffer::RecordSizeBytes(),
+                                 latest.has_value() ? &(*latest) : nullptr, diagnostics_.CurrentPipelineStage(),
+                                 diagnostics_.PipelineCycle()));
     }
     if (path == "/api/v1/current") {
         const auto latest = storage_.Latest();
@@ -93,10 +94,11 @@ ApiResponse ApiRouter::Handle(const ApiRequest& request) const {
     }
     if (path == "/api/v1/diagnostics") {
         const auto latest = storage_.Latest();
-        return Json(200, SerializeStatus(diagnostics_.Snapshot(), storage_.Count(), storage_.Capacity(),
-                                         storage_.UsedBytes(), storage_.CapacityBytes(),
-                                         StorageRingBuffer::RecordSizeBytes(),
-                                         latest.has_value() ? &(*latest) : nullptr));
+        return Json(
+            200, SerializeStatus(diagnostics_.Snapshot(), storage_.Count(), storage_.Capacity(), storage_.UsedBytes(),
+                                 storage_.CapacityBytes(), StorageRingBuffer::RecordSizeBytes(),
+                                 latest.has_value() ? &(*latest) : nullptr, diagnostics_.CurrentPipelineStage(),
+                                 diagnostics_.PipelineCycle()));
     }
 
     return Json(404, SerializeError(ApiError{"not_found", "Endpoint not found."}));

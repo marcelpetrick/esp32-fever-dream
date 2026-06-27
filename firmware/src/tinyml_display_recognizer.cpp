@@ -351,10 +351,9 @@ uint16_t ThreeFractionalDigits(const std::array<uint8_t, 4>& digits) {
     return static_cast<uint16_t>((digits[1] * 100U) + (digits[2] * 10U) + digits[3]);
 }
 
-CandidateReading TryClassifyCandidate(tflite::MicroInterpreter& interpreter, TfLiteTensor* input, TfLiteTensor* output,
-                                      const std::vector<uint8_t>& rgb, std::size_t width, std::size_t height,
-                                      Rotation rotation) {
-    const BrightBounds bounds = FindBrightBounds(rgb, width, height, rotation);
+CandidateReading ClassifyCandidate(tflite::MicroInterpreter& interpreter, TfLiteTensor* input, TfLiteTensor* output,
+                                   const std::vector<uint8_t>& rgb, std::size_t width, std::size_t height,
+                                   Rotation rotation, const BrightBounds& bounds) {
     if (!bounds.valid) {
         return {false, {0U, 0U, 0U, 0, 0U}, 0U};
     }
@@ -401,7 +400,7 @@ CandidateReading TryClassifyCandidate(tflite::MicroInterpreter& interpreter, TfL
 
 }  // namespace
 
-RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
+RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame, PipelineProgressFn progress) {
     const int64_t started_at_us = esp_timer_get_time();
     if (frame.format != CameraPixelFormat::kJpeg || frame.data.empty() || frame.width == 0U || frame.height == 0U) {
         return RecognitionResult{false,
@@ -412,6 +411,9 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
                                  "expected_jpeg_frame"};
     }
 
+    if (progress != nullptr) {
+        progress(PipelineStage::kDecodeImage);
+    }
     std::vector<uint8_t> rgb(frame.width * frame.height * 3U);
     if (!fmt2rgb888(frame.data.data(), frame.data.size(), PIXFORMAT_JPEG, rgb.data())) {
         return RecognitionResult{false,
@@ -451,14 +453,26 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
 
     TfLiteTensor* input = interpreter.input(0);
     TfLiteTensor* output = interpreter.output(0);
-    CandidateReading best = TryClassifyCandidate(interpreter, input, output, rgb, frame.width, frame.height,
-                                                 Rotation::kNone);
-    const CandidateReading rotated = TryClassifyCandidate(interpreter, input, output, rgb, frame.width, frame.height,
-                                                          Rotation::kRotate180);
+    if (progress != nullptr) {
+        progress(PipelineStage::kLocateDisplay);
+    }
+    const BrightBounds upright_bounds = FindBrightBounds(rgb, frame.width, frame.height, Rotation::kNone);
+    const BrightBounds rotated_bounds = FindBrightBounds(rgb, frame.width, frame.height, Rotation::kRotate180);
+
+    if (progress != nullptr) {
+        progress(PipelineStage::kRunOcr);
+    }
+    CandidateReading best =
+        ClassifyCandidate(interpreter, input, output, rgb, frame.width, frame.height, Rotation::kNone, upright_bounds);
+    const CandidateReading rotated = ClassifyCandidate(interpreter, input, output, rgb, frame.width, frame.height,
+                                                       Rotation::kRotate180, rotated_bounds);
     if (!best.classified || (rotated.classified && rotated.min_confidence > best.min_confidence)) {
         best = rotated;
     }
 
+    if (progress != nullptr) {
+        progress(PipelineStage::kValidateAndSave);
+    }
     if (!best.classified) {
         return RecognitionResult{false,
                                  {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
@@ -495,7 +509,7 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame) {
 #else
 namespace fever {
 
-RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame&) {
+RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame&, PipelineProgressFn) {
     return RecognitionResult{false,
                              {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
                               kTemperatureUnavailable, kHumidityUnavailable},
