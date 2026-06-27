@@ -8,6 +8,7 @@ import array
 import base64
 import csv
 import fcntl
+import hashlib
 import os
 import select
 import sys
@@ -37,7 +38,7 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser.add_argument("--port", default="/dev/ttyUSB0", help="Serial device. Default: /dev/ttyUSB0.")
     parser.add_argument("--baud", type=int, default=115200, choices=sorted(BAUD_RATES), help="UART baud rate.")
     parser.add_argument("--count", type=int, default=10, help="Number of images to capture.")
-    parser.add_argument("--interval", type=float, default=1.0, help="Delay between captures in seconds.")
+    parser.add_argument("--interval", type=float, default=10.0, help="Delay between captures in seconds.")
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -45,14 +46,6 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         help="Directory for JPEGs and manifest.",
     )
     parser.add_argument("--lighting-label", default="serial_usb", help="Manifest lighting label.")
-    parser.add_argument("--framesize", default="vga", choices=["qvga", "vga", "svga"], help="Camera frame size.")
-    parser.add_argument("--quality", type=int, default=12, help="JPEG quality, lower is better. Firmware clamps 4..63.")
-    parser.add_argument("--brightness", type=int, help="OV2640 brightness, -2..2.")
-    parser.add_argument("--contrast", type=int, help="OV2640 contrast, -2..2.")
-    parser.add_argument("--saturation", type=int, help="OV2640 saturation, -2..2.")
-    parser.add_argument("--aec", type=int, choices=[0, 1], help="Auto exposure control.")
-    parser.add_argument("--agc", type=int, choices=[0, 1], help="Auto gain control.")
-    parser.add_argument("--awb", type=int, choices=[0, 1], help="Auto white balance.")
     parser.add_argument("--timeout", type=float, default=20.0, help="Seconds to wait for each serial response.")
     parser.add_argument(
         "--startup-wait",
@@ -121,15 +114,6 @@ class SerialPort:
         return None
 
 
-def camera_settings(args: argparse.Namespace) -> list[str]:
-    settings = [f"framesize={args.framesize}", f"quality={args.quality}"]
-    for name in ["brightness", "contrast", "saturation", "aec", "agc", "awb"]:
-        value = getattr(args, name)
-        if value is not None:
-            settings.append(f"{name}={value}")
-    return settings
-
-
 def parse_begin(line: str) -> dict[str, str]:
     values: dict[str, str] = {}
     for token in line.split()[1:]:
@@ -186,13 +170,20 @@ def wait_for_serial_capture_ready(serial: SerialPort, timeout_s: float) -> bool:
     return saw_ready
 
 
-def next_capture_index(output_dir: Path) -> int:
+def next_capture_index(output_dir: Path, manifest_path: Path) -> int:
     highest = 0
     for image_path in output_dir.glob("capture_*.jpg"):
         try:
             highest = max(highest, int(image_path.stem.split("_", 1)[1]))
         except (IndexError, ValueError):
             continue
+    if manifest_path.exists():
+        with manifest_path.open("r", encoding="utf-8", newline="") as manifest_file:
+            for row in csv.DictReader(manifest_file):
+                try:
+                    highest = max(highest, int(row["sample_id"].split("_", 1)[1]))
+                except (KeyError, IndexError, ValueError):
+                    continue
     return highest + 1
 
 
@@ -200,8 +191,8 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = args.output_dir / "manifest.csv"
-    command = "CAPTURE_JPEG " + " ".join(camera_settings(args))
-    start_index = next_capture_index(args.output_dir)
+    command = "CAPTURE_JPEG"
+    start_index = next_capture_index(args.output_dir, manifest_path)
     write_header = not manifest_path.exists() or manifest_path.stat().st_size == 0
 
     with manifest_path.open("a", encoding="utf-8", newline="") as manifest_file:
@@ -240,16 +231,31 @@ def main(argv: Iterable[str] | None = None) -> int:
                     print("[INFO] serial capture task is ready", flush=True)
                 else:
                     print("[WARN] did not see FEVER_SERIAL_CAPTURE_READY before first request", file=sys.stderr)
-            for index in range(start_index, start_index + args.count):
+            seen_hashes = {hashlib.sha256(path.read_bytes()).hexdigest() for path in args.output_dir.glob("*.jpg")}
+            index = start_index
+            accepted = 0
+            while accepted < args.count:
                 sample_id = f"capture_{index:04d}"
                 image_path = args.output_dir / f"{sample_id}.jpg"
                 captured_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
                 try:
                     data, metadata = request_capture(serial, command, args.timeout)
-                    image_path.write_bytes(data)
-                    status = "ok"
-                    notes = "serial_capture"
-                    print(f"[INFO] {sample_id}: wrote {image_path} ({len(data)} bytes)", flush=True)
+                    digest = hashlib.sha256(data).hexdigest()
+                    if digest in seen_hashes:
+                        status = "duplicate"
+                        notes = "periodic_cache_unchanged"
+                        print(f"[INFO] {sample_id}: skipped unchanged cached frame", flush=True)
+                    else:
+                        image_path.write_bytes(data)
+                        seen_hashes.add(digest)
+                        accepted += 1
+                        status = "ok"
+                        notes = "serial_periodic_cache"
+                        print(
+                            f"[INFO] {sample_id}: wrote {image_path} ({len(data)} bytes) "
+                            f"accepted={accepted}/{args.count}",
+                            flush=True,
+                        )
                 except Exception as exc:
                     data = b""
                     metadata = {}
@@ -262,14 +268,14 @@ def main(argv: Iterable[str] | None = None) -> int:
                         "sample_id": sample_id,
                         "image_path": image_path,
                         "lighting_label": args.lighting_label,
-                        "framesize": args.framesize,
-                        "quality": args.quality,
-                        "brightness": args.brightness if args.brightness is not None else "",
-                        "contrast": args.contrast if args.contrast is not None else "",
-                        "saturation": args.saturation if args.saturation is not None else "",
-                        "aec": args.aec if args.aec is not None else "",
-                        "agc": args.agc if args.agc is not None else "",
-                        "awb": args.awb if args.awb is not None else "",
+                        "framesize": "vga",
+                        "quality": 8,
+                        "brightness": 2,
+                        "contrast": 2,
+                        "saturation": 0,
+                        "aec": 0,
+                        "agc": 0,
+                        "awb": 0,
                         "serial_status": status,
                         "bytes": len(data),
                         "width": metadata.get("width", ""),
@@ -280,7 +286,8 @@ def main(argv: Iterable[str] | None = None) -> int:
                     }
                 )
                 manifest_file.flush()
-                if index < args.count:
+                index += 1
+                if accepted < args.count:
                     time.sleep(args.interval)
         finally:
             serial.close()
