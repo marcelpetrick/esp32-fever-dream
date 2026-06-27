@@ -446,6 +446,21 @@ dd {
         flex: 1 1 130px;
     }
 
+    .stream-controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stream-controls .input-field {
+        grid-column: 1 / -1;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .stream-controls .text-button {
+        width: 100%;
+    }
+
     .current-panel {
         align-items: flex-start;
         flex-direction: column;

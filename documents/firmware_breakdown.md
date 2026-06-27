@@ -1,6 +1,6 @@
 # Firmware Size Breakdown
 
-Last measured: 2026-06-27 from ESP-IDF build output for firmware `0.0.23`,
+Last measured: 2026-06-27 from ESP-IDF build output for firmware `0.0.24`,
 including the dashboard embedded in flash.
 
 ## Exact Flash Artifacts
@@ -11,14 +11,14 @@ These are file sizes from the build outputs that are flashed to the ESP32-CAM.
 | --- | ---: | ---: | --- |
 | Bootloader | `0x1000` | `26,128 B` (`0x6610`) | Bootloader partition has `2,544 B` free. |
 | Partition table | `0x8000` | `3,072 B` | Standard partition-table binary. |
-| App firmware | `0x10000` | `1,402,368 B` (`0x156600`) | Smallest app partition is `1,843,200 B` (`0x1c2000`). |
-| App partition free | n/a | `440,832 B` (`0x6ba00`) | About `24%` free. |
+| App firmware | `0x10000` | `1,402,656 B` (`0x156720`) | Smallest app partition is `1,843,200 B` (`0x1c2000`). |
+| App partition free | n/a | `440,544 B` (`0x6b8e0`) | About `24%` free. |
 
 ```mermaid
 pie showData
     title App Partition Usage
-    "App image" : 1402368
-    "Free app partition space" : 440832
+    "App image" : 1402656
+    "Free app partition space" : 440544
 ```
 
 ## Embedded Dashboard
@@ -29,11 +29,11 @@ The firmware build embeds the source files directly and serves them at `/`,
 | Asset | Embedded bytes |
 | --- | ---: |
 | `web/index.html` | `7,154 B` |
-| `web/styles.css` | `8,282 B` |
+| `web/styles.css` | `8,572 B` |
 | `web/app.js` | `33,928 B` |
-| **Total web payload** | **`49,364 B`** |
+| **Total web payload** | **`49,654 B`** |
 
-The complete app image is `51,040 B` larger than firmware `0.0.21`; that delta
+The complete app image is `51,328 B` larger than firmware `0.0.21`; that delta
 includes the web payload, HTTP handlers, pipeline telemetry, and alignment.
 
 ## Model Artifact
@@ -108,7 +108,7 @@ flowchart TD
     App --> Wifi[Wi-Fi and TCP/IP stacks]
     App --> Camera[ESP32 camera component]
     App --> Http[HTTP server and parser]
-    App --> Web[Embedded dashboard: 49.4 KB]
+    App --> Web[Embedded dashboard: 49.7 KB]
     App --> Tflm[TFLite Micro runtime]
     App --> Model[Int8 digit model: 32.5 KB]
     App --> AppCode[Project firmware code]
