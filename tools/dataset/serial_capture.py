@@ -10,6 +10,7 @@ import csv
 import fcntl
 import hashlib
 import os
+import re
 import select
 import sys
 import termios
@@ -30,6 +31,7 @@ BAUD_RATES = {
     460800: termios.B460800,
     921600: termios.B921600,
 }
+BASE64_LINE = re.compile(r"[A-Za-z0-9+/]+={0,2}")
 
 
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
@@ -123,6 +125,10 @@ def parse_begin(line: str) -> dict[str, str]:
     return values
 
 
+def is_base64_payload_line(line: str) -> bool:
+    return bool(line) and BASE64_LINE.fullmatch(line) is not None
+
+
 def request_capture(serial: SerialPort, command: str, timeout_s: float) -> tuple[bytes, dict[str, str]]:
     serial.write_line(command)
 
@@ -145,7 +151,7 @@ def request_capture(serial: SerialPort, command: str, timeout_s: float) -> tuple
             raise RuntimeError(line)
         if line == "FEVER_JPEG_END":
             break
-        if line and not line.startswith(("I ", "W ", "E ", "FEVER_SERIAL_CAPTURE_READY")):
+        if is_base64_payload_line(line):
             chunks.append(line)
 
     data = base64.b64decode("".join(chunks), validate=True)
@@ -273,9 +279,9 @@ def main(argv: Iterable[str] | None = None) -> int:
                         "brightness": 2,
                         "contrast": 2,
                         "saturation": 0,
-                        "aec": 0,
-                        "agc": 0,
-                        "awb": 0,
+                        "aec": 1,
+                        "agc": 1,
+                        "awb": 1,
                         "serial_status": status,
                         "bytes": len(data),
                         "width": metadata.get("width", ""),
