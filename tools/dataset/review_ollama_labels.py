@@ -67,6 +67,14 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     promote = subparsers.add_parser("promote", help="Write reviewed ground truth.")
     promote.add_argument("--queue", required=True, type=Path)
     promote.add_argument("--output", required=True, type=Path)
+    promote.add_argument(
+        "--auto-approve",
+        action="store_true",
+        help=(
+            "Stamp all accepted pending proposals as approved by 'auto-bulk-approved'. "
+            "Rows with quality_reasons flags are still skipped."
+        ),
+    )
     return parser.parse_args(list(argv))
 
 
@@ -182,8 +190,29 @@ def promoted_values(row: dict[str, str]) -> dict[str, int]:
     return values
 
 
-def promote_queue(queue_path: Path, output_path: Path) -> None:
+def _auto_stamp(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Return rows with pending accepted proposals stamped as auto-approved."""
+    now = dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat()
+    stamped: list[dict[str, str]] = []
+    for row in rows:
+        if (
+            row.get("review_decision", "").strip().lower() == "pending"
+            and row.get("proposal_status") == "accepted"
+        ):
+            row = {
+                **row,
+                "review_decision": "approve",
+                "reviewer": "auto-bulk-approved",
+                "reviewed_at_utc": now,
+            }
+        stamped.append(row)
+    return stamped
+
+
+def promote_queue(queue_path: Path, output_path: Path, auto_approve: bool = False) -> None:
     _, rows = read_csv(queue_path)
+    if auto_approve:
+        rows = _auto_stamp(rows)
     labels: list[dict[str, object]] = []
     errors: list[str] = []
     for row in rows:
@@ -194,9 +223,11 @@ def promote_queue(queue_path: Path, output_path: Path) -> None:
             errors.append(f"{row['sample_id']}: cannot promote unsuccessful proposal")
             continue
         if row.get("quality_reasons", "").strip():
-            errors.append(
-                f"{row['sample_id']}: image quality rejected ({row['quality_reasons']})"
-            )
+            msg = f"{row['sample_id']}: image quality rejected ({row['quality_reasons']})"
+            if auto_approve:
+                print(f"[SKIP] {msg}", file=sys.stderr)
+                continue
+            errors.append(msg)
             continue
         reviewer = row.get("reviewer", "").strip()
         reviewed_at = row.get("reviewed_at_utc", "").strip()
@@ -246,7 +277,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         prepare_queue(args.proposals, args.audit_csv, args.output)
         print(f"[INFO] wrote review queue {args.output}")
     else:
-        promote_queue(args.queue, args.output)
+        promote_queue(args.queue, args.output, auto_approve=getattr(args, "auto_approve", False))
         print(f"[INFO] wrote reviewed labels {args.output}")
     return 0
 
