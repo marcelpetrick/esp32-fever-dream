@@ -39,10 +39,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
-# llama3.2-vision:11b takes up to ~120 s to load from disk into VRAM on first
-# call plus ~30-60 s per inference. 360 s covers both without triggering a
-# client-side timeout that leaves a stuck request in Ollama's internal queue.
+# On integrated GPUs (e.g. Intel Iris Xe) vision model inference takes
+# 60-120 s per frame once warm; cold start adds 60-200 s for model loading.
+# 360 s covers both without triggering a premature client-side timeout that
+# leaves stuck requests in Ollama's internal queue.
 REQUEST_TIMEOUT_SECONDS = 360
+
+# Smallest prompt that forces the model to load into VRAM without touching
+# the real batch.
+_WARMUP_PROMPT = "Reply with the single word: ready"
 
 OUTPUT_FIELDNAMES = [
     "sample_id",
@@ -65,7 +70,7 @@ TEMP_RANGE = (-10, 60)
 HUM_RANGE = (0, 100)
 
 _PROMPT = """\
-This photograph shows an air quality sensor LCD display. The display has these rows:
+/no_think This photograph shows an air quality sensor LCD display. The display has these rows:
 Row 1 (top):   CO2 label, then large 3-4 digit integer in ppm (typical range 400-2000). Read ALL digits.
 Row 2:         HCHO label, then a decimal like 0.013 mg/m³. Return only the integer after the decimal (0.013 → 13).
 Row 3:         TVOC label, then a decimal like 0.036 mg/m³. Return only the integer after the decimal (0.036 → 36).
@@ -90,9 +95,16 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--model",
-        default="llama3.2-vision:11b",
-        help="Ollama vision model name (default: llama3.2-vision:11b).",
+        default="qwen3-vl:4b",
+        help="Ollama vision model name (default: qwen3-vl:4b).",
     )
+    parser.add_argument(
+        "--no-warmup",
+        dest="warmup",
+        action="store_false",
+        help="Skip the model warm-up call before batch processing.",
+    )
+    parser.set_defaults(warmup=True)
     parser.add_argument(
         "--ollama-url",
         default=OLLAMA_URL,
@@ -185,6 +197,22 @@ def load_existing_labels(output_path: Path) -> set[str]:
     with output_path.open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         return {row["sample_id"] for row in reader}
+
+
+def warmup_model(model: str, url: str, timeout: int) -> None:
+    """Send a tiny text-only prompt to load the model into VRAM before batch."""
+    print(f"[INFO] warming up {model} ...", flush=True)
+    t0 = time.monotonic()
+    payload = json.dumps(
+        {"model": model, "prompt": _WARMUP_PROMPT, "stream": False}
+    ).encode()
+    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            resp.read()
+        print(f"[INFO] warm-up done in {time.monotonic() - t0:.0f} s", flush=True)
+    except Exception as exc:
+        print(f"[WARN] warm-up failed ({exc}); continuing anyway", flush=True)
 
 
 def encode_image(image_path: Path) -> str:
@@ -327,11 +355,16 @@ def main(argv: Iterable[str] | None = None) -> int:
         print("[INFO] nothing to process", flush=True)
         return 0
 
+    secs_per_frame = 120  # conservative estimate for iGPU (Intel Iris Xe)
     print(
-        f"[INFO] queuing {total} frames  (est. ~{total * 30 // 60} min at ~30 s/frame)"
+        f"[INFO] queuing {total} frames  "
+        f"(est. ~{total * secs_per_frame // 3600}h at ~{secs_per_frame}s/frame)"
         f"  timeout={args.request_timeout}s",
         flush=True,
     )
+
+    if args.warmup:
+        warmup_model(args.model, args.ollama_url, args.request_timeout)
 
     # Open output in append mode so resuming works.
     write_header = not output_path.exists() or output_path.stat().st_size == 0
