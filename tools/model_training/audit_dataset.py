@@ -31,6 +31,8 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser.add_argument("--min-captures", type=int, default=300)
     parser.add_argument("--min-distinct-readings", type=int, default=10)
     parser.add_argument("--min-heldout", type=int, default=50)
+    parser.add_argument("--min-validation", type=int, default=50)
+    parser.add_argument("--min-test", type=int, default=100)
     parser.add_argument("--min-samples-per-digit", type=int, default=20)
     parser.add_argument(
         "--strict", action="store_true", help="Exit non-zero when audit fails."
@@ -103,6 +105,26 @@ def row_label(row: dict[str, str]) -> str:
     )
 
 
+def crop_digit_label(row: dict[str, str]) -> str:
+    """Return exactly the digits emitted by build_digit_dataset.py."""
+    environment_fields = (
+        "co2_ppm",
+        "hcho_raw",
+        "tvoc_raw",
+        "temperature_c",
+        "humidity_percent",
+    )
+    if all(row.get(field, "").strip() for field in environment_fields):
+        parts = [
+            f"{int(row[field]):04d}"[-4:]
+            for field in ("co2_ppm", "hcho_raw", "tvoc_raw")
+        ]
+        parts.append(f"{float(row['temperature_c']):.0f}".zfill(2)[-2:])
+        parts.append(f"{int(row['humidity_percent']):02d}"[-2:])
+        return "".join(parts)
+    return "".join(DIGIT_RE.findall(row_label(row)))
+
+
 def evaluate(
     rows: list[dict[str, str]], labels_path: Path, args: argparse.Namespace
 ) -> dict[str, object]:
@@ -117,8 +139,28 @@ def evaluate(
         row.get("split", "unassigned") or "unassigned" for row in valid_rows
     )
     digit_counts = Counter()
-    for label in labels:
-        digit_counts.update(DIGIT_RE.findall(label))
+    for row in valid_rows:
+        digit_counts.update(crop_digit_label(row))
+
+    split_names_valid = all(
+        (row.get("split", "") or "unassigned") in {"train", "validation", "test"}
+        for row in valid_rows
+    )
+    sample_ids = [row.get("sample_id", "") for row in valid_rows]
+    duplicate_sample_ids = sorted(
+        sample_id for sample_id, count in Counter(sample_ids).items() if sample_id and count > 1
+    )
+    image_splits: dict[str, set[str]] = {}
+    batch_splits: dict[str, set[str]] = {}
+    for row in valid_rows:
+        split = row.get("split", "") or "unassigned"
+        image_path = row.get("image_path", "")
+        if image_path:
+            image_splits.setdefault(image_path, set()).add(split)
+            batch = Path(image_path).parent.name
+            batch_splits.setdefault(batch, set()).add(split)
+    cross_split_images = sorted(path for path, splits in image_splits.items() if len(splits) > 1)
+    cross_split_batches = sorted(batch for batch, splits in batch_splits.items() if len(splits) > 1)
 
     missing_digits = sorted(REQUIRED_DIGITS - set(digit_counts))
     underrepresented = {
@@ -134,7 +176,13 @@ def evaluate(
         "all_digits_present": not missing_digits,
         "samples_per_digit": not underrepresented,
         "heldout_samples": heldout_count >= args.min_heldout,
+        "minimum_validation": split_counts.get("validation", 0) >= args.min_validation,
+        "minimum_test": split_counts.get("test", 0) >= args.min_test,
         "all_labels_trusted": not untrusted_rows,
+        "split_names_valid": split_names_valid,
+        "sample_ids_unique": not duplicate_sample_ids,
+        "images_split_exclusive": not cross_split_images,
+        "capture_batches_split_exclusive": not cross_split_batches,
     }
     passed = all(checks.values())
 
@@ -148,6 +196,8 @@ def evaluate(
             "min_captures": args.min_captures,
             "min_distinct_readings": args.min_distinct_readings,
             "min_heldout": args.min_heldout,
+            "min_validation": args.min_validation,
+            "min_test": args.min_test,
             "min_samples_per_digit": args.min_samples_per_digit,
             "required_digits": "".join(sorted(REQUIRED_DIGITS)),
         },
@@ -161,6 +211,9 @@ def evaluate(
             "digit_counts": dict(sorted(digit_counts.items())),
             "missing_digits": missing_digits,
             "underrepresented_digits": underrepresented,
+            "duplicate_sample_ids": duplicate_sample_ids,
+            "cross_split_images": cross_split_images,
+            "cross_split_batches": cross_split_batches,
             "sample_readings": distinct_readings[:20],
         },
         "next_actions": [
@@ -192,6 +245,8 @@ def render_markdown(report: dict[str, object]) -> str:
         f"- Minimum valid captures: {requirements['min_captures']}",
         f"- Minimum distinct readings: {requirements['min_distinct_readings']}",
         f"- Minimum held-out validation/test captures: {requirements['min_heldout']}",
+        f"- Minimum validation captures: {requirements['min_validation']}",
+        f"- Minimum independent test captures: {requirements['min_test']}",
         f"- Minimum samples per digit: {requirements['min_samples_per_digit']}",
         f"- Required digits: `{requirements['required_digits']}`",
         "",
@@ -215,6 +270,9 @@ def render_markdown(report: dict[str, object]) -> str:
             f"- Digit counts: `{summary['digit_counts']}`",
             f"- Missing digits: `{summary['missing_digits']}`",
             f"- Underrepresented digits: `{summary['underrepresented_digits']}`",
+            f"- Duplicate sample IDs: `{summary['duplicate_sample_ids']}`",
+            f"- Cross-split images: `{summary['cross_split_images']}`",
+            f"- Cross-split capture batches: `{summary['cross_split_batches']}`",
             f"- Sample readings: `{summary['sample_readings']}`",
             "",
             "## Next Actions",

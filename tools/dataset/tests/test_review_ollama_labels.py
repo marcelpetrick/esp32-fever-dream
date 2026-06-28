@@ -88,6 +88,24 @@ class ReviewWorkflowTest(unittest.TestCase):
             self.assertEqual(promoted[0]["humidity_percent"], "46")
             self.assertEqual(promoted[0]["review_status"], "corrected")
 
+    def test_quality_rejected_row_cannot_be_promoted(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            queue = root / "queue.csv"
+            labels = root / "labels.csv"
+            row = proposal("capture_0050")
+            row.update(
+                {
+                    "review_decision": "approve",
+                    "reviewer": "human",
+                    "reviewed_at_utc": "2026-06-29T00:00:00Z",
+                    "quality_reasons": "display_not_found",
+                }
+            )
+            self.write_csv(queue, [row])
+            with self.assertRaisesRegex(ValueError, "image quality rejected"):
+                promote_queue(queue, labels)
+
 
 if __name__ == "__main__":
     unittest.main()

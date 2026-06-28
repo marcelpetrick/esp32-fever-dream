@@ -4,6 +4,11 @@ This pipeline trains the fixed-display digit classifier used by the ESP32-CAM
 OCR prototype. It keeps real capture validation separate from synthetic
 augmentation.
 
+Training accepts human labels and explicitly approved/corrected Ollama review
+rows. It refuses proposal CSVs and unreviewed rows. Capture batches must belong
+to only one split; validation and test therefore require independent sessions.
+Synthetic crops are training-only.
+
 ## Data Flow
 
 ```mermaid

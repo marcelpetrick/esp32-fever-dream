@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
+from pathlib import Path
 
-from tools.model_training.audit_dataset import row_label, trusted_label
+from tools.model_training.audit_dataset import (
+    crop_digit_label,
+    evaluate,
+    row_label,
+    trusted_label,
+)
 
 
 class RowLabelLegacyTest(unittest.TestCase):
@@ -70,6 +77,44 @@ class TrustedLabelTest(unittest.TestCase):
 
     def test_proposal_schema_is_untrusted(self) -> None:
         self.assertFalse(trusted_label({"proposal_status": "accepted"}))
+
+
+class IntegrityAuditTest(unittest.TestCase):
+    def environment_row(self, sample_id: str, split: str) -> dict[str, str]:
+        return {
+            "sample_id": sample_id,
+            "image_path": f"captures/session/{sample_id}.jpg",
+            "co2_ppm": "833",
+            "hcho_raw": "65",
+            "tvoc_raw": "178",
+            "temperature_c": "28",
+            "humidity_percent": "46",
+            "valid": "true",
+            "split": split,
+            "notes": "manual",
+        }
+
+    def args(self) -> SimpleNamespace:
+        return SimpleNamespace(
+            min_captures=0,
+            min_distinct_readings=0,
+            min_heldout=0,
+            min_validation=0,
+            min_test=0,
+            min_samples_per_digit=0,
+        )
+
+    def test_counts_zero_padded_display_digits(self) -> None:
+        row = self.environment_row("capture_0001", "train")
+        self.assertEqual(crop_digit_label(row), "0833006501782846")
+
+    def test_rejects_capture_batch_crossing_splits(self) -> None:
+        rows = [
+            self.environment_row("capture_0001", "train"),
+            self.environment_row("capture_0002", "test"),
+        ]
+        report = evaluate(rows, Path("labels.csv"), self.args())
+        self.assertFalse(report["checks"]["capture_batches_split_exclusive"])
 
 
 if __name__ == "__main__":

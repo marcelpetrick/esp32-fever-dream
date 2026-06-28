@@ -5,7 +5,10 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from tools.model_training.build_digit_dataset import read_label_rows
+import numpy as np
+from PIL import Image
+
+from tools.model_training.build_digit_dataset import normalize_crop, read_label_rows
 
 
 class TrustedInputTest(unittest.TestCase):
@@ -28,6 +31,23 @@ class TrustedInputTest(unittest.TestCase):
                 )
             with self.assertRaisesRegex(ValueError, "unreviewed automated labels"):
                 read_label_rows([path])
+
+
+class FirmwarePreprocessingParityTest(unittest.TestCase):
+    def test_uses_firmware_luma_minmax_and_floor_sampling(self) -> None:
+        pixels = np.asarray(
+            [
+                [[0, 0, 0], [255, 0, 0]],
+                [[0, 255, 0], [255, 255, 255]],
+            ],
+            dtype=np.uint8,
+        )
+        result = np.asarray(normalize_crop(Image.fromarray(pixels, mode="RGB")))
+        self.assertEqual(result.shape, (32, 24))
+        self.assertEqual(int(result[0, 0]), 0)
+        self.assertEqual(int(result[0, -1]), 76)
+        self.assertEqual(int(result[-1, 0]), 150)
+        self.assertEqual(int(result[-1, -1]), 255)
 
 
 if __name__ == "__main__":

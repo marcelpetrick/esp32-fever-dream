@@ -193,6 +193,11 @@ def promote_queue(queue_path: Path, output_path: Path) -> None:
         if row.get("proposal_status") != "accepted":
             errors.append(f"{row['sample_id']}: cannot promote unsuccessful proposal")
             continue
+        if row.get("quality_reasons", "").strip():
+            errors.append(
+                f"{row['sample_id']}: image quality rejected ({row['quality_reasons']})"
+            )
+            continue
         reviewer = row.get("reviewer", "").strip()
         reviewed_at = row.get("reviewed_at_utc", "").strip()
         if not reviewer or not reviewed_at:

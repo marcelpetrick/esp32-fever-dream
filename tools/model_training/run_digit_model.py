@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterable
 
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image
 
 from build_digit_dataset import (
     CO2_DIGIT_BOXES,
@@ -28,6 +28,7 @@ from build_digit_dataset import (
     TVOC_DIGIT_BOXES,
     crop_digit,
     locate_display,
+    normalize_crop,
     relative_temp_boxes,
 )
 
@@ -76,12 +77,6 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         type=Path,
         default=Path("models/generated/digit_model_predictions_summary.json"),
         help="JSON summary output path.",
-    )
-    parser.add_argument(
-        "--resample",
-        choices=["nearest", "bilinear"],
-        default="nearest",
-        help="Resize mode for digit crops. nearest matches current firmware preprocessing.",
     )
     return parser.parse_args(list(argv))
 
@@ -164,11 +159,9 @@ def crop_to_input(
     bounds,
     relative_box: tuple[int, int, int, int],
     fallback_box: tuple[int, int, int, int],
-    resample: Image.Resampling,
 ) -> np.ndarray:
-    crop = ImageOps.grayscale(crop_digit(image, bounds, relative_box, fallback_box))
-    crop = ImageOps.autocontrast(crop, cutoff=1)
-    crop = crop.resize(TARGET_SIZE, resample)
+    raw_crop = crop_digit(image, bounds, relative_box, fallback_box)
+    crop = normalize_crop(raw_crop)
     values = np.asarray(crop, dtype=np.int16) - 128
     return values.astype(np.int8).reshape(1, TARGET_SIZE[1], TARGET_SIZE[0], 1)
 
@@ -183,7 +176,7 @@ def predict_digit(interpreter, input_detail: dict, output_detail: dict, tensor: 
     return str(best), confidences[best], confidences
 
 
-def run_case(case: ImageCase, interpreter, input_detail: dict, output_detail: dict, resample: Image.Resampling) -> dict:
+def run_case(case: ImageCase, interpreter, input_detail: dict, output_detail: dict) -> dict:
     image = Image.open(case.image_path).convert("RGB")
     bounds = locate_display(image)
     temp_boxes = relative_temp_boxes(bounds)
@@ -210,7 +203,7 @@ def run_case(case: ImageCase, interpreter, input_detail: dict, output_detail: di
                 interpreter,
                 input_detail,
                 output_detail,
-                crop_to_input(image, bounds, relative_box, fallback_box, resample),
+                crop_to_input(image, bounds, relative_box, fallback_box),
             )
             group_digits.append(digit)
             group_values.append(confidence)
@@ -321,9 +314,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     interpreter.allocate_tensors()
     input_detail = interpreter.get_input_details()[0]
     output_detail = interpreter.get_output_details()[0]
-    resample = Image.Resampling.NEAREST if args.resample == "nearest" else Image.Resampling.BILINEAR
-
-    rows = [run_case(case, interpreter, input_detail, output_detail, resample) for case in cases]
+    rows = [run_case(case, interpreter, input_detail, output_detail) for case in cases]
     write_csv(rows, args.output)
     summary = write_summary(rows, args.summary_json, args.model)
 

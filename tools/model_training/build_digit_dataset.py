@@ -162,9 +162,18 @@ def split_for_index(index: int, test_every: int, validation_every: int) -> str:
 
 
 def normalize_crop(crop: Image.Image) -> Image.Image:
-    gray = crop.convert("L")
-    gray = ImageOps.autocontrast(gray, cutoff=1)
-    return gray.resize(TARGET_SIZE, Image.Resampling.BILINEAR)
+    """Match the firmware's luma, min/max contrast, and nearest sampling."""
+    rgb = np.asarray(crop.convert("RGB"), dtype=np.uint16)
+    gray = ((rgb[:, :, 0] * 30) + (rgb[:, :, 1] * 59) + (rgb[:, :, 2] * 11)) // 100
+    minimum = int(np.min(gray))
+    maximum = int(np.max(gray))
+    value_range = max(1, maximum - minimum)
+    normalized = ((gray.astype(np.int32) - minimum) * 255) // value_range
+    source_height, source_width = normalized.shape
+    source_x = (np.arange(TARGET_SIZE[0]) * source_width) // TARGET_SIZE[0]
+    source_y = (np.arange(TARGET_SIZE[1]) * source_height) // TARGET_SIZE[1]
+    sampled = normalized[np.ix_(source_y, source_x)].astype(np.uint8)
+    return Image.fromarray(sampled, mode="L")
 
 
 def is_color_strip_pixel(pixel: tuple[int, int, int]) -> bool:
@@ -317,6 +326,11 @@ def save_real_crops(
 
         image = Image.open(image_path).convert("RGB")
         bounds = locate_display(image)
+        if bounds is None:
+            raise ValueError(
+                f"display locator failed for reviewed training image {image_path}; "
+                "reject it during corpus review instead of using fallback coordinates"
+            )
         digit_groups: list[
             tuple[str, str, dict[int, tuple[int, int, int, int]], dict[int, tuple[int, int, int, int]]]
         ] = []
@@ -480,9 +494,17 @@ def write_report(rows: list[CropRow], output_path: Path) -> None:
         "classes": CLASSES,
         "rows": len(rows),
         "counts": counts,
+        "real_missing_digits": sorted(
+            set(CLASSES)
+            - {
+                label
+                for key, labels in counts.items()
+                if key.startswith("real_")
+                for label in labels
+            }
+        ),
         "limitations": [
-            "Only digits 2, 3, 4, and 9 are present in real captures so far.",
-            "Synthetic crops are for prototype training only and are not final validation evidence.",
+            "Synthetic crops are training augmentation only and are not validation evidence."
         ],
     }
     output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
