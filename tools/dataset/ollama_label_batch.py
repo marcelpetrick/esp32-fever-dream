@@ -3,14 +3,15 @@
 
 Reads the manifest.csv in a capture directory, queries the configured
 Ollama vision model for each accepted frame, extracts the five AQS values
-(CO2 ppm, HCHO raw, TVOC raw, temperature °C, humidity %), and writes a
-labels_environment.csv compatible with the existing training pipeline.
+(CO2 ppm, HCHO raw, TVOC raw, temperature °C, humidity %), and writes an
+untrusted labels_ollama_proposals.csv for human review. Automated output is
+never written directly to the ground-truth labels_environment.csv.
 
 Usage:
     python3 tools/dataset/ollama_label_batch.py \\
         --dataset-dir tools/dataset/captures/serial_timed_fast_20260627T1205Z \\
         --model llama3.2-vision:11b \\
-        --output tools/dataset/captures/serial_timed_fast_20260627T1205Z/labels_environment.csv
+        --output tools/dataset/captures/serial_timed_fast_20260627T1205Z/labels_ollama_proposals.csv
 
     # Alternative faster model:
     python3 tools/dataset/ollama_label_batch.py \\
@@ -26,12 +27,15 @@ import argparse
 import base64
 import csv
 import datetime as dt
+import http.client
 import json
 import random
 import re
+import socket
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Iterable
@@ -45,6 +49,9 @@ OLLAMA_URL = "http://localhost:11434/api/generate"
 # 360 s covers both without triggering a premature client-side timeout that
 # leaves stuck requests in Ollama's internal queue.
 REQUEST_TIMEOUT_SECONDS = 360
+TOTAL_TIMEOUT_SECONDS = 300
+NUM_PREDICT = 96
+PROMPT_VERSION = "aqs-five-field-v2"
 
 # Smallest prompt that forces the model to load into VRAM without touching
 # the real batch.
@@ -61,6 +68,12 @@ OUTPUT_FIELDNAMES = [
     "valid",
     "split",
     "notes",
+    "proposal_status",
+    "model",
+    "prompt_version",
+    "labeled_at_utc",
+    "attempts",
+    "duration_seconds",
 ]
 
 # Plausibility ranges for validation.
@@ -68,7 +81,28 @@ CO2_RANGE = (300, 9999)
 HCHO_RANGE = (0, 999)
 TVOC_RANGE = (0, 999)
 TEMP_RANGE = (-10, 60)
-HUM_RANGE = (0, 100)
+HUM_RANGE = (10, 99)
+
+OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "co2_ppm": {"type": "integer"},
+        "hcho_raw": {"type": "integer"},
+        "tvoc_raw": {"type": "integer"},
+        "temperature_c": {"type": "integer"},
+        "humidity_percent": {"type": "integer"},
+        "valid": {"type": "boolean"},
+    },
+    "required": [
+        "co2_ppm",
+        "hcho_raw",
+        "tvoc_raw",
+        "temperature_c",
+        "humidity_percent",
+        "valid",
+    ],
+    "additionalProperties": False,
+}
 
 _PROMPT = """\
 /no_think This photograph shows an air quality sensor LCD display. The display has these rows:
@@ -92,7 +126,7 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        help="Output CSV path. Defaults to labels_environment.csv inside --dataset-dir.",
+        help="Output CSV path. Defaults to labels_ollama_proposals.csv inside --dataset-dir.",
     )
     parser.add_argument(
         "--model",
@@ -135,6 +169,19 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         help=f"Ollama HTTP request timeout in seconds (default: {REQUEST_TIMEOUT_SECONDS}).",
     )
     parser.add_argument(
+        "--total-timeout",
+        type=int,
+        default=TOTAL_TIMEOUT_SECONDS,
+        help=f"Hard wall-clock limit per Ollama call (default: {TOTAL_TIMEOUT_SECONDS}s).",
+    )
+    parser.add_argument(
+        "--num-predict",
+        type=int,
+        default=NUM_PREDICT,
+        help=f"Maximum generated tokens per request (default: {NUM_PREDICT}).",
+    )
+    parser.add_argument("--prompt-version", default=PROMPT_VERSION)
+    parser.add_argument(
         "--inter-request-delay",
         type=float,
         default=1.0,
@@ -154,9 +201,15 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--skip-duplicates",
+        dest="skip_duplicates",
         action="store_true",
-        default=True,
         help="Skip frames the manifest marks as duplicate (default: True).",
+    )
+    parser.add_argument(
+        "--no-skip-duplicates",
+        dest="skip_duplicates",
+        action="store_false",
+        help="Include duplicate frames that have image data.",
     )
     parser.add_argument(
         "--no-resume",
@@ -164,7 +217,7 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         action="store_false",
         help="Re-label all frames even if the output CSV already exists.",
     )
-    parser.set_defaults(resume=True)
+    parser.set_defaults(resume=True, skip_duplicates=True)
     parser.add_argument(
         "--lighting-label",
         default="",
@@ -191,7 +244,20 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         default=None,
         help="Random seed for reproducible shuffle (default: random).",
     )
-    return parser.parse_args(list(argv))
+    args = parser.parse_args(list(argv))
+    if not 0.0 <= args.train_fraction <= 1.0:
+        parser.error("--train-fraction must be between 0 and 1")
+    if not 0.0 <= args.val_fraction <= 1.0:
+        parser.error("--val-fraction must be between 0 and 1")
+    if args.train_fraction + args.val_fraction > 1.0:
+        parser.error("train and validation fractions must sum to at most 1")
+    if args.retries < 1:
+        parser.error("--retries must be at least 1")
+    if args.request_timeout <= 0 or args.total_timeout <= 0:
+        parser.error("timeouts must be positive")
+    if args.num_predict < 1:
+        parser.error("--num-predict must be at least 1")
+    return args
 
 
 def load_manifest(dataset_dir: Path) -> list[dict[str, str]]:
@@ -223,13 +289,32 @@ def accepted_rows(rows: list[dict[str, str]], skip_duplicates: bool) -> list[dic
     return accepted
 
 
-def load_existing_labels(output_path: Path) -> set[str]:
-    """Return sample_ids already written to the output CSV."""
+def load_existing_labels(output_path: Path) -> dict[str, dict[str, str]]:
+    """Return the latest proposal for every sample ID."""
     if not output_path.exists():
-        return set()
+        return {}
     with output_path.open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
-        return {row["sample_id"] for row in reader}
+        return {row["sample_id"]: row for row in reader}
+
+
+def proposal_succeeded(row: dict[str, str]) -> bool:
+    status = row.get("proposal_status", "")
+    if status:
+        return status == "accepted"
+    return row.get("valid", "").strip().lower() == "true"
+
+
+def write_proposals_atomic(rows: dict[str, dict[str, object]], output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output_path.with_suffix(output_path.suffix + ".tmp")
+    with temporary.open("w", encoding="utf-8", newline="") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=OUTPUT_FIELDNAMES)
+        writer.writeheader()
+        for sample_id in sorted(rows):
+            writer.writerow(rows[sample_id])
+        csv_file.flush()
+    temporary.replace(output_path)
 
 
 def warmup_model(model: str, url: str, timeout: int, num_ctx: int) -> None:
@@ -253,31 +338,57 @@ def encode_image(image_path: Path) -> str:
     return base64.b64encode(image_path.read_bytes()).decode()
 
 
-def query_ollama(model: str, image_b64: str, url: str, prompt: str, timeout: int, num_ctx: int = 2048) -> str:
-    """Query Ollama using streaming so the socket timeout resets on every token.
-
-    With stream=False the HTTP connection is silent for the full inference
-    duration.  If inference takes longer than `timeout` seconds the socket
-    fires a TimeoutError even though Ollama is still working, leaving a stuck
-    request in Ollama's internal queue that blocks all subsequent requests.
-
-    With stream=True Ollama sends one JSON line per generated token.  The
-    socket timeout only fires if no bytes arrive for `timeout` seconds, which
-    means a genuine stall (crash/deadlock), not just slow inference.
-    """
+def query_ollama(
+    model: str,
+    image_b64: str,
+    url: str,
+    prompt: str,
+    timeout: int,
+    num_ctx: int = 2048,
+    total_timeout: int = TOTAL_TIMEOUT_SECONDS,
+    num_predict: int = NUM_PREDICT,
+) -> str:
+    """Query Ollama with both idle and hard wall-clock deadlines."""
     payload = json.dumps(
         {
             "model": model,
             "prompt": prompt,
             "images": [image_b64],
             "stream": True,
-            "options": {"temperature": 0, "num_ctx": num_ctx},
+            "format": OUTPUT_SCHEMA,
+            "options": {
+                "temperature": 0,
+                "num_ctx": num_ctx,
+                "num_predict": num_predict,
+            },
         }
     ).encode()
-    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+    parsed_url = urllib.parse.urlsplit(url)
+    if parsed_url.scheme not in {"http", "https"} or not parsed_url.hostname:
+        raise ValueError(f"unsupported Ollama URL: {url}")
+    connection_class = (
+        http.client.HTTPSConnection if parsed_url.scheme == "https" else http.client.HTTPConnection
+    )
+    connection = connection_class(parsed_url.hostname, parsed_url.port, timeout=timeout)
+    path = parsed_url.path or "/"
+    if parsed_url.query:
+        path += f"?{parsed_url.query}"
     response_text = ""
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        for raw_line in resp:
+    deadline = time.monotonic() + total_timeout
+    try:
+        connection.request("POST", path, body=payload, headers={"Content-Type": "application/json"})
+        response = connection.getresponse()
+        if response.status < 200 or response.status >= 300:
+            raise OSError(f"Ollama HTTP {response.status}: {response.reason}")
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(f"Ollama request exceeded {total_timeout}s total deadline")
+            if connection.sock is not None:
+                connection.sock.settimeout(min(float(timeout), remaining))
+            raw_line = response.readline()
+            if not raw_line:
+                break
             line = raw_line.strip()
             if not line:
                 continue
@@ -285,6 +396,10 @@ def query_ollama(model: str, image_b64: str, url: str, prompt: str, timeout: int
             response_text += chunk.get("response", "")
             if chunk.get("done"):
                 break
+    except socket.timeout as exc:
+        raise TimeoutError(f"Ollama request timed out: {exc}") from exc
+    finally:
+        connection.close()
     return response_text
 
 
@@ -337,7 +452,9 @@ def ocr_image(
     parse_retries: int,
     request_timeout: int,
     num_ctx: int = 2048,
-) -> tuple[dict | None, str]:
+    total_timeout: int = TOTAL_TIMEOUT_SECONDS,
+    num_predict: int = NUM_PREDICT,
+) -> tuple[dict | None, str, int]:
     """Call Ollama and return (parsed_values_or_None, note).
 
     Retry strategy:
@@ -350,9 +467,21 @@ def ocr_image(
       a cold-reloading model that returns garbage, wasting hundreds of seconds.
     """
     image_b64 = encode_image(image_path)
+    attempts = 0
 
     def _call() -> str:
-        return query_ollama(model, image_b64, url, _PROMPT, request_timeout, num_ctx)
+        nonlocal attempts
+        attempts += 1
+        return query_ollama(
+            model,
+            image_b64,
+            url,
+            _PROMPT,
+            request_timeout,
+            num_ctx,
+            total_timeout,
+            num_predict,
+        )
 
     had_network_error = False
 
@@ -365,7 +494,7 @@ def ocr_image(
         try:
             response = _call()
         except (urllib.error.URLError, TimeoutError, OSError) as exc2:
-            return None, f"ollama_network_error: {exc2}"
+            return None, f"ollama_network_error: {exc2}", attempts
 
     # Retry only for JSON parse failures.
     for attempt in range(1, parse_retries + 1):
@@ -373,7 +502,7 @@ def ocr_image(
         if parsed is not None:
             break
         if attempt == parse_retries:
-            return None, f"json_parse_failed after {parse_retries} attempts"
+            return None, f"json_parse_failed after {parse_retries} attempts", attempts
         if had_network_error:
             print(
                 f"    [INFO] post-error cooldown {_POST_ERROR_COOLDOWN}s before parse retry {attempt}",
@@ -383,16 +512,16 @@ def ocr_image(
         try:
             response = _call()
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            return None, f"ollama_network_error on parse retry: {exc}"
+            return None, f"ollama_network_error on parse retry: {exc}", attempts
     else:
-        return None, "json_parse_failed"
+        return None, "json_parse_failed", attempts
 
     valid_flag = str(parsed.get("valid", "false")).lower() == "true"
     plausible = validate_values(parsed)
     if not valid_flag or not plausible:
-        return parsed, "ocr_invalid_or_implausible"
+        return parsed, "ocr_invalid_or_implausible", attempts
 
-    return parsed, "ollama_ocr"
+    return parsed, "ollama_ocr", attempts
 
 
 def main(argv: Iterable[str] | None = None) -> int:
@@ -402,7 +531,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         print(f"[ERROR] dataset-dir not found: {dataset_dir}", file=sys.stderr)
         return 1
 
-    output_path = (args.output or dataset_dir / "labels_environment.csv").resolve()
+    output_path = (args.output or dataset_dir / "labels_ollama_proposals.csv").resolve()
 
     print(f"[INFO] dataset:  {dataset_dir}", flush=True)
     print(f"[INFO] output:   {output_path}", flush=True)
@@ -412,11 +541,19 @@ def main(argv: Iterable[str] | None = None) -> int:
     ok_rows = accepted_rows(rows, args.skip_duplicates)
     print(f"[INFO] manifest: {len(rows)} total rows, {len(ok_rows)} accepted frames", flush=True)
 
-    existing = load_existing_labels(output_path) if args.resume else set()
+    existing: dict[str, dict[str, object]] = (
+        dict(load_existing_labels(output_path)) if args.resume else {}
+    )
+    completed = {sample_id for sample_id, row in existing.items() if proposal_succeeded(row)}
     if existing:
-        print(f"[INFO] resume:   skipping {len(existing)} already-labeled frames", flush=True)
+        retry_count = len(existing) - len(completed)
+        print(
+            f"[INFO] resume:   keeping {len(completed)} accepted proposals; "
+            f"retrying {retry_count} unsuccessful rows",
+            flush=True,
+        )
 
-    to_process = [r for r in ok_rows if r["sample_id"] not in existing]
+    to_process = [r for r in ok_rows if r["sample_id"] not in completed]
     if args.shuffle:
         rng = random.Random(args.seed)
         rng.shuffle(to_process)
@@ -431,19 +568,13 @@ def main(argv: Iterable[str] | None = None) -> int:
     print(
         f"[INFO] queuing {total} frames  "
         f"(est. ~{total * secs_per_frame // 3600}h at ~{secs_per_frame}s/frame)"
-        f"  timeout={args.request_timeout}s  ctx={args.num_ctx}",
+        f"  idle_timeout={args.request_timeout}s  total_timeout={args.total_timeout}s"
+        f"  ctx={args.num_ctx}  max_tokens={args.num_predict}",
         flush=True,
     )
 
     if args.warmup:
         warmup_model(args.model, args.ollama_url, args.request_timeout, args.num_ctx)
-
-    # Open output in append mode so resuming works.
-    write_header = not output_path.exists() or output_path.stat().st_size == 0
-    out_f = output_path.open("a", encoding="utf-8", newline="")
-    writer = csv.DictWriter(out_f, fieldnames=OUTPUT_FIELDNAMES)
-    if write_header:
-        writer.writeheader()
 
     t_start = time.monotonic()
     succeeded = 0
@@ -456,6 +587,25 @@ def main(argv: Iterable[str] | None = None) -> int:
 
         if not image_path.exists():
             print(f"  [{idx + 1}/{total}] SKIP  {sample_id} — image file missing", flush=True)
+            existing[sample_id] = {
+                "sample_id": sample_id,
+                "image_path": str(img_rel),
+                "temperature_c": -1,
+                "humidity_percent": -1,
+                "co2_ppm": -1,
+                "hcho_raw": -1,
+                "tvoc_raw": -1,
+                "valid": "false",
+                "split": "",
+                "notes": "image_missing",
+                "proposal_status": "error",
+                "model": args.model,
+                "prompt_version": args.prompt_version,
+                "labeled_at_utc": dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat(),
+                "attempts": 0,
+                "duration_seconds": "0.0",
+            }
+            write_proposals_atomic(existing, output_path)
             failed += 1
             continue
 
@@ -467,47 +617,56 @@ def main(argv: Iterable[str] | None = None) -> int:
         )
 
         t0 = time.monotonic()
-        parsed, note = ocr_image(
+        parsed, note, attempts = ocr_image(
             image_path, args.model, args.ollama_url, args.retries, args.request_timeout,
-            args.num_ctx,
+            args.num_ctx, args.total_timeout, args.num_predict,
         )
         elapsed = time.monotonic() - t0
+        common = {
+            "sample_id": sample_id,
+            "image_path": str(img_rel),
+            "split": split,
+            "model": args.model,
+            "prompt_version": args.prompt_version,
+            "labeled_at_utc": dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat(),
+            "attempts": attempts,
+            "duration_seconds": f"{elapsed:.1f}",
+        }
 
         if parsed is not None:
             valid_out = "true" if (str(parsed.get("valid", "")).lower() == "true" and note == "ollama_ocr") else "false"
             out_row = {
-                "sample_id": sample_id,
-                "image_path": str(img_rel),
+                **common,
                 "temperature_c": parsed.get("temperature_c", -1),
                 "humidity_percent": parsed.get("humidity_percent", -1),
                 "co2_ppm": parsed.get("co2_ppm", -1),
                 "hcho_raw": parsed.get("hcho_raw", -1),
                 "tvoc_raw": parsed.get("tvoc_raw", -1),
                 "valid": valid_out,
-                "split": split,
                 "notes": f"{args.lighting_label} {note}".strip() if args.lighting_label else note,
+                "proposal_status": "accepted" if valid_out == "true" else "rejected",
             }
-            writer.writerow(out_row)
-            out_f.flush()
             status = "OK   " if valid_out == "true" else "INVLD"
-            succeeded += 1
+            if valid_out == "true":
+                succeeded += 1
+            else:
+                failed += 1
         else:
             out_row = {
-                "sample_id": sample_id,
-                "image_path": str(img_rel),
+                **common,
                 "temperature_c": -1,
                 "humidity_percent": -1,
                 "co2_ppm": -1,
                 "hcho_raw": -1,
                 "tvoc_raw": -1,
                 "valid": "false",
-                "split": split,
                 "notes": note,
+                "proposal_status": "error",
             }
-            writer.writerow(out_row)
-            out_f.flush()
             status = "FAIL "
             failed += 1
+        existing[sample_id] = out_row
+        write_proposals_atomic(existing, output_path)
 
         done = idx + 1
         elapsed_total = time.monotonic() - t_start
@@ -529,7 +688,6 @@ def main(argv: Iterable[str] | None = None) -> int:
         if args.inter_request_delay > 0 and done < total:
             time.sleep(args.inter_request_delay)
 
-    out_f.close()
     print(
         f"[INFO] done: {succeeded} labeled, {failed} failed  →  {output_path}",
         flush=True,

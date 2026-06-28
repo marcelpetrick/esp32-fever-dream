@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest import mock
 
 from tools.dataset.ollama_label_batch import (
     assign_split,
     extract_json,
+    load_existing_labels,
+    parse_args,
+    proposal_succeeded,
+    query_ollama,
     validate_values,
+    write_proposals_atomic,
 )
 
 
@@ -62,6 +70,11 @@ class ValidateValuesTest(unittest.TestCase):
         d["humidity_percent"] = 101
         self.assertFalse(validate_values(d))
 
+    def test_rejects_single_digit_humidity(self) -> None:
+        d = self._good()
+        d["humidity_percent"] = 6
+        self.assertFalse(validate_values(d))
+
     def test_rejects_missing_key(self) -> None:
         d = self._good()
         del d["tvoc_raw"]
@@ -91,6 +104,111 @@ class AssignSplitTest(unittest.TestCase):
 
     def test_single_frame_is_train(self) -> None:
         self.assertEqual(assign_split(0, 1, 0.80, 0.10), "train")
+
+
+class ArgumentsTest(unittest.TestCase):
+    def test_rejects_invalid_split_sum(self) -> None:
+        with self.assertRaises(SystemExit):
+            parse_args(
+                [
+                    "--dataset-dir",
+                    ".",
+                    "--train-fraction",
+                    "0.9",
+                    "--val-fraction",
+                    "0.2",
+                ]
+            )
+
+    def test_duplicate_policy_can_be_disabled(self) -> None:
+        args = parse_args(["--dataset-dir", ".", "--no-skip-duplicates"])
+        self.assertFalse(args.skip_duplicates)
+
+
+class ProposalPersistenceTest(unittest.TestCase):
+    def _row(self, status: str, valid: str) -> dict[str, object]:
+        return {
+            "sample_id": "capture_0001",
+            "image_path": "capture_0001.jpg",
+            "temperature_c": 27,
+            "humidity_percent": 45,
+            "co2_ppm": 600,
+            "hcho_raw": 15,
+            "tvoc_raw": 40,
+            "valid": valid,
+            "split": "train",
+            "notes": "test",
+            "proposal_status": status,
+            "model": "test",
+            "prompt_version": "test-v1",
+            "labeled_at_utc": "2026-06-29T00:00:00+00:00",
+            "attempts": 1,
+            "duration_seconds": "1.0",
+        }
+
+    def test_atomic_write_replaces_failed_row_without_duplicates(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "proposals.csv"
+            write_proposals_atomic({"capture_0001": self._row("error", "false")}, path)
+            write_proposals_atomic({"capture_0001": self._row("accepted", "true")}, path)
+            rows = load_existing_labels(path)
+            self.assertEqual(list(rows), ["capture_0001"])
+            self.assertTrue(proposal_succeeded(rows["capture_0001"]))
+
+    def test_errors_are_not_complete_for_resume(self) -> None:
+        self.assertFalse(proposal_succeeded(self._row("error", "false")))
+
+
+class _FakeResponse:
+    status = 200
+    reason = "OK"
+
+    def readline(self) -> bytes:
+        return b'{"response":"x","done":false}\n'
+
+
+class _FakeConnection:
+    last_body = b""
+    sock = None
+
+    def __init__(self, *args, **kwargs) -> None:
+        pass
+
+    def request(self, method, path, body, headers) -> None:
+        self.__class__.last_body = body
+
+    def getresponse(self) -> _FakeResponse:
+        return _FakeResponse()
+
+    def close(self) -> None:
+        pass
+
+
+class QueryOllamaTest(unittest.TestCase):
+    def test_hard_deadline_and_bounded_structured_output(self) -> None:
+        with (
+            mock.patch(
+                "tools.dataset.ollama_label_batch.http.client.HTTPConnection",
+                _FakeConnection,
+            ),
+            mock.patch(
+                "tools.dataset.ollama_label_batch.time.monotonic",
+                side_effect=[0.0, 2.0],
+            ),
+        ):
+            with self.assertRaises(TimeoutError):
+                query_ollama(
+                    "model",
+                    "image",
+                    "http://localhost/api/generate",
+                    "prompt",
+                    10,
+                    total_timeout=1,
+                    num_predict=96,
+                )
+        body = _FakeConnection.last_body.decode()
+        self.assertIn('"num_predict": 96', body)
+        self.assertIn('"format": {', body)
 
 
 if __name__ == "__main__":

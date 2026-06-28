@@ -1,5 +1,9 @@
 # Timed Batch Labeling and Retraining Plan
 
+> Superseded by `08_MODEL_QUALITY_REMEDIATION_PLAN.md`. In particular, Ollama
+> output is now an untrusted proposal and must not be used directly for
+> training or held-out evaluation.
+
 Last updated: 2026-06-28.
 
 ## Situation

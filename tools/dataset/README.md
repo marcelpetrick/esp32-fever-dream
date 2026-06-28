@@ -52,6 +52,22 @@ The baseline labeler intentionally records human-confirmed fixed-layout labels.
 It is not a trained OCR model and should not be used as final accuracy evidence
 unless the displayed values vary across a held-out validation set.
 
+## Ollama label proposals
+
+Vision-model OCR is an untrusted first pass. It writes
+`labels_ollama_proposals.csv`, never training ground truth:
+
+```sh
+python3 tools/dataset/ollama_label_batch.py \
+  --dataset-dir tools/dataset/captures/<batch> \
+  --model qwen3-vl:4b
+```
+
+Requests use structured output, a bounded token count, and a hard total
+deadline. Successful proposals are retained on resume while rejected and error
+rows are retried. Do not pass this proposal CSV to the training pipeline;
+promote only human-reviewed values to `labels_environment.csv`.
+
 The best first-pass camera settings measured on the mounted setup were:
 
 ```sh
