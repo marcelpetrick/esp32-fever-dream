@@ -21,9 +21,21 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train the TinyML digit classifier.")
     parser.add_argument("--digit-labels", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument(
+        "--firmware-header",
+        type=Path,
+        help="Optional firmware C header output; omit during tuning.",
+    )
     parser.add_argument("--epochs", type=int, default=12)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--seed", type=int, default=173)
+    parser.add_argument("--real-weight", type=float, default=1.0)
+    parser.add_argument("--early-stopping-patience", type=int, default=4)
+    parser.add_argument(
+        "--qualify-test",
+        action="store_true",
+        help="Evaluate the frozen test split after validation qualification.",
+    )
     return parser.parse_args(list(argv))
 
 
@@ -47,20 +59,40 @@ def read_rows(path: Path) -> list[dict[str, str]]:
         return list(reader)
 
 
-def load_split(rows: list[dict[str, str]], split: str) -> tuple[np.ndarray, np.ndarray]:
+def validate_source_splits(rows: list[dict[str, str]]) -> None:
+    synthetic_heldout = [
+        row for row in rows if row.get("source") == "synthetic" and row["split"] != "train"
+    ]
+    if synthetic_heldout:
+        raise ValueError("synthetic rows are forbidden in validation and test splits")
+    non_real_heldout = [
+        row
+        for row in rows
+        if row["split"] in {"validation", "test"} and row.get("source", "real") != "real"
+    ]
+    if non_real_heldout:
+        raise ValueError("validation and test must contain real crops only")
+
+
+def load_split(
+    rows: list[dict[str, str]], split: str
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     x_values: list[np.ndarray] = []
     y_values: list[int] = []
+    real_values: list[bool] = []
     for row in rows:
         if row["split"] != split:
             continue
         image = Image.open(row["image_path"]).convert("L").resize((24, 32))
         x_values.append(np.asarray(image, dtype=np.float32) / 255.0)
         y_values.append(CLASSES.index(row["label"]))
+        real_values.append(row.get("source", "real") == "real")
     if not x_values:
         raise ValueError(f"no rows for split {split}")
     x = np.asarray(x_values, dtype=np.float32).reshape((-1,) + TARGET_SHAPE)
     y = np.asarray(y_values, dtype=np.int64)
-    return x, y
+    is_real = np.asarray(real_values, dtype=np.bool_)
+    return x, y, is_real
 
 
 def build_model(tf):
@@ -116,26 +148,80 @@ def confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray) -> list[list[int]]:
     return matrix
 
 
+def predict_tflite(model_path: Path, x_values: np.ndarray, tf) -> np.ndarray:
+    interpreter = tf.lite.Interpreter(model_path=str(model_path))
+    interpreter.allocate_tensors()
+    input_detail = interpreter.get_input_details()[0]
+    output_detail = interpreter.get_output_details()[0]
+    scale, zero_point = input_detail["quantization"]
+    if scale <= 0:
+        raise ValueError("TFLite input tensor has invalid quantization scale")
+    predictions: list[int] = []
+    for sample in x_values:
+        quantized = np.rint(sample / scale + zero_point)
+        quantized = np.clip(quantized, -128, 127).astype(np.int8)[None, ...]
+        interpreter.set_tensor(input_detail["index"], quantized)
+        interpreter.invoke()
+        predictions.append(int(np.argmax(interpreter.get_tensor(output_detail["index"])[0])))
+    return np.asarray(predictions, dtype=np.int64)
+
+
+def accuracy_report(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, object]:
+    matrix = confusion_matrix(y_true, y_pred)
+    per_digit = {}
+    for index, digit in enumerate(CLASSES):
+        total = int(np.sum(y_true == index))
+        correct = int(np.sum((y_true == index) & (y_pred == index)))
+        per_digit[digit] = {
+            "correct": correct,
+            "total": total,
+            "accuracy": (correct / total) if total else None,
+        }
+    return {
+        "rows": int(len(y_true)),
+        "accuracy": float(np.mean(y_true == y_pred)),
+        "per_digit": per_digit,
+        "confusion_matrix": matrix,
+    }
+
+
 def main(argv: Iterable[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
+    if args.real_weight <= 0:
+        raise ValueError("--real-weight must be positive")
     tf = require_tensorflow()
     tf.keras.utils.set_random_seed(args.seed)
 
     rows = read_rows(args.digit_labels)
-    x_train, y_train = load_split(rows, "train")
-    x_validation, y_validation = load_split(rows, "validation")
-    x_test, y_test = load_split(rows, "test")
+    validate_source_splits(rows)
+    x_train, y_train, train_is_real = load_split(rows, "train")
+    x_validation, y_validation, validation_is_real = load_split(rows, "validation")
+    if not np.all(validation_is_real):
+        raise ValueError("validation must contain real crops only")
+    x_test = y_test = test_is_real = None
+    if args.qualify_test:
+        x_test, y_test, test_is_real = load_split(rows, "test")
+        if not np.all(test_is_real):
+            raise ValueError("test must contain real crops only")
 
     model = build_model(tf)
+    sample_weight = np.where(train_is_real, args.real_weight, 1.0).astype(np.float32)
     history = model.fit(
         x_train,
         y_train,
+        sample_weight=sample_weight,
         validation_data=(x_validation, y_validation),
         epochs=args.epochs,
         batch_size=args.batch_size,
+        callbacks=[
+            tf.keras.callbacks.EarlyStopping(
+                monitor="val_loss",
+                patience=args.early_stopping_patience,
+                restore_best_weights=True,
+            )
+        ],
         verbose=2,
     )
-    test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
 
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -150,22 +236,31 @@ def main(argv: Iterable[str] | None = None) -> int:
     converter.inference_input_type = tf.int8
     converter.inference_output_type = tf.int8
     tflite_path.write_bytes(converter.convert())
-    write_c_array(tflite_path, Path("firmware/generated/digit_classifier_model.h"))
+    if args.firmware_header is not None:
+        write_c_array(tflite_path, args.firmware_header)
 
-    predictions = np.argmax(model.predict(x_test, verbose=0), axis=1)
-    matrix = confusion_matrix(y_test, predictions)
+    validation_predictions = predict_tflite(tflite_path, x_validation, tf)
+    validation_report = accuracy_report(y_validation, validation_predictions)
+    test_report = None
+    if args.qualify_test:
+        assert x_test is not None and y_test is not None
+        test_report = accuracy_report(y_test, predict_tflite(tflite_path, x_test, tf))
+    matrix = validation_report["confusion_matrix"]
     report = {
         "classes": CLASSES,
         "digit_labels": str(args.digit_labels),
         "epochs": args.epochs,
         "history": {key: [float(value) for value in values] for key, values in history.history.items()},
-        "test_loss": float(test_loss),
-        "test_accuracy": float(test_accuracy),
+        "seed": args.seed,
+        "real_weight": args.real_weight,
+        "validation_real_tflite": validation_report,
+        "test_real_tflite": test_report,
+        "test_was_qualified": args.qualify_test,
         "tflite_model": str(tflite_path),
         "tflite_size_bytes": tflite_path.stat().st_size,
-        "firmware_header": "firmware/generated/digit_classifier_model.h",
+        "firmware_header": str(args.firmware_header) if args.firmware_header else None,
         "confusion_matrix": matrix,
-        "warning": "Prototype includes synthetic test rows; final acceptance still requires diverse held-out real captures.",
+        "warning": "Frozen test metrics are absent unless --qualify-test is explicitly supplied.",
     }
     (output_dir / "digit_classifier_eval.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -175,9 +270,10 @@ def main(argv: Iterable[str] | None = None) -> int:
         writer.writerow(["truth\\pred", *CLASSES])
         for digit, row in zip(CLASSES, matrix, strict=True):
             writer.writerow([digit, *row])
-    print(f"[INFO] test_accuracy={test_accuracy:.4f}")
+    print(f"[INFO] validation_real_tflite_accuracy={validation_report['accuracy']:.4f}")
     print(f"[INFO] wrote {tflite_path}")
-    print("[INFO] wrote firmware/generated/digit_classifier_model.h")
+    if args.firmware_header is not None:
+        print(f"[INFO] wrote {args.firmware_header}")
     return 0
 
 

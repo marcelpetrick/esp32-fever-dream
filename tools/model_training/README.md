@@ -109,7 +109,23 @@ Outputs:
 - `models/generated/digit_classifier_int8.tflite`
 - `models/generated/digit_classifier_eval.json`
 - `models/generated/confusion_matrix.csv`
-- `firmware/generated/digit_classifier_model.h`
+
+The normal training path does not overwrite the deployed firmware header. Add
+`--qualify-test --export-firmware-header` only after validation qualification
+and the frozen-test approval step.
+
+For the required validation-only weight/seed comparison, first build an audited
+digit dataset and run:
+
+```sh
+.venv-ml/bin/python tools/model_training/run_training_sweep.py \
+  --digit-labels models/generated/digit_dataset/digit_labels.csv \
+  --output-dir models/generated/training_sweep
+```
+
+The sweep evaluates real validation crops through the quantized TFLite model
+for weights `1`, `3`, and `5` and seeds `173`, `211`, and `347`. It never reads
+the test split.
 
 ## Run Model On Images
 
@@ -138,6 +154,11 @@ Outputs:
 The CSV includes predicted temperature digits, predicted humidity digits,
 per-digit confidences, minimum confidence, expected labels when available, and a
 `match` column for labeled data.
+
+The summary separates raw digit/field accuracy, accepted full-reading accuracy,
+positive rejection rate, and false accepts from rows labeled `valid=false`.
+The default acceptance threshold is 85%. Images where the display locator fails
+are rejected instead of using fallback coordinates.
 
 ## Validation Rule
 

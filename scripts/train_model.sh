@@ -10,6 +10,10 @@ DIGIT_DATASET_DIR="${ROOT_DIR}/models/generated/digit_dataset"
 MODEL_OUTPUT_DIR="${ROOT_DIR}/models/generated"
 SYNTHETIC_PER_DIGIT="250"
 EPOCHS="12"
+SEED="173"
+REAL_WEIGHT="1"
+QUALIFY_TEST="0"
+EXPORT_FIRMWARE_HEADER="0"
 PYTHON_BIN="${PYTHON:-python3}"
 
 if [[ -x "${ROOT_DIR}/.venv-ml/bin/python" ]]; then
@@ -33,6 +37,11 @@ Options:
   --synthetic-per-digit N
                       Synthetic crops per digit. Default: 250.
   --epochs N          Training epochs. Default: 12.
+  --seed N            Reproducible training seed. Default: 173.
+  --real-weight N     Loss weight for real training crops. Default: 1.
+  --qualify-test      Evaluate the frozen test split after validation passes.
+  --export-firmware-header
+                      Export the model into firmware after final qualification.
 
 The command audits dataset readiness before TinyML training. It refuses datasets
 that cannot train a real digit recognizer unless --allow-synthetic-prototype is
@@ -73,6 +82,22 @@ while [[ $# -gt 0 ]]; do
         --epochs)
             EPOCHS="$2"
             shift 2
+            ;;
+        --seed)
+            SEED="$2"
+            shift 2
+            ;;
+        --real-weight)
+            REAL_WEIGHT="$2"
+            shift 2
+            ;;
+        --qualify-test)
+            QUALIFY_TEST="1"
+            shift
+            ;;
+        --export-firmware-header)
+            EXPORT_FIRMWARE_HEADER="1"
+            shift
             ;;
         --help|-h)
             usage
@@ -129,7 +154,18 @@ for labels_path in "${LABELS[@]}"; do
 done
 "${PYTHON_BIN}" "${ROOT_DIR}/tools/model_training/build_digit_dataset.py" "${dataset_args[@]}"
 
-"${PYTHON_BIN}" "${ROOT_DIR}/tools/model_training/train_digit_classifier.py" \
-    --digit-labels "${DIGIT_DATASET_DIR}/digit_labels.csv" \
-    --output-dir "${MODEL_OUTPUT_DIR}" \
+train_args=(
+    --digit-labels "${DIGIT_DATASET_DIR}/digit_labels.csv"
+    --output-dir "${MODEL_OUTPUT_DIR}"
     --epochs "${EPOCHS}"
+    --seed "${SEED}"
+    --real-weight "${REAL_WEIGHT}"
+)
+if [[ "${QUALIFY_TEST}" == "1" ]]; then
+    train_args+=(--qualify-test)
+fi
+if [[ "${EXPORT_FIRMWARE_HEADER}" == "1" ]]; then
+    train_args+=(--firmware-header "${ROOT_DIR}/firmware/generated/digit_classifier_model.h")
+fi
+"${PYTHON_BIN}" "${ROOT_DIR}/tools/model_training/train_digit_classifier.py" \
+    "${train_args[@]}"

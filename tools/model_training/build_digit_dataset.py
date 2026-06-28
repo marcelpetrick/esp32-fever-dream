@@ -415,14 +415,6 @@ def render_synthetic_digit(digit: str, rng: random.Random, fonts: list[ImageFont
     return normalize_crop(canvas)
 
 
-def synthetic_split(index: int) -> str:
-    if index % 10 == 0:
-        return "test"
-    if index % 5 == 0:
-        return "validation"
-    return "train"
-
-
 def save_synthetic_crops(output_dir: Path, count_per_digit: int, seed: int) -> list[CropRow]:
     rng = random.Random(seed)
     fonts = load_fonts()
@@ -430,7 +422,7 @@ def save_synthetic_crops(output_dir: Path, count_per_digit: int, seed: int) -> l
     crops_dir = output_dir / "crops"
     for digit in CLASSES:
         for index in range(1, count_per_digit + 1):
-            split = synthetic_split(index)
+            split = "train"
             crop = render_synthetic_digit(digit, rng, fonts)
             sample_id = f"synthetic_{digit}_{index:04d}"
             output_path = crops_dir / split / digit / f"{sample_id}.png"
@@ -516,7 +508,9 @@ def main(argv: Iterable[str] | None = None) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     rows = read_label_rows(args.labels)
     crop_rows = save_real_crops(rows, output_dir, args)
-    crop_rows.extend(save_synthetic_crops(output_dir, args.synthetic_per_digit, args.seed))
+    real_train_count = sum(row.source == "real" and row.split == "train" for row in crop_rows)
+    capped_per_digit = min(args.synthetic_per_digit, real_train_count // len(CLASSES))
+    crop_rows.extend(save_synthetic_crops(output_dir, capped_per_digit, args.seed))
     write_manifest(crop_rows, output_dir / "digit_labels.csv")
     write_report(crop_rows, output_dir / "digit_dataset_report.json")
     print(f"[INFO] wrote {output_dir / 'digit_labels.csv'}")

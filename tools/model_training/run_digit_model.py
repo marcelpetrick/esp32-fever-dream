@@ -15,7 +15,11 @@ from typing import Iterable
 import numpy as np
 from PIL import Image
 
-from build_digit_dataset import (
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from tools.model_training.build_digit_dataset import (  # noqa: E402
     CO2_DIGIT_BOXES,
     HCHO_DIGIT_BOXES,
     HUMIDITY_DIGIT_BOXES,
@@ -42,6 +46,7 @@ class ImageCase:
     expected_hcho: str | None
     expected_tvoc: str | None
     sample_id: str
+    should_accept: bool | None
 
 
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
@@ -78,6 +83,12 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         default=Path("models/generated/digit_model_predictions_summary.json"),
         help="JSON summary output path.",
     )
+    parser.add_argument(
+        "--confidence-threshold",
+        type=int,
+        default=85,
+        help="Minimum per-reading digit confidence for acceptance (default: 85).",
+    )
     return parser.parse_args(list(argv))
 
 
@@ -100,20 +111,26 @@ def read_label_cases(paths: list[Path]) -> list[ImageCase]:
             if reader.fieldnames is None:
                 raise ValueError(f"{path} has no header")
             for row in reader:
-                if not truthy(row.get("valid", "true")):
-                    continue
+                is_valid = truthy(row.get("valid", "true"))
                 image_path = Path(row["image_path"])
                 if not image_path.is_absolute():
                     image_path = Path.cwd() / image_path
                 cases.append(
                     ImageCase(
                         image_path=image_path,
-                        expected_temperature=f"{float(row['temperature_c']):.0f}".zfill(2)[-2:],
-                        expected_humidity=f"{int(row['humidity_percent']):02d}"[-2:],
-                        expected_co2=optional_four_digit(row, "co2_ppm"),
-                        expected_hcho=optional_four_digit(row, "hcho_raw"),
-                        expected_tvoc=optional_four_digit(row, "tvoc_raw"),
+                        expected_temperature=(
+                            f"{float(row['temperature_c']):.0f}".zfill(2)[-2:]
+                            if is_valid
+                            else None
+                        ),
+                        expected_humidity=(
+                            f"{int(row['humidity_percent']):02d}"[-2:] if is_valid else None
+                        ),
+                        expected_co2=optional_four_digit(row, "co2_ppm") if is_valid else None,
+                        expected_hcho=optional_four_digit(row, "hcho_raw") if is_valid else None,
+                        expected_tvoc=optional_four_digit(row, "tvoc_raw") if is_valid else None,
                         sample_id=row.get("sample_id") or image_path.stem,
+                        should_accept=is_valid,
                     )
                 )
     return cases
@@ -138,6 +155,7 @@ def read_image_cases(patterns: list[str]) -> list[ImageCase]:
                     expected_hcho=None,
                     expected_tvoc=None,
                     sample_id=image_path.stem,
+                    should_accept=None,
                 )
             )
     return cases
@@ -176,9 +194,45 @@ def predict_digit(interpreter, input_detail: dict, output_detail: dict, tensor: 
     return str(best), confidences[best], confidences
 
 
-def run_case(case: ImageCase, interpreter, input_detail: dict, output_detail: dict) -> dict:
+def rejected_result(case: ImageCase, reason: str) -> dict:
+    return {
+        "sample_id": case.sample_id,
+        "image_path": str(case.image_path),
+        "predicted_co2_ppm": "",
+        "predicted_hcho_raw": "",
+        "predicted_tvoc_raw": "",
+        "predicted_temperature_c": "",
+        "predicted_humidity_percent": "",
+        "predicted_digits": "",
+        "min_confidence_percent": 0,
+        "digit_confidences_percent": "",
+        "group_min_confidences_percent": "",
+        "expected_co2_ppm": case.expected_co2 or "",
+        "expected_hcho_raw": case.expected_hcho or "",
+        "expected_tvoc_raw": case.expected_tvoc or "",
+        "expected_temperature_c": case.expected_temperature or "",
+        "expected_humidity_percent": case.expected_humidity or "",
+        "field_match": "",
+        "accepted": "false",
+        "rejection_reason": reason,
+        "should_accept": (
+            "true" if case.should_accept is True else "false" if case.should_accept is False else ""
+        ),
+        "match": "false" if case.should_accept is True else "",
+    }
+
+
+def run_case(
+    case: ImageCase,
+    interpreter,
+    input_detail: dict,
+    output_detail: dict,
+    confidence_threshold: int,
+) -> dict:
     image = Image.open(case.image_path).convert("RGB")
     bounds = locate_display(image)
+    if bounds is None:
+        return rejected_result(case, "display_not_found")
     temp_boxes = relative_temp_boxes(bounds)
     digit_groups = [
         ("co2", [RELATIVE_CO2_DIGIT_BOXES[index] for index in range(4)], [CO2_DIGIT_BOXES[index] for index in range(4)]),
@@ -220,7 +274,13 @@ def run_case(case: ImageCase, interpreter, input_detail: dict, output_detail: di
         "humidity": case.expected_humidity,
     }
     comparable = {key: value for key, value in expected.items() if value is not None}
-    is_match = bool(comparable) and all(predicted[key] == value for key, value in comparable.items())
+    min_confidence = min(all_confidences)
+    accepted = min_confidence >= confidence_threshold
+    is_match = (
+        accepted
+        and bool(comparable)
+        and all(predicted[key] == value for key, value in comparable.items())
+    )
     field_match = {
         key: ("true" if expected_value is not None and predicted[key] == expected_value else "false")
         for key, expected_value in expected.items()
@@ -235,7 +295,7 @@ def run_case(case: ImageCase, interpreter, input_detail: dict, output_detail: di
         "predicted_temperature_c": predicted["temperature"],
         "predicted_humidity_percent": predicted["humidity"],
         "predicted_digits": "".join(all_digits),
-        "min_confidence_percent": min(all_confidences),
+        "min_confidence_percent": min_confidence,
         "digit_confidences_percent": "/".join(str(value) for value in all_confidences),
         "group_min_confidences_percent": ";".join(
             f"{group_name}:{min(values)}" for group_name, values in group_confidences.items()
@@ -246,6 +306,11 @@ def run_case(case: ImageCase, interpreter, input_detail: dict, output_detail: di
         "expected_temperature_c": case.expected_temperature or "",
         "expected_humidity_percent": case.expected_humidity or "",
         "field_match": ";".join(f"{key}:{value}" for key, value in field_match.items()),
+        "accepted": "true" if accepted else "false",
+        "rejection_reason": "" if accepted else "confidence_below_threshold",
+        "should_accept": (
+            "true" if case.should_accept is True else "false" if case.should_accept is False else ""
+        ),
         "match": "true" if is_match else "false" if comparable else "",
     }
 
@@ -270,6 +335,9 @@ def write_csv(rows: list[dict], output_path: Path) -> None:
         "expected_temperature_c",
         "expected_humidity_percent",
         "field_match",
+        "accepted",
+        "rejection_reason",
+        "should_accept",
         "match",
     ]
     with output_path.open("w", encoding="utf-8", newline="") as csv_file:
@@ -279,14 +347,62 @@ def write_csv(rows: list[dict], output_path: Path) -> None:
 
 
 def write_summary(rows: list[dict], output_path: Path, model_path: Path) -> dict:
-    labeled = [row for row in rows if row["match"]]
-    matches = [row for row in labeled if row["match"] == "true"]
+    positives = [row for row in rows if row["should_accept"] == "true"]
+    negatives = [row for row in rows if row["should_accept"] == "false"]
+    matches = [row for row in positives if row["match"] == "true"]
+    accepted_positives = [row for row in positives if row["accepted"] == "true"]
+    false_accepts = [row for row in negatives if row["accepted"] == "true"]
+    field_names = (
+        ("co2", "predicted_co2_ppm", "expected_co2_ppm"),
+        ("hcho", "predicted_hcho_raw", "expected_hcho_raw"),
+        ("tvoc", "predicted_tvoc_raw", "expected_tvoc_raw"),
+        ("temperature", "predicted_temperature_c", "expected_temperature_c"),
+        ("humidity", "predicted_humidity_percent", "expected_humidity_percent"),
+    )
+    raw_field_accuracy = {}
+    accepted_field_accuracy = {}
+    digit_correct = 0
+    digit_total = 0
+    for name, predicted, expected in field_names:
+        comparable = [row for row in positives if row[expected]]
+        raw_correct = sum(row[predicted] == row[expected] for row in comparable)
+        accepted_correct = sum(
+            row["accepted"] == "true" and row[predicted] == row[expected]
+            for row in comparable
+        )
+        raw_field_accuracy[name] = {
+            "correct": raw_correct,
+            "total": len(comparable),
+            "accuracy": raw_correct / len(comparable) if comparable else None,
+        }
+        accepted_field_accuracy[name] = {
+            "correct": accepted_correct,
+            "total": len(comparable),
+            "accuracy": accepted_correct / len(comparable) if comparable else None,
+        }
+        for row in comparable:
+            predicted_text = row[predicted]
+            for index, truth in enumerate(row[expected]):
+                digit_total += 1
+                digit_correct += index < len(predicted_text) and predicted_text[index] == truth
     summary = {
         "model": str(model_path),
         "rows": len(rows),
-        "labeled_rows": len(labeled),
+        "positive_rows": len(positives),
+        "negative_rows": len(negatives),
+        "accepted_positive_rows": len(accepted_positives),
         "exact_matches": len(matches),
-        "exact_accuracy": (len(matches) / len(labeled)) if labeled else None,
+        "full_reading_accuracy": (len(matches) / len(positives)) if positives else None,
+        "digit_accuracy": digit_correct / digit_total if digit_total else None,
+        "raw_field_accuracy": raw_field_accuracy,
+        "accepted_field_accuracy": accepted_field_accuracy,
+        "false_accepts": len(false_accepts),
+        "false_accept_rate": len(false_accepts) / len(negatives) if negatives else None,
+        "positive_rejection_rate": (
+            (len(positives) - len(accepted_positives)) / len(positives)
+            if positives
+            else None
+        ),
         "min_confidence_percent": min((int(row["min_confidence_percent"]) for row in rows), default=None),
         "average_min_confidence_percent": (
             sum(int(row["min_confidence_percent"]) for row in rows) / len(rows) if rows else None
@@ -314,13 +430,21 @@ def main(argv: Iterable[str] | None = None) -> int:
     interpreter.allocate_tensors()
     input_detail = interpreter.get_input_details()[0]
     output_detail = interpreter.get_output_details()[0]
-    rows = [run_case(case, interpreter, input_detail, output_detail) for case in cases]
+    if not 0 <= args.confidence_threshold <= 100:
+        raise ValueError("--confidence-threshold must be between 0 and 100")
+    rows = [
+        run_case(case, interpreter, input_detail, output_detail, args.confidence_threshold)
+        for case in cases
+    ]
     write_csv(rows, args.output)
     summary = write_summary(rows, args.summary_json, args.model)
 
-    accuracy = summary["exact_accuracy"]
+    accuracy = summary["full_reading_accuracy"]
     accuracy_text = "n/a" if accuracy is None else f"{accuracy:.4f}"
-    print(f"[INFO] rows={summary['rows']} labeled={summary['labeled_rows']} exact_accuracy={accuracy_text}")
+    print(
+        f"[INFO] rows={summary['rows']} positives={summary['positive_rows']} "
+        f"full_reading_accuracy={accuracy_text}"
+    )
     print(f"[INFO] min_confidence={summary['min_confidence_percent']} avg_min_confidence={summary['average_min_confidence_percent']}")
     print(f"[INFO] wrote {args.output}")
     print(f"[INFO] wrote {args.summary_json}")
