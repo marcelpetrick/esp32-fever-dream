@@ -254,19 +254,38 @@ def encode_image(image_path: Path) -> str:
 
 
 def query_ollama(model: str, image_b64: str, url: str, prompt: str, timeout: int, num_ctx: int = 2048) -> str:
+    """Query Ollama using streaming so the socket timeout resets on every token.
+
+    With stream=False the HTTP connection is silent for the full inference
+    duration.  If inference takes longer than `timeout` seconds the socket
+    fires a TimeoutError even though Ollama is still working, leaving a stuck
+    request in Ollama's internal queue that blocks all subsequent requests.
+
+    With stream=True Ollama sends one JSON line per generated token.  The
+    socket timeout only fires if no bytes arrive for `timeout` seconds, which
+    means a genuine stall (crash/deadlock), not just slow inference.
+    """
     payload = json.dumps(
         {
             "model": model,
             "prompt": prompt,
             "images": [image_b64],
-            "stream": False,
+            "stream": True,
             "options": {"temperature": 0, "num_ctx": num_ctx},
         }
     ).encode()
     req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+    response_text = ""
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        data = json.loads(resp.read())
-    return data.get("response", "")
+        for raw_line in resp:
+            line = raw_line.strip()
+            if not line:
+                continue
+            chunk = json.loads(line)
+            response_text += chunk.get("response", "")
+            if chunk.get("done"):
+                break
+    return response_text
 
 
 def extract_json(text: str) -> dict | None:
@@ -333,9 +352,10 @@ def ocr_image(
     try:
         response = _call()
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        # Give Ollama time to finish whatever it was doing before retrying once.
-        print(f"    [WARN] network error ({exc}); waiting 90 s for Ollama to drain queue", flush=True)
-        time.sleep(90)
+        # With streaming, a timeout means Ollama truly stalled (no tokens for
+        # `request_timeout` seconds).  Retry immediately — there is no backed-up
+        # non-streaming request to wait for.
+        print(f"    [WARN] network error ({exc}); retrying once", flush=True)
         try:
             response = _call()
         except (urllib.error.URLError, TimeoutError, OSError) as exc2:
