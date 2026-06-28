@@ -327,6 +327,9 @@ def assign_split(index: int, total: int, train_frac: float, val_frac: float) -> 
     return "test"
 
 
+_POST_ERROR_COOLDOWN = 30  # seconds to wait after a network error before parse retries
+
+
 def ocr_image(
     image_path: Path,
     model: str,
@@ -338,23 +341,26 @@ def ocr_image(
     """Call Ollama and return (parsed_values_or_None, note).
 
     Retry strategy:
-    - Network/timeout errors: one extra attempt after a 90 s cooldown so
-      Ollama can drain its internal queue from the previous stuck request.
-      Retrying immediately just adds more requests behind a backed-up queue.
-    - JSON parse errors: retry up to parse_retries times with no delay.
+    - Network/timeout errors: one immediate retry (with streaming there is no
+      backed-up request to drain).
+    - JSON parse errors: retry up to parse_retries times.  If a network error
+      occurred earlier in this call, sleep _POST_ERROR_COOLDOWN seconds before
+      each parse-retry call so the model has time to finish reloading.
+      Firing parse retries immediately after a crash causes each retry to hit
+      a cold-reloading model that returns garbage, wasting hundreds of seconds.
     """
     image_b64 = encode_image(image_path)
 
     def _call() -> str:
         return query_ollama(model, image_b64, url, _PROMPT, request_timeout, num_ctx)
 
+    had_network_error = False
+
     # First attempt.
     try:
         response = _call()
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        # With streaming, a timeout means Ollama truly stalled (no tokens for
-        # `request_timeout` seconds).  Retry immediately — there is no backed-up
-        # non-streaming request to wait for.
+        had_network_error = True
         print(f"    [WARN] network error ({exc}); retrying once", flush=True)
         try:
             response = _call()
@@ -368,6 +374,12 @@ def ocr_image(
             break
         if attempt == parse_retries:
             return None, f"json_parse_failed after {parse_retries} attempts"
+        if had_network_error:
+            print(
+                f"    [INFO] post-error cooldown {_POST_ERROR_COOLDOWN}s before parse retry {attempt}",
+                flush=True,
+            )
+            time.sleep(_POST_ERROR_COOLDOWN)
         try:
             response = _call()
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
