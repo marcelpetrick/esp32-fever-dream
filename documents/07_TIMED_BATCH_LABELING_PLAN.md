@@ -1,6 +1,6 @@
 # Timed Batch Labeling and Retraining Plan
 
-Last updated: 2026-06-27.
+Last updated: 2026-06-28.
 
 ## Situation
 
@@ -53,79 +53,46 @@ similar perceptual hash. Once hashes are computed, contiguous groups of near-
 identical frames identify stable display states — each stable group shares one
 label and can be labeled as a range.
 
-## Labeling Strategy
+## Automated Labeling With Ollama Vision OCR
 
-### Step 1 — Run corpus audit
+Manual range labeling is replaced by `tools/dataset/ollama_label_batch.py`,
+which uses a local Ollama vision model to read the five AQS values directly
+from each image. The script was validated on the three known-labeled
+`live_upright_20260626T2309Z` frames; all five values matched the human labels.
 
-Audit all 520 images to detect quality and perceptual-hash clusters:
+Available Ollama vision models (ordered by expected accuracy):
 
-```sh
-python3 tools/dataset/audit_capture_corpus.py \
-    tools/dataset/captures/serial_timed_fast_20260627T1205Z \
-    --output-dir build/audit_timed_fast_20260627
-```
+| Model | Size | Notes |
+| --- | ---: | --- |
+| `llama3.2-vision:11b` | 7.8 GB | Best accuracy, ~30 s/frame |
+| `qwen3-vl:4b` | 3.3 GB | Faster, good for a first pass |
+| `moondream:latest` | 1.7 GB | Fastest, lowest accuracy |
 
-This produces `accepted.csv` with brightness, contrast, sharpness, and dhash
-for each frame. Frames with `nearest_hash_distance` of 0 or 1 against the
-previous accepted frame are duplicate display states; those with distance ≥ 4
-mark a display change point.
-
-### Step 2 — Generate a sparse contact sheet
-
-Look at every 10th accepted frame in sequence to read display values
-visually. This gives roughly 52 reference points across the 1 h 47 min run.
-If the display changed every 10–60 seconds, this sample will hit most distinct
-values.
-
-A contact sheet showing the bottom strip ROI of each sampled frame makes the
-change points easy to identify by eye.
-
-### Step 3 — Label by range
-
-Use `relabel_fixed_display_ranges.py` to apply temperature/humidity labels to
-contiguous index ranges between identified change points.
-
-Example workflow after identifying breakpoints manually:
+### Step 1 — Label the 520-image timed run
 
 ```sh
-# First: produce unlabeled base labels from the batch
-python3 tools/dataset/label_fixed_display_batch.py \
+python3 tools/dataset/ollama_label_batch.py \
     --dataset-dir tools/dataset/captures/serial_timed_fast_20260627T1205Z \
-    --temperature-c 0 \
-    --humidity-percent 0 \
-    --output tools/dataset/captures/serial_timed_fast_20260627T1205Z/labels_environment.csv
-
-# Then: overwrite ranges with real values observed from images
-python3 tools/dataset/relabel_fixed_display_ranges.py \
-    --input  tools/dataset/captures/serial_timed_fast_20260627T1205Z/labels_environment.csv \
-    --output tools/dataset/captures/serial_timed_fast_20260627T1205Z/labels_environment.csv \
-    --range 11-90:27:44 \
-    --range 91-180:27:45 \
-    --range 181-260:28:44 \
-    # ...etc — fill in from the contact-sheet survey
+    --model llama3.2-vision:11b \
+    --lighting-label timed_daylight_usb
 ```
 
-All five AQS values must be labeled per frame: `co2_ppm`, `hcho_raw`, `tvoc_raw`,
-`temperature_c`, and `humidity_percent`. If a field is not visible or uncertain
-for a given range, mark those frames `valid=false` rather than guessing.
+Estimated runtime: ~4.3 hours at 30 s/frame. The script is resumable; if
+interrupted, re-run the same command and it skips already-labeled frames.
 
-For the five-value label schema, the 2026-06-26 upright batch
-(`live_upright_20260626T2309Z/labels_environment.csv`) is the reference format.
+Output: `tools/dataset/captures/serial_timed_fast_20260627T1205Z/labels_environment.csv`
 
-### Step 4 — Label the 300-image HTTP batch (optional)
-
-If one stable display value is identifiable across `http_300_aqs_20260626T2040Z`,
-label the whole batch at once:
+### Step 2 — Label the 300-image HTTP batch
 
 ```sh
-python3 tools/dataset/label_fixed_display_batch.py \
+python3 tools/dataset/ollama_label_batch.py \
     --dataset-dir tools/dataset/captures/http_300_aqs_20260626T2040Z \
-    --temperature-c <VALUE> \
-    --humidity-percent <VALUE> \
-    --output tools/dataset/captures/http_300_aqs_20260626T2040Z/labels_environment.csv
+    --model llama3.2-vision:11b \
+    --lighting-label mounted_http_quick_20260626
 ```
 
-If the display changed during the burst, mark the ambiguous frames invalid.
+Frames where the display changed mid-burst will be marked `valid=false` by the
+plausibility gate (implausible jumps between consecutive readings).
 
 ## Merge and Digit Audit
 
