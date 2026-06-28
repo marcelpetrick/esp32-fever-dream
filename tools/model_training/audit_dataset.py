@@ -51,13 +51,41 @@ def truthy(value: str) -> bool:
 
 
 def row_label(row: dict[str, str]) -> str:
-    return row.get("display_text", "").strip() or " ".join(
+    """Build a canonical label string from whichever fields are present.
+
+    Supports both the legacy display_text/temperature_text format and the
+    current labels_environment.csv format (co2_ppm, hcho_raw, tvoc_raw,
+    temperature_c, humidity_percent).  All five numeric fields contribute
+    digits so the audit can count every digit position produced by
+    build_digit_dataset.py.
+    """
+    # Legacy formats
+    if row.get("display_text", "").strip():
+        return row["display_text"].strip()
+
+    # Current labels_environment.csv format
+    parts: list[str] = []
+    for field in ("co2_ppm", "hcho_raw", "tvoc_raw"):
+        val = row.get(field, "").strip()
+        if val and val != "-1":
+            parts.append(f"{field}={val}")
+    temp = row.get("temperature_c", "").strip()
+    if temp and temp != "-1":
+        parts.append(f"{temp}C")
+    hum = row.get("humidity_percent", "").strip()
+    if hum and hum != "-1":
+        parts.append(f"{hum}%")
+    if parts:
+        return " ".join(parts)
+
+    # Fallback: legacy temperature_text + humidity_percent
+    return " ".join(
         part
         for part in (
             row.get("temperature_text", "").strip(),
             (
-                (row.get("humidity_percent", "").strip() + "%")
-                if row.get("humidity_percent", "").strip()
+                (hum + "%")
+                if hum
                 else ""
             ),
         )
