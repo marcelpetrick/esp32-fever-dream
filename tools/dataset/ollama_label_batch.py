@@ -106,6 +106,17 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     )
     parser.set_defaults(warmup=True)
     parser.add_argument(
+        "--num-ctx",
+        type=int,
+        default=2048,
+        help=(
+            "Context window size sent to Ollama (default: 2048). "
+            "Smaller values reduce VRAM usage and allow more layers to be "
+            "offloaded to GPU — 2048 is enough for vision + short output. "
+            "Also triggers Ollama's flash-attention path."
+        ),
+    )
+    parser.add_argument(
         "--ollama-url",
         default=OLLAMA_URL,
         help="Ollama API base URL.",
@@ -199,12 +210,13 @@ def load_existing_labels(output_path: Path) -> set[str]:
         return {row["sample_id"] for row in reader}
 
 
-def warmup_model(model: str, url: str, timeout: int) -> None:
+def warmup_model(model: str, url: str, timeout: int, num_ctx: int) -> None:
     """Send a tiny text-only prompt to load the model into VRAM before batch."""
-    print(f"[INFO] warming up {model} ...", flush=True)
+    print(f"[INFO] warming up {model} (ctx={num_ctx}) ...", flush=True)
     t0 = time.monotonic()
     payload = json.dumps(
-        {"model": model, "prompt": _WARMUP_PROMPT, "stream": False}
+        {"model": model, "prompt": _WARMUP_PROMPT, "stream": False,
+         "options": {"num_ctx": num_ctx}}
     ).encode()
     req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
     try:
@@ -219,14 +231,14 @@ def encode_image(image_path: Path) -> str:
     return base64.b64encode(image_path.read_bytes()).decode()
 
 
-def query_ollama(model: str, image_b64: str, url: str, prompt: str, timeout: int) -> str:
+def query_ollama(model: str, image_b64: str, url: str, prompt: str, timeout: int, num_ctx: int = 2048) -> str:
     payload = json.dumps(
         {
             "model": model,
             "prompt": prompt,
             "images": [image_b64],
             "stream": False,
-            "options": {"temperature": 0},
+            "options": {"temperature": 0, "num_ctx": num_ctx},
         }
     ).encode()
     req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
@@ -280,6 +292,7 @@ def ocr_image(
     url: str,
     parse_retries: int,
     request_timeout: int,
+    num_ctx: int = 2048,
 ) -> tuple[dict | None, str]:
     """Call Ollama and return (parsed_values_or_None, note).
 
@@ -292,7 +305,7 @@ def ocr_image(
     image_b64 = encode_image(image_path)
 
     def _call() -> str:
-        return query_ollama(model, image_b64, url, _PROMPT, request_timeout)
+        return query_ollama(model, image_b64, url, _PROMPT, request_timeout, num_ctx)
 
     # First attempt.
     try:
@@ -355,16 +368,18 @@ def main(argv: Iterable[str] | None = None) -> int:
         print("[INFO] nothing to process", flush=True)
         return 0
 
-    secs_per_frame = 120  # conservative estimate for iGPU (Intel Iris Xe)
+    # With num_ctx=2048 all LLM layers fit on A2000 (37/37 GPU); 40s/frame typical.
+    # Fall back to 120s estimate only for the default context (GPU partial offload).
+    secs_per_frame = 40 if args.num_ctx <= 2048 else 120
     print(
         f"[INFO] queuing {total} frames  "
         f"(est. ~{total * secs_per_frame // 3600}h at ~{secs_per_frame}s/frame)"
-        f"  timeout={args.request_timeout}s",
+        f"  timeout={args.request_timeout}s  ctx={args.num_ctx}",
         flush=True,
     )
 
     if args.warmup:
-        warmup_model(args.model, args.ollama_url, args.request_timeout)
+        warmup_model(args.model, args.ollama_url, args.request_timeout, args.num_ctx)
 
     # Open output in append mode so resuming works.
     write_header = not output_path.exists() or output_path.stat().st_size == 0
@@ -396,7 +411,8 @@ def main(argv: Iterable[str] | None = None) -> int:
 
         t0 = time.monotonic()
         parsed, note = ocr_image(
-            image_path, args.model, args.ollama_url, args.retries, args.request_timeout
+            image_path, args.model, args.ollama_url, args.retries, args.request_timeout,
+            args.num_ctx,
         )
         elapsed = time.monotonic() - t0
 
