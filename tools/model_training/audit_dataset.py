@@ -50,6 +50,16 @@ def truthy(value: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "ok"}
 
 
+def trusted_label(row: dict[str, str]) -> bool:
+    """Reject model proposals unless a human explicitly approved them."""
+    review_status = row.get("review_status", "").strip().lower()
+    if review_status:
+        return review_status in {"approved", "corrected", "human"}
+    if "proposal_status" in row:
+        return False
+    return "ollama_ocr" not in row.get("notes", "").lower()
+
+
 def row_label(row: dict[str, str]) -> str:
     """Build a canonical label string from whichever fields are present.
 
@@ -96,9 +106,11 @@ def row_label(row: dict[str, str]) -> str:
 def evaluate(
     rows: list[dict[str, str]], labels_path: Path, args: argparse.Namespace
 ) -> dict[str, object]:
-    valid_rows = [
+    candidate_rows = [
         row for row in rows if truthy(row.get("valid", "true")) and row_label(row)
     ]
+    untrusted_rows = [row for row in candidate_rows if not trusted_label(row)]
+    valid_rows = [row for row in candidate_rows if trusted_label(row)]
     labels = [row_label(row) for row in valid_rows]
     distinct_readings = sorted(set(labels))
     split_counts = Counter(
@@ -122,6 +134,7 @@ def evaluate(
         "all_digits_present": not missing_digits,
         "samples_per_digit": not underrepresented,
         "heldout_samples": heldout_count >= args.min_heldout,
+        "all_labels_trusted": not untrusted_rows,
     }
     passed = all(checks.values())
 
@@ -141,6 +154,7 @@ def evaluate(
         "summary": {
             "rows": len(rows),
             "valid_rows": len(valid_rows),
+            "untrusted_rows": len(untrusted_rows),
             "distinct_readings": len(distinct_readings),
             "heldout_count": heldout_count,
             "split_counts": dict(sorted(split_counts.items())),
@@ -194,6 +208,7 @@ def render_markdown(report: dict[str, object]) -> str:
             "",
             f"- Rows: {summary['rows']}",
             f"- Valid rows: {summary['valid_rows']}",
+            f"- Untrusted rows excluded: {summary['untrusted_rows']}",
             f"- Distinct readings: {summary['distinct_readings']}",
             f"- Held-out rows: {summary['heldout_count']}",
             f"- Splits: `{summary['split_counts']}`",

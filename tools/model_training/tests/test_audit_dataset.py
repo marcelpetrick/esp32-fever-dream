@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from tools.model_training.audit_dataset import row_label
+from tools.model_training.audit_dataset import row_label, trusted_label
 
 
 class RowLabelLegacyTest(unittest.TestCase):
@@ -54,6 +54,22 @@ class RowLabelEnvironmentTest(unittest.TestCase):
 
     def test_empty_row_returns_empty_string(self) -> None:
         self.assertEqual(row_label({}), "")
+
+
+class TrustedLabelTest(unittest.TestCase):
+    def test_legacy_human_label_is_trusted(self) -> None:
+        self.assertTrue(trusted_label({"notes": "manual"}))
+
+    def test_ollama_label_requires_review(self) -> None:
+        self.assertFalse(trusted_label({"notes": "timed ollama_ocr"}))
+
+    def test_corrected_ollama_label_is_trusted(self) -> None:
+        self.assertTrue(
+            trusted_label({"notes": "ollama_ocr", "review_status": "corrected"})
+        )
+
+    def test_proposal_schema_is_untrusted(self) -> None:
+        self.assertFalse(trusted_label({"proposal_status": "accepted"}))
 
 
 if __name__ == "__main__":

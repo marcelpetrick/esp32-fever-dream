@@ -68,6 +68,24 @@ deadline. Successful proposals are retained on resume while rejected and error
 rows are retried. Do not pass this proposal CSV to the training pipeline;
 promote only human-reviewed values to `labels_environment.csv`.
 
+Prepare a review queue, edit its decision/correction columns, and promote the
+approved rows:
+
+```sh
+python3 tools/dataset/review_ollama_labels.py prepare \
+  --proposals tools/dataset/captures/<batch>/labels_ollama_proposals.csv \
+  --audit-csv tools/dataset/captures/<audit>/capture_corpus_audit.csv \
+  --output tools/dataset/captures/<batch>/labels_ollama_review_queue.csv
+
+python3 tools/dataset/review_ollama_labels.py promote \
+  --queue tools/dataset/captures/<batch>/labels_ollama_review_queue.csv \
+  --output tools/dataset/captures/<batch>/labels_environment.csv
+```
+
+`review_decision` must be `approve`, `correct`, or `reject`. Approved/corrected
+rows require `reviewer` and an ISO-8601 `reviewed_at_utc`. Training refuses
+unreviewed Ollama rows.
+
 The best first-pass camera settings measured on the mounted setup were:
 
 ```sh

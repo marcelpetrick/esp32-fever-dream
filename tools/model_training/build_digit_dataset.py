@@ -122,14 +122,30 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
 
 def read_label_rows(paths: list[Path]) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
+    untrusted: list[str] = []
     for path in paths:
         with path.open("r", encoding="utf-8", newline="") as csv_file:
             reader = csv.DictReader(csv_file)
             if reader.fieldnames is None:
                 raise ValueError(f"{path} has no header")
             for row in reader:
+                review_status = row.get("review_status", "").strip().lower()
+                is_untrusted = (
+                    "proposal_status" in row
+                    or (review_status and review_status not in {"approved", "corrected", "human"})
+                    or (not review_status and "ollama_ocr" in row.get("notes", "").lower())
+                )
+                if is_untrusted:
+                    untrusted.append(f"{path}:{row.get('sample_id', '?')}")
+                    continue
                 row["_labels_path"] = str(path)
                 rows.append(row)
+    if untrusted:
+        preview = ", ".join(untrusted[:5])
+        raise ValueError(
+            f"refusing {len(untrusted)} unreviewed automated labels; "
+            f"promote proposals through review_ollama_labels.py first ({preview})"
+        )
     return rows
 
 
