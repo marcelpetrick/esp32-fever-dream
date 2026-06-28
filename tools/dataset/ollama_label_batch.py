@@ -27,6 +27,7 @@ import base64
 import csv
 import datetime as dt
 import json
+import random
 import re
 import sys
 import time
@@ -168,6 +169,27 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         "--lighting-label",
         default="",
         help="Optional lighting label written to the notes field.",
+    )
+    parser.add_argument(
+        "--shuffle",
+        action="store_true",
+        default=True,
+        help="Process unlabeled frames in random order (default: on). "
+             "Randomising spreads sampling across the full capture window so "
+             "rare digit values appear early rather than after all similar "
+             "consecutive frames have been processed.",
+    )
+    parser.add_argument(
+        "--no-shuffle",
+        dest="shuffle",
+        action="store_false",
+        help="Process frames in manifest order instead of randomly.",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Random seed for reproducible shuffle (default: random).",
     )
     return parser.parse_args(list(argv))
 
@@ -363,6 +385,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         print(f"[INFO] resume:   skipping {len(existing)} already-labeled frames", flush=True)
 
     to_process = [r for r in ok_rows if r["sample_id"] not in existing]
+    if args.shuffle:
+        rng = random.Random(args.seed)
+        rng.shuffle(to_process)
     total = len(to_process)
     if total == 0:
         print("[INFO] nothing to process", flush=True)
