@@ -101,6 +101,7 @@ class IntegrityAuditTest(unittest.TestCase):
             min_heldout=0,
             min_validation=0,
             min_test=0,
+            min_negative=0,
             min_samples_per_digit=0,
         )
 

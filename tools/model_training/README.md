@@ -9,6 +9,12 @@ rows. It refuses proposal CSVs and unreviewed rows. Capture batches must belong
 to only one split; validation and test therefore require independent sessions.
 Synthetic crops are training-only.
 
+`scripts/train_model.sh` applies
+`tools/model_training/frozen_split_policy.json` before auditing or cropping.
+Unknown capture sessions are rejected until their role is explicitly added to
+that policy. The current policy reserves the timed batch for validation and the
+independent 300-frame HTTP batch for test after human review.
+
 ## Data Flow
 
 ```mermaid

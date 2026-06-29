@@ -1,13 +1,25 @@
 {
   "checks": {
     "all_digits_present": false,
+    "all_images_hashable": false,
+    "all_labels_trusted": true,
+    "capture_batches_split_exclusive": true,
     "distinct_readings": false,
-    "heldout_samples": true,
-    "minimum_captures": true,
-    "samples_per_digit": false
+    "heldout_samples": false,
+    "images_split_exclusive": true,
+    "minimum_captures": false,
+    "minimum_negative": false,
+    "minimum_test": false,
+    "minimum_validation": false,
+    "perceptual_clusters_split_exclusive": true,
+    "sample_ids_unique": true,
+    "samples_per_digit": false,
+    "split_names_valid": true,
+    "test_all_digits": false,
+    "validation_all_digits": false
   },
-  "generated_at_utc": "2026-06-26T21:17:10+00:00",
-  "labels_csv": "/home/mpetrick/repos/esp32-fever-dream/models/generated/digit_dataset/merged_labels.csv",
+  "generated_at_utc": "2026-06-29T05:43:57+00:00",
+  "labels_csv": "models/generated/digit_dataset/merged_labels.csv",
   "next_actions": [
     "Capture more real images only when values have changed or lighting conditions are intentionally varied.",
     "Collect readings until every digit 0-9 appears at least 20 times.",
@@ -19,46 +31,117 @@
     "min_captures": 300,
     "min_distinct_readings": 10,
     "min_heldout": 50,
+    "min_negative": 50,
     "min_samples_per_digit": 20,
+    "min_test": 100,
+    "min_validation": 50,
     "required_digits": "0123456789"
   },
   "summary": {
+    "cross_split_batches": [],
+    "cross_split_images": [],
+    "cross_split_near_duplicate_count": 0,
+    "cross_split_near_duplicate_examples": [],
     "digit_counts": {
-      "0": 160,
-      "1": 20,
-      "2": 191,
-      "3": 332,
-      "4": 513,
-      "9": 190
+      "0": 60,
+      "1": 24,
+      "2": 67,
+      "3": 90,
+      "4": 160,
+      "6": 4,
+      "7": 2,
+      "9": 61
     },
-    "distinct_readings": 5,
-    "heldout_count": 67,
+    "distinct_readings": 6,
+    "duplicate_sample_ids": [],
+    "hash_failure_count": 245,
+    "hash_failure_examples": [
+      "baseline_20260625T182331Z_capture_0001:display_not_found",
+      "baseline_20260625T182331Z_capture_0002:display_not_found",
+      "baseline_20260625T182331Z_capture_0003:display_not_found",
+      "baseline_20260625T182331Z_capture_0005:display_not_found",
+      "baseline_20260625T182331Z_capture_0007:display_not_found",
+      "baseline_20260625T182331Z_capture_0013:display_not_found",
+      "baseline_20260625T182331Z_capture_0016:display_not_found",
+      "baseline_20260625T182331Z_capture_0018:display_not_found",
+      "baseline_20260625T182331Z_capture_0019:display_not_found",
+      "baseline_20260625T182331Z_capture_0021:display_not_found",
+      "baseline_20260625T182331Z_capture_0022:display_not_found",
+      "baseline_20260625T182331Z_capture_0025:display_not_found",
+      "baseline_20260625T182331Z_capture_0026:display_not_found",
+      "baseline_20260625T182331Z_capture_0027:display_not_found",
+      "baseline_20260625T182331Z_capture_0028:display_not_found",
+      "baseline_20260625T182331Z_capture_0029:display_not_found",
+      "baseline_20260625T182331Z_capture_0030:display_not_found",
+      "baseline_20260625T182331Z_capture_0032:display_not_found",
+      "baseline_20260625T182331Z_capture_0033:display_not_found",
+      "baseline_20260625T182331Z_capture_0035:display_not_found"
+    ],
+    "heldout_count": 3,
     "missing_digits": [
       "5",
-      "6",
-      "7",
       "8"
     ],
+    "negative_rows": 0,
     "rows": 353,
     "sample_readings": [
       "29C 41%",
       "29C 43%",
       "30C 44%",
-      "42%",
-      "43%"
+      "co2_ppm=442 hcho_raw=12 tvoc_raw=30 26C 43%",
+      "co2_ppm=444 hcho_raw=13 tvoc_raw=36 27C 43%",
+      "co2_ppm=446 hcho_raw=17 tvoc_raw=41 26C 42%"
     ],
     "split_counts": {
-      "test": 31,
-      "train": 286,
-      "validation": 36
+      "train": 105,
+      "validation": 3
     },
+    "split_digit_counts": {
+      "test": {},
+      "train": {
+        "0": 44,
+        "1": 20,
+        "2": 61,
+        "3": 85,
+        "4": 149,
+        "9": 61
+      },
+      "validation": {
+        "0": 16,
+        "1": 4,
+        "2": 6,
+        "3": 5,
+        "4": 11,
+        "6": 4,
+        "7": 2
+      }
+    },
+    "test_missing_digits": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
     "underrepresented_digits": {
       "5": 0,
-      "6": 0,
-      "7": 0,
+      "6": 4,
+      "7": 2,
       "8": 0
     },
-    "valid_rows": 353
+    "untrusted_rows": 0,
+    "usable_rows": 108,
+    "valid_rows": 353,
+    "validation_missing_digits": [
+      "5",
+      "8",
+      "9"
+    ]
   },
   "tool": "model_training.audit_dataset"
 }

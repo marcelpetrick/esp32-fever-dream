@@ -15,6 +15,7 @@ REAL_WEIGHT="1"
 QUALIFY_TEST="0"
 EXPORT_FIRMWARE_HEADER="0"
 PYTHON_BIN="${PYTHON:-python3}"
+SPLIT_POLICY="${ROOT_DIR}/tools/model_training/frozen_split_policy.json"
 
 if [[ -x "${ROOT_DIR}/.venv-ml/bin/python" ]]; then
     PYTHON_BIN="${ROOT_DIR}/.venv-ml/bin/python"
@@ -29,6 +30,7 @@ Options:
   --labels PATH       Label CSV generated from a capture batch. May be repeated.
   --json-out PATH     Audit JSON output. Default: reports/model_training_audit.json.
   --markdown-out PATH Audit Markdown output. Default: reports/model_training_audit.md.
+  --split-policy PATH Frozen capture-session split policy.
   --allow-synthetic-prototype
                       Continue after the real-reading audit and train a clearly
                       marked prototype using synthetic digit crops.
@@ -61,6 +63,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --markdown-out)
             REPORT_MD="$2"
+            shift 2
+            ;;
+        --split-policy)
+            SPLIT_POLICY="$2"
             shift 2
             ;;
         --allow-synthetic-prototype)
@@ -117,16 +123,12 @@ if [[ "${#LABELS[@]}" -eq 0 ]]; then
     exit 2
 fi
 
-if [[ "${#LABELS[@]}" -eq 1 ]]; then
-    AUDIT_LABELS="${LABELS[0]}"
-else
-    AUDIT_LABELS="${DIGIT_DATASET_DIR}/merged_labels.csv"
-    merge_args=(--output "${AUDIT_LABELS}")
-    for labels_path in "${LABELS[@]}"; do
-        merge_args+=(--labels "${labels_path}")
-    done
-    "${PYTHON_BIN}" "${ROOT_DIR}/tools/dataset/merge_label_csv.py" "${merge_args[@]}"
-fi
+AUDIT_LABELS="${DIGIT_DATASET_DIR}/merged_labels.csv"
+merge_args=(--policy "${SPLIT_POLICY}" --output "${AUDIT_LABELS}")
+for labels_path in "${LABELS[@]}"; do
+    merge_args+=(--labels "${labels_path}")
+done
+"${PYTHON_BIN}" "${ROOT_DIR}/tools/model_training/apply_split_policy.py" "${merge_args[@]}"
 
 audit_args=(
     --labels "${AUDIT_LABELS}"
@@ -148,10 +150,11 @@ else
     printf '[INFO] dataset audit passed\n'
 fi
 
-dataset_args=(--output-dir "${DIGIT_DATASET_DIR}" --synthetic-per-digit "${SYNTHETIC_PER_DIGIT}")
-for labels_path in "${LABELS[@]}"; do
-    dataset_args+=(--labels "${labels_path}")
-done
+dataset_args=(
+    --output-dir "${DIGIT_DATASET_DIR}"
+    --synthetic-per-digit "${SYNTHETIC_PER_DIGIT}"
+    --labels "${AUDIT_LABELS}"
+)
 "${PYTHON_BIN}" "${ROOT_DIR}/tools/model_training/build_digit_dataset.py" "${dataset_args[@]}"
 
 train_args=(

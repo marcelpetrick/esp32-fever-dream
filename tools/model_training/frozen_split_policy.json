@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "train": [
+    "approved_29c_43h_20260625T185939Z",
+    "awb_auto",
+    "baseline_20260625T182331Z",
+    "bright_contrast",
+    "daylight_changed_29c_43h_20260625T191248Z",
+    "default",
+    "high_quality",
+    "live_mounted_29c_41h_20260625T195058Z",
+    "manual_bright",
+    "stability_20260625T183410Z",
+    "training_baseline_manual_20260625T183552Z"
+  ],
+  "validation": [
+    "live_upright_20260626T2309Z",
+    "serial_timed_fast_20260627T1205Z"
+  ],
+  "test": [
+    "http_300_aqs_20260626T2040Z"
+  ],
+  "notes": "Roles are frozen by capture session. Timed validation and HTTP test labels remain blocked until human review. Add a separate negative session before deployment."
+}
