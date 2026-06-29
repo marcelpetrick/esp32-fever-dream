@@ -63,6 +63,9 @@ def truthy(value: str) -> bool:
 
 def trusted_label(row: dict[str, str]) -> bool:
     """Reject model proposals unless a human explicitly approved them."""
+    reviewer = row.get("reviewer", "").strip().lower()
+    if reviewer.startswith("auto-") or reviewer in {"ollama", "model", "automatic"}:
+        return False
     review_status = row.get("review_status", "").strip().lower()
     if review_status:
         return review_status in {"approved", "corrected", "human"}

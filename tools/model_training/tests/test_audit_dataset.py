@@ -78,6 +78,13 @@ class TrustedLabelTest(unittest.TestCase):
     def test_proposal_schema_is_untrusted(self) -> None:
         self.assertFalse(trusted_label({"proposal_status": "accepted"}))
 
+    def test_auto_bulk_approval_is_untrusted(self) -> None:
+        self.assertFalse(
+            trusted_label(
+                {"review_status": "approved", "reviewer": "auto-bulk-approved"}
+            )
+        )
+
 
 class IntegrityAuditTest(unittest.TestCase):
     def environment_row(self, sample_id: str, split: str) -> dict[str, str]:

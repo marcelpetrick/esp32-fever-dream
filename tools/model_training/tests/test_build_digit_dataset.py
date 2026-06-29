@@ -32,6 +32,31 @@ class TrustedInputTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unreviewed automated labels"):
                 read_label_rows([path])
 
+    def test_rejects_auto_bulk_approved_rows(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "labels.csv"
+            with path.open("w", encoding="utf-8", newline="") as csv_file:
+                writer = csv.DictWriter(
+                    csv_file,
+                    fieldnames=[
+                        "sample_id",
+                        "review_status",
+                        "reviewer",
+                        "image_path",
+                    ],
+                )
+                writer.writeheader()
+                writer.writerow(
+                    {
+                        "sample_id": "capture_0001",
+                        "review_status": "approved",
+                        "reviewer": "auto-bulk-approved",
+                        "image_path": "capture_0001.jpg",
+                    }
+                )
+            with self.assertRaisesRegex(ValueError, "unreviewed automated labels"):
+                read_label_rows([path])
+
 
 class FirmwarePreprocessingParityTest(unittest.TestCase):
     def test_uses_firmware_luma_minmax_and_floor_sampling(self) -> None:

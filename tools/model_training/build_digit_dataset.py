@@ -130,8 +130,11 @@ def read_label_rows(paths: list[Path]) -> list[dict[str, str]]:
                 raise ValueError(f"{path} has no header")
             for row in reader:
                 review_status = row.get("review_status", "").strip().lower()
+                reviewer = row.get("reviewer", "").strip().lower()
                 is_untrusted = (
                     "proposal_status" in row
+                    or reviewer.startswith("auto-")
+                    or reviewer in {"ollama", "model", "automatic"}
                     or (review_status and review_status not in {"approved", "corrected", "human"})
                     or (not review_status and "ollama_ocr" in row.get("notes", "").lower())
                 )
