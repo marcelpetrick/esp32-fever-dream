@@ -14,7 +14,7 @@ inline constexpr uint16_t kTvocMaxRaw = 9999U;
 inline constexpr int16_t kTemperatureMinCentiC = -2000;
 inline constexpr int16_t kTemperatureMaxCentiC = 6000;
 inline constexpr uint8_t kHumidityMaxPercent = 100U;
-inline constexpr uint8_t kRecognitionMinConfidencePercent = 67U;
+inline constexpr uint8_t kRecognitionMinConfidencePercent = 30U;
 
 // Flash persistence: save the last N records to NVS every M measurement cycles.
 // At 10 s per cycle, kPersistenceIntervalCycles = 360 means one save per hour
