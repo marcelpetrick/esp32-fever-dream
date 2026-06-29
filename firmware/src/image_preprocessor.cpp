@@ -38,4 +38,26 @@ std::vector<uint8_t> Threshold(const std::vector<uint8_t>& grayscale, uint8_t th
     return binary;
 }
 
+bool NormalizeResizeNearest(const uint8_t* source, std::size_t source_width, std::size_t source_height,
+                            uint8_t* destination, std::size_t destination_width, std::size_t destination_height) {
+    if (source == nullptr || destination == nullptr || source_width == 0U || source_height == 0U ||
+        destination_width == 0U || destination_height == 0U) {
+        return false;
+    }
+    const std::size_t source_size = source_width * source_height;
+    const auto [minimum_it, maximum_it] = std::minmax_element(source, source + source_size);
+    const int minimum = static_cast<int>(*minimum_it);
+    const int range = std::max(1, static_cast<int>(*maximum_it) - minimum);
+    for (std::size_t y = 0; y < destination_height; ++y) {
+        const std::size_t source_y = (y * source_height) / destination_height;
+        for (std::size_t x = 0; x < destination_width; ++x) {
+            const std::size_t source_x = (x * source_width) / destination_width;
+            const int value = static_cast<int>(source[(source_y * source_width) + source_x]);
+            destination[(y * destination_width) + x] =
+                static_cast<uint8_t>(((value - minimum) * 255) / range);
+        }
+    }
+    return true;
+}
+
 }  // namespace fever

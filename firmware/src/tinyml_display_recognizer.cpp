@@ -10,6 +10,7 @@
 #include "digit_classifier_model.h"
 #include "esp_timer.h"
 #include "img_converters.h"
+#include "image_preprocessor.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
@@ -276,25 +277,21 @@ bool FillInput(TfLiteTensor* input, const std::vector<uint8_t>& rgb, std::size_t
         return false;
     }
 
-    uint8_t minimum = 255U;
-    uint8_t maximum = 0U;
+    std::vector<uint8_t> grayscale(static_cast<std::size_t>(box.width * box.height));
     for (int source_y = box.y; source_y < box.y + box.height; ++source_y) {
         for (int source_x = box.x; source_x < box.x + box.width; ++source_x) {
             const uint8_t gray = LumaAtCanonical(rgb, width, height, rotation, source_x, source_y);
-            minimum = std::min(minimum, gray);
-            maximum = std::max(maximum, gray);
+            grayscale[(static_cast<std::size_t>(source_y - box.y) * static_cast<std::size_t>(box.width)) +
+                      static_cast<std::size_t>(source_x - box.x)] = gray;
         }
     }
-    const int range = std::max(1, static_cast<int>(maximum) - static_cast<int>(minimum));
-
-    for (int y = 0; y < kDigitHeight; ++y) {
-        const int source_y = box.y + ((y * box.height) / kDigitHeight);
-        for (int x = 0; x < kDigitWidth; ++x) {
-            const int source_x = box.x + ((x * box.width) / kDigitWidth);
-            const uint8_t gray = LumaAtCanonical(rgb, width, height, rotation, source_x, source_y);
-            const int normalized = ((static_cast<int>(gray) - static_cast<int>(minimum)) * 255) / range;
-            input->data.int8[(y * kDigitWidth) + x] = static_cast<int8_t>(std::clamp(normalized, 0, 255) - 128);
-        }
+    std::array<uint8_t, static_cast<std::size_t>(kDigitWidth * kDigitHeight)> normalized{};
+    if (!NormalizeResizeNearest(grayscale.data(), static_cast<std::size_t>(box.width),
+                                static_cast<std::size_t>(box.height), normalized.data(), kDigitWidth, kDigitHeight)) {
+        return false;
+    }
+    for (std::size_t index = 0; index < normalized.size(); ++index) {
+        input->data.int8[index] = static_cast<int8_t>(static_cast<int>(normalized[index]) - 128);
     }
     return true;
 }

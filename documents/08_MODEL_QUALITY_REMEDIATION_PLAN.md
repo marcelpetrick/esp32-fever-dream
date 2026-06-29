@@ -136,7 +136,15 @@ For every unresolved gate:
 
 | Iteration | Gate | Baseline | Change | Result | Commit |
 | --- | --- | --- | --- | --- | --- |
-| 0 | Plan recorded | No consolidated remediation plan | Added this plan | Pending checks | Pending |
+| 0 | Plan recorded | No consolidated remediation plan | Added this plan | Passed documentation checks | `b9f0acf` |
+| 1 | Bounded proposals | Requests reached 1,802 seconds and error rows were skipped | Added structured bounded requests and atomic retryable proposals | Unit and smoke persistence tests pass | `7bc97dd` |
+| 2 | Trusted labels | Ollama rows were accepted as truth | Added review queues, provenance, anomaly flags, and training rejection | Four known bad labels flagged; 45 rows pending review | `a0fe992` |
+| 3 | Dataset integrity | Synthetic metrics and capture leakage inflated results | Added independent-batch, trust, coverage, and firmware preprocessing gates | Current corpus correctly blocked | `247ecee` |
+| 4 | Honest qualification | Mixed synthetic test reported 97.75% | Added real-only int8 validation, seed/weight sweep, and frozen-test controls | Smoke training passes; deployment remains blocked | `1980354` |
+
+Current blocking evidence is in `reports/model_deployment_gate.json`. It must
+remain blocked until reviewed independent validation/test data exists and the
+prototype firmware controls can be removed based on measured results.
 
 ## Fixed Assumptions
 

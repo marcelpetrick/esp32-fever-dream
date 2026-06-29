@@ -170,3 +170,11 @@ The deployed firmware currently has a mounted-prototype correction for the
 observed firmware-side humidity collapse of `41%` into nearby `1/2` classes.
 Remove that correction after adding firmware-side crop telemetry and enough real
 labels to validate humidity without the correction.
+
+## Deployment Gate
+
+Run `./scripts/verify_model_deployment.sh` before exporting or flashing a model.
+It requires frozen real-test digit metrics, complete-reading and negative-set
+metrics, a model below 150 KB, an 85% or higher firmware confidence threshold,
+and removal of the prototype correction. The checked-in gate report is expected
+to remain blocked until independent reviewed data qualifies a model.

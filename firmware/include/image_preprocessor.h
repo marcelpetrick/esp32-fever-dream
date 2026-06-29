@@ -36,5 +36,9 @@ struct Roi {
 [[nodiscard]] std::vector<uint8_t> CropGrayscale(const ImageView& image, const Roi& roi);
 /** Convert grayscale pixels to 0 or 255 using the given threshold. */
 [[nodiscard]] std::vector<uint8_t> Threshold(const std::vector<uint8_t>& grayscale, uint8_t threshold);
+/** Min/max normalize and floor-sample a compact grayscale image, matching TinyML input. */
+[[nodiscard]] bool NormalizeResizeNearest(const uint8_t* source, std::size_t source_width,
+                                          std::size_t source_height, uint8_t* destination,
+                                          std::size_t destination_width, std::size_t destination_height);
 
 }  // namespace fever

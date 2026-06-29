@@ -21,4 +21,13 @@ void TestImagePreprocessor() {
     REQUIRE(thresholded[1] == 0U);
     REQUIRE(thresholded[2] == 255U);
     REQUIRE(thresholded[3] == 255U);
+
+    const std::array<uint8_t, 4> resize_source = {0U, 76U, 150U, 255U};
+    std::array<uint8_t, 16> resized{};
+    REQUIRE(fever::NormalizeResizeNearest(resize_source.data(), 2U, 2U, resized.data(), 4U, 4U));
+    REQUIRE(resized[0] == 0U);
+    REQUIRE(resized[3] == 76U);
+    REQUIRE(resized[12] == 150U);
+    REQUIRE(resized[15] == 255U);
+    REQUIRE(!fever::NormalizeResizeNearest(nullptr, 2U, 2U, resized.data(), 4U, 4U));
 }
