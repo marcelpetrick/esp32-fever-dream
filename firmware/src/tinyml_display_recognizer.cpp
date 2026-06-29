@@ -9,8 +9,8 @@
 #include "app_config.h"
 #include "digit_classifier_model.h"
 #include "esp_timer.h"
-#include "img_converters.h"
 #include "image_preprocessor.h"
+#include "img_converters.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
@@ -323,9 +323,9 @@ uint32_t ElapsedMs(int64_t started_at_us) {
 
 template <std::size_t N>
 bool ClassifyDigits(tflite::MicroInterpreter& interpreter, TfLiteTensor* input, TfLiteTensor* output,
-                    const std::vector<uint8_t>& rgb, std::size_t width, std::size_t height,
-                    Rotation rotation, const BrightBounds& bounds, const std::array<RelativeBox, N>& boxes,
-                    std::array<uint8_t, N>* digits, uint8_t* min_confidence) {
+                    const std::vector<uint8_t>& rgb, std::size_t width, std::size_t height, Rotation rotation,
+                    const BrightBounds& bounds, const std::array<RelativeBox, N>& boxes, std::array<uint8_t, N>* digits,
+                    uint8_t* min_confidence) {
     for (std::size_t index = 0; index < boxes.size(); ++index) {
         if (!FillInput(input, rgb, width, height, rotation, ResolveBox(bounds, boxes[index]))) {
             return false;
@@ -381,8 +381,7 @@ CandidateReading ClassifyCandidate(tflite::MicroInterpreter& interpreter, TfLite
     const uint16_t co2_ppm = FourDigits(co2_digits);
     const uint16_t hcho_raw = ThreeFractionalDigits(hcho_digits);
     const uint16_t tvoc_raw = ThreeFractionalDigits(tvoc_digits);
-    int16_t temperature_centi_c =
-        static_cast<int16_t>(((temperature_digits[0] * 10U) + temperature_digits[1]) * 100U);
+    int16_t temperature_centi_c = static_cast<int16_t>(((temperature_digits[0] * 10U) + temperature_digits[1]) * 100U);
     uint8_t humidity_percent = static_cast<uint8_t>((humidity_digits[0] * 10U) + humidity_digits[1]);
 
     // Temporary mounted-prototype correction kept until the dynamic crop
@@ -403,7 +402,8 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame, PipelineP
         return RecognitionResult{false,
                                  {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
                                   kTemperatureUnavailable, kHumidityUnavailable},
-                                 ConfidencePercent{0U}, ElapsedMs(started_at_us),
+                                 ConfidencePercent{0U},
+                                 ElapsedMs(started_at_us),
                                  ReadingStatus::kImageInvalid,
                                  "expected_jpeg_frame"};
     }
@@ -416,8 +416,10 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame, PipelineP
         return RecognitionResult{false,
                                  {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
                                   kTemperatureUnavailable, kHumidityUnavailable},
-                                 ConfidencePercent{0U}, ElapsedMs(started_at_us),
-                                 ReadingStatus::kPreprocessFailed, "jpeg_decode_failed"};
+                                 ConfidencePercent{0U},
+                                 ElapsedMs(started_at_us),
+                                 ReadingStatus::kPreprocessFailed,
+                                 "jpeg_decode_failed"};
     }
 
     const tflite::Model* model = tflite::GetModel(generated::kDigitClassifierModel);
@@ -425,8 +427,10 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame, PipelineP
         return RecognitionResult{false,
                                  {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
                                   kTemperatureUnavailable, kHumidityUnavailable},
-                                 ConfidencePercent{0U}, ElapsedMs(started_at_us),
-                                 ReadingStatus::kRecognitionFailed, "model_schema_mismatch"};
+                                 ConfidencePercent{0U},
+                                 ElapsedMs(started_at_us),
+                                 ReadingStatus::kRecognitionFailed,
+                                 "model_schema_mismatch"};
     }
 
     tflite::MicroMutableOpResolver<8> resolver;
@@ -444,8 +448,10 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame, PipelineP
         return RecognitionResult{false,
                                  {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
                                   kTemperatureUnavailable, kHumidityUnavailable},
-                                 ConfidencePercent{0U}, ElapsedMs(started_at_us),
-                                 ReadingStatus::kRecognitionFailed, "tensor_allocation_failed"};
+                                 ConfidencePercent{0U},
+                                 ElapsedMs(started_at_us),
+                                 ReadingStatus::kRecognitionFailed,
+                                 "tensor_allocation_failed"};
     }
 
     TfLiteTensor* input = interpreter.input(0);
@@ -474,8 +480,10 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame, PipelineP
         return RecognitionResult{false,
                                  {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
                                   kTemperatureUnavailable, kHumidityUnavailable},
-                                 ConfidencePercent{0U}, ElapsedMs(started_at_us),
-                                 ReadingStatus::kPreprocessFailed, "digit_classification_failed"};
+                                 ConfidencePercent{0U},
+                                 ElapsedMs(started_at_us),
+                                 ReadingStatus::kPreprocessFailed,
+                                 "digit_classification_failed"};
     }
 
     if (best.min_confidence < config::kRecognitionMinConfidencePercent) {
@@ -484,7 +492,8 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame, PipelineP
                                   kTemperatureUnavailable, kHumidityUnavailable},
                                  ConfidencePercent{best.min_confidence},
                                  ElapsedMs(started_at_us),
-                                 ReadingStatus::kConfidenceTooLow, "tinyml_confidence_below_threshold"};
+                                 ReadingStatus::kConfidenceTooLow,
+                                 "tinyml_confidence_below_threshold"};
     }
     if (best.values.co2_ppm > config::kCo2MaxPpm || best.values.hcho_raw > config::kHchoMaxRaw ||
         best.values.tvoc_raw > config::kTvocMaxRaw || !IsPlausibleTemperature(best.values.temperature_centi_c) ||
@@ -494,12 +503,11 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame& frame, PipelineP
                                   kTemperatureUnavailable, kHumidityUnavailable},
                                  ConfidencePercent{best.min_confidence},
                                  ElapsedMs(started_at_us),
-                                 ReadingStatus::kValueOutOfRange, "recognized_value_out_of_range"};
+                                 ReadingStatus::kValueOutOfRange,
+                                 "recognized_value_out_of_range"};
     }
-    return RecognitionResult{true, best.values,
-                             ConfidencePercent{best.min_confidence},
-                             ElapsedMs(started_at_us),
-                             ReadingStatus::kOk, ""};
+    return RecognitionResult{
+        true, best.values, ConfidencePercent{best.min_confidence}, ElapsedMs(started_at_us), ReadingStatus::kOk, ""};
 }
 
 }  // namespace fever
@@ -510,8 +518,10 @@ RecognitionResult RecognizeDisplayWithTinyMl(const CameraFrame&, PipelineProgres
     return RecognitionResult{false,
                              {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
                               kTemperatureUnavailable, kHumidityUnavailable},
-                             ConfidencePercent{0U}, 0U,
-                             ReadingStatus::kRecognitionFailed, "tinyml_unavailable_on_host"};
+                             ConfidencePercent{0U},
+                             0U,
+                             ReadingStatus::kRecognitionFailed,
+                             "tinyml_unavailable_on_host"};
 }
 
 }  // namespace fever

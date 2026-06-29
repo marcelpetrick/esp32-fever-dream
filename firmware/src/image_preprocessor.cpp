@@ -53,8 +53,7 @@ bool NormalizeResizeNearest(const uint8_t* source, std::size_t source_width, std
         for (std::size_t x = 0; x < destination_width; ++x) {
             const std::size_t source_x = (x * source_width) / destination_width;
             const int value = static_cast<int>(source[(source_y * source_width) + source_x]);
-            destination[(y * destination_width) + x] =
-                static_cast<uint8_t>(((value - minimum) * 255) / range);
+            destination[(y * destination_width) + x] = static_cast<uint8_t>(((value - minimum) * 255) / range);
         }
     }
     return true;
