@@ -16,12 +16,11 @@ training loop.
 - Recognition interval: one automatic sample every 10 seconds after boot.
 - The TFLite model is an int8 digit classifier embedded as
   `firmware/generated/digit_classifier_model.h`.
-- The mounted prototype includes temporary corrections for observed
-  mounted-display misreads around `29C / 41%` and `27C / 41%`.
-- The mounted prototype confidence threshold is currently relaxed to 30%.
-- The model is useful for integration testing. It is not production-ready across
-  the current mounted setup, arbitrary camera shifts, display values, or bad
-  lighting.
+- Recognition minimum confidence: 67 % (readings below this are stored as
+  failures and excluded from the sensor-value charts).
+- The model reached 97% per-digit validation accuracy on the current training
+  corpus.  It is not yet qualified across arbitrary camera shifts, display
+  values, or challenging lighting.
 
 ## C4 Context
 
@@ -49,7 +48,7 @@ flowchart TB
         api["HTTP API\n(esp_http_server)\nhealth · capture · status · readings"]
         serial["USB serial fallback\n(UART)\ndataset capture without Wi-Fi"]
         web["Embedded dashboard\n(HTML/CSS/JS in flash)\nserved directly by ESP32"]
-        storage["Reading ring buffer\n(RAM)\nlast 1 440 records"]
+        storage["Reading ring buffer\n(PSRAM)\nlast 100 000 records"]
     end
 
     training["Training pipeline\n(Python / TensorFlow)\nbuilds int8 digit model header"]
@@ -123,7 +122,7 @@ sequenceDiagram
     end
     Browser->>ESP: GET /api/v1/current
     ESP-->>Browser: co2_ppm, hcho, tvoc, temperature_c, humidity_percent, status, confidence
-    Browser->>ESP: GET /api/v1/readings/latest?count=1440
+    Browser->>ESP: GET /api/v1/readings/latest?count=1000
     ESP-->>Browser: recent reading records
 ```
 
@@ -136,6 +135,6 @@ product. Production acceptance needs:
 - Firmware-side crop debug output or telemetry so host and device preprocessing
   can be compared byte-for-byte.
 - Removal of the temporary mounted-display corrections.
-- Restoration of a stricter recognition threshold after real validation.
+- Capture a proper held-out test batch and re-qualify the model above 90 % exact match.
 - Held-out real-frame validation across daylight, dim light, glare, and small
   camera shifts.

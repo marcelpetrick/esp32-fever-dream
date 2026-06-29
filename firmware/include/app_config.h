@@ -14,7 +14,7 @@ inline constexpr uint16_t kTvocMaxRaw = 9999U;
 inline constexpr int16_t kTemperatureMinCentiC = -2000;
 inline constexpr int16_t kTemperatureMaxCentiC = 6000;
 inline constexpr uint8_t kHumidityMaxPercent = 100U;
-inline constexpr uint8_t kRecognitionMinConfidencePercent = 30U;
+inline constexpr uint8_t kRecognitionMinConfidencePercent = 67U;
 
 inline constexpr uint16_t kRoiX = 40U;
 inline constexpr uint16_t kRoiY = 80U;
