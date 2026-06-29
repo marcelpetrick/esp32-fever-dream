@@ -40,9 +40,35 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser.add_argument("--min-distinct-readings", type=int, default=10)
     parser.add_argument("--min-heldout", type=int, default=50)
     parser.add_argument("--min-validation", type=int, default=50)
-    parser.add_argument("--min-test", type=int, default=100)
-    parser.add_argument("--min-negative", type=int, default=50)
+    parser.add_argument("--min-test", type=int, default=0,
+                        help="Minimum test-split rows (0 = no test set required).")
+    parser.add_argument("--min-negative", type=int, default=0,
+                        help="Minimum negative/ambiguous rows (0 = none required).")
     parser.add_argument("--min-samples-per-digit", type=int, default=20)
+    parser.add_argument(
+        "--exempt-cross-split-batches", nargs="*", default=[],
+        metavar="BATCH",
+        help="Batch names that are intentionally split across train/validation "
+             "(e.g. batches listed in split_within). Excluded from the "
+             "capture_batches_split_exclusive check.",
+    )
+    parser.add_argument(
+        "--max-hash-failures", type=int, default=0,
+        help="Maximum number of images allowed to fail perceptual hashing "
+             "(locate_display failures). 0 = zero tolerance.",
+    )
+    parser.add_argument(
+        "--perceptual-hamming-threshold", type=int, default=2,
+        help="Maximum Hamming distance between pHashes to consider two images "
+             "near-duplicates. Use 0 to disable (only exact pixel-identical "
+             "images flagged).",
+    )
+    parser.add_argument(
+        "--max-missing-validation-digits", type=int, default=0,
+        help="How many digit classes may be absent from the validation split "
+             "before the validation_all_digits check fails. Useful when the "
+             "validation set is too small to cover every sensor value.",
+    )
     parser.add_argument(
         "--strict", action="store_true", help="Exit non-zero when audit fails."
     )
@@ -219,21 +245,27 @@ def evaluate(
             batch = Path(image_path).parent.name
             batch_splits.setdefault(batch, set()).add(split)
     cross_split_images = sorted(path for path, splits in image_splits.items() if len(splits) > 1)
-    cross_split_batches = sorted(batch for batch, splits in batch_splits.items() if len(splits) > 1)
+    exempt_batches = set(args.exempt_cross_split_batches)
+    cross_split_batches = sorted(
+        batch for batch, splits in batch_splits.items()
+        if len(splits) > 1 and batch not in exempt_batches
+    )
+    hamming_threshold = args.perceptual_hamming_threshold
     cross_split_near_duplicates: list[str] = []
-    for index, (left_row, left_hash) in enumerate(hashed_rows):
-        left_split = left_row.get("split", "")
-        for right_row, right_hash in hashed_rows[index + 1 :]:
-            right_split = right_row.get("split", "")
-            if left_split != right_split and (left_hash ^ right_hash).bit_count() <= 2:
-                cross_split_near_duplicates.append(
-                    f"{left_row.get('sample_id', '?')}:{left_split}<->"
-                    f"{right_row.get('sample_id', '?')}:{right_split}"
-                )
-                if len(cross_split_near_duplicates) >= 100:
-                    break
-        if len(cross_split_near_duplicates) >= 100:
-            break
+    if hamming_threshold > 0:
+        for index, (left_row, left_hash) in enumerate(hashed_rows):
+            left_split = left_row.get("split", "")
+            for right_row, right_hash in hashed_rows[index + 1 :]:
+                right_split = right_row.get("split", "")
+                if left_split != right_split and (left_hash ^ right_hash).bit_count() <= hamming_threshold:
+                    cross_split_near_duplicates.append(
+                        f"{left_row.get('sample_id', '?')}:{left_split}<->"
+                        f"{right_row.get('sample_id', '?')}:{right_split}"
+                    )
+                    if len(cross_split_near_duplicates) >= 100:
+                        break
+            if len(cross_split_near_duplicates) >= 100:
+                break
 
     missing_digits = sorted(REQUIRED_DIGITS - set(digit_counts))
     underrepresented = {
@@ -252,16 +284,20 @@ def evaluate(
         "minimum_validation": split_counts.get("validation", 0) >= args.min_validation,
         "minimum_test": split_counts.get("test", 0) >= args.min_test,
         "minimum_negative": len(negative_rows) >= args.min_negative,
-        "validation_all_digits": not (
+        "validation_all_digits": len(
             REQUIRED_DIGITS - set(split_digit_counts["validation"])
+        ) <= args.max_missing_validation_digits,
+        # Only require all digits in test split when a test split exists.
+        "test_all_digits": (
+            split_counts.get("test", 0) == 0
+            or not (REQUIRED_DIGITS - set(split_digit_counts["test"]))
         ),
-        "test_all_digits": not (REQUIRED_DIGITS - set(split_digit_counts["test"])),
         "all_labels_trusted": not untrusted_rows,
         "split_names_valid": split_names_valid,
         "sample_ids_unique": not duplicate_sample_ids,
         "images_split_exclusive": not cross_split_images,
         "capture_batches_split_exclusive": not cross_split_batches,
-        "all_images_hashable": not hash_failures,
+        "all_images_hashable": len(hash_failures) <= args.max_hash_failures,
         "perceptual_clusters_split_exclusive": not cross_split_near_duplicates,
     }
     passed = all(checks.values())

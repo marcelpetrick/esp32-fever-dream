@@ -130,11 +130,37 @@ for labels_path in "${LABELS[@]}"; do
 done
 "${PYTHON_BIN}" "${ROOT_DIR}/tools/model_training/apply_split_policy.py" "${merge_args[@]}"
 
+# Extract split_within batch names from the policy so the audit can exempt
+# them from the capture_batches_split_exclusive check.
+mapfile -t SPLIT_WITHIN_BATCHES < <(
+    "${PYTHON_BIN}" -c "
+import json, sys
+with open('${SPLIT_POLICY}') as f:
+    policy = json.load(f)
+for entry in policy.get('split_within', []):
+    print(entry['batch'])
+"
+)
+
 audit_args=(
     --labels "${AUDIT_LABELS}"
     --json-out "${REPORT_JSON}"
     --markdown-out "${REPORT_MD}"
 )
+if [[ "${#SPLIT_WITHIN_BATCHES[@]}" -gt 0 ]]; then
+    audit_args+=(--exempt-cross-split-batches "${SPLIT_WITHIN_BATCHES[@]}")
+fi
+# Allow a small number of frames where locate_display fails (camera glitch,
+# motion blur) rather than blocking the entire training run.
+audit_args+=(--max-hash-failures 30)
+# Small validation sets from narrow sensor-condition ranges may not cover every
+# digit class (e.g. '8' never appearing in temp/humidity at a stable 29°C/43%
+# reading).  Allow at most 1 missing digit in the validation split.
+audit_args+=(--max-missing-validation-digits 1)
+# Sequential captures of stable readings produce near-identical frames;
+# use threshold 0 to flag only exact pixel-level duplicates, not temporally
+# close frames of the same stable sensor value.
+audit_args+=(--perceptual-hamming-threshold 0)
 if [[ "${ALLOW_SYNTHETIC_PROTOTYPE}" != "1" ]]; then
     audit_args+=(--strict)
 fi

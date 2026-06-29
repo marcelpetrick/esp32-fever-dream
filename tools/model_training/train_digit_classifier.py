@@ -99,12 +99,13 @@ def build_model(tf):
     model = tf.keras.Sequential(
         [
             tf.keras.layers.Input(shape=TARGET_SHAPE),
-            tf.keras.layers.Conv2D(8, 3, activation="relu", padding="same"),
-            tf.keras.layers.MaxPooling2D(),
             tf.keras.layers.Conv2D(16, 3, activation="relu", padding="same"),
             tf.keras.layers.MaxPooling2D(),
+            tf.keras.layers.Conv2D(32, 3, activation="relu", padding="same"),
+            tf.keras.layers.MaxPooling2D(),
             tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(32, activation="relu"),
+            tf.keras.layers.Dropout(0.3),
+            tf.keras.layers.Dense(64, activation="relu"),
             tf.keras.layers.Dense(len(CLASSES), activation="softmax"),
         ]
     )
@@ -205,7 +206,18 @@ def main(argv: Iterable[str] | None = None) -> int:
             raise ValueError("test must contain real crops only")
 
     model = build_model(tf)
-    sample_weight = np.where(train_is_real, args.real_weight, 1.0).astype(np.float32)
+
+    # Per-class inverse-frequency weights merged into sample weights so Keras
+    # doesn't receive both class_weight and sample_weight simultaneously.
+    # Digit '0' is 32% of crops (leading-zero CO2/HCHO/TVOC encoding), which
+    # without balancing biases the model towards predicting '0'.
+    class_counts = np.bincount(y_train, minlength=len(CLASSES)).astype(np.float32)
+    class_counts = np.where(class_counts == 0, 1.0, class_counts)
+    class_freq_weight = (class_counts.sum() / (len(CLASSES) * class_counts)).astype(np.float32)
+    sample_weight = (
+        np.where(train_is_real, args.real_weight, 1.0) * class_freq_weight[y_train]
+    ).astype(np.float32)
+
     history = model.fit(
         x_train,
         y_train,

@@ -1,12 +1,15 @@
 {
   "version": 1,
   "train": [
-    "approved_29c_43h_20260625T185939Z",
     "live_mounted_29c_41h_20260625T195058Z",
     "live_upright_20260626T2309Z"
   ],
-  "validation": [],
-  "test": [],
+  "validation": [
+    "approved_29c_43h_20260625T185939Z"
+  ],
+  "test": [
+    "live_surveillance_20260629T1003Z"
+  ],
   "split_within": [
     {
       "batch": "serial_timed_fast_20260627T1205Z",
@@ -14,5 +17,5 @@
       "validation": 0.2
     }
   ],
-  "notes": "training_baseline_manual and daylight_changed excluded: locate_display returns None for all images (colour-bar not detected at capture distance). serial_timed_fast split 80/20 by sample number so both visual styles appear in training. Test batch pending a dedicated capture session."
+  "notes": "Excluded batches — locate_display fails for all images (wrong capture distance/framing): training_baseline_manual_20260625T183552Z, daylight_changed_29c_43h_20260625T191248Z, baseline_20260625T182331Z, stability_20260625T183410Z. http_300_aqs_20260626T2040Z excluded: only 13/300 Ollama-valid labels. approved_29c_43h moved to validation bucket (covers missing digits '3' and '8' that serial_timed_fast 20% split misses). live_surveillance_20260629T1003Z moved to test: HTTP JPEG crops have different visual characteristics than USB serial captures — used as held-out cross-domain generalisation test."
 }

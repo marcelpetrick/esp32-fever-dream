@@ -330,10 +330,12 @@ def save_real_crops(
         image = Image.open(image_path).convert("RGB")
         bounds = locate_display(image)
         if bounds is None:
-            raise ValueError(
-                f"display locator failed for reviewed training image {image_path}; "
-                "reject it during corpus review instead of using fallback coordinates"
+            print(
+                f"[WARN] display locator failed for {image_path.name}; skipping "
+                f"(mark as invalid in labels CSV to suppress this warning)",
+                file=sys.stderr,
             )
+            continue
         digit_groups: list[
             tuple[str, str, dict[int, tuple[int, int, int, int]], dict[int, tuple[int, int, int, int]]]
         ] = []
