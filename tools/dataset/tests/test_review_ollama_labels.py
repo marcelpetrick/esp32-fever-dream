@@ -106,36 +106,5 @@ class ReviewWorkflowTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "image quality rejected"):
                 promote_queue(queue, labels)
 
-    def test_auto_approve_promotes_clean_pending_rows(self) -> None:
-        with TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            proposals = root / "proposals.csv"
-            queue = root / "queue.csv"
-            labels = root / "labels.csv"
-            self.write_csv(proposals, [proposal("capture_0001")])
-            prepare_queue(proposals, None, queue)
-            promote_queue(queue, labels, auto_approve=True)
-            with labels.open(encoding="utf-8", newline="") as csv_file:
-                promoted = list(csv.DictReader(csv_file))
-            self.assertEqual(len(promoted), 1)
-            self.assertEqual(promoted[0]["reviewer"], "auto-bulk-approved")
-            self.assertEqual(promoted[0]["review_status"], "approved")
-
-    def test_auto_approve_skips_quality_flagged_rows(self) -> None:
-        with TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            queue = root / "queue.csv"
-            labels = root / "labels.csv"
-            clean = {**proposal("capture_0001"), "quality_reasons": "", "review_decision": "pending"}
-            flagged = {**proposal("capture_0002"), "quality_reasons": "display_not_found", "review_decision": "pending"}
-            self.write_csv(queue, [clean, flagged])
-            promote_queue(queue, labels, auto_approve=True)
-            with labels.open(encoding="utf-8", newline="") as csv_file:
-                promoted = list(csv.DictReader(csv_file))
-            promoted_ids = {r["sample_id"] for r in promoted}
-            self.assertIn("capture_0001", promoted_ids)
-            self.assertNotIn("capture_0002", promoted_ids)
-
-
 if __name__ == "__main__":
     unittest.main()

@@ -12,6 +12,7 @@ from tools.dataset.ollama_label_batch import (
     parse_args,
     proposal_succeeded,
     query_ollama,
+    response_socket,
     validate_values,
     write_proposals_atomic,
 )
@@ -124,6 +125,10 @@ class ArgumentsTest(unittest.TestCase):
         args = parse_args(["--dataset-dir", ".", "--no-skip-duplicates"])
         self.assertFalse(args.skip_duplicates)
 
+    def test_limit_must_be_positive(self) -> None:
+        with self.assertRaises(SystemExit):
+            parse_args(["--dataset-dir", ".", "--limit", "0"])
+
 
 class ProposalPersistenceTest(unittest.TestCase):
     def _row(self, status: str, valid: str) -> dict[str, object]:
@@ -184,6 +189,43 @@ class _FakeConnection:
         pass
 
 
+class _FakeThinkingResponse:
+    status = 200
+    reason = "OK"
+
+    def __init__(self) -> None:
+        self.returned = False
+
+    def readline(self) -> bytes:
+        if self.returned:
+            return b""
+        self.returned = True
+        return b'{"response":"","thinking":"{\\"valid\\":true}","done":true}\n'
+
+
+class _FakeThinkingConnection(_FakeConnection):
+    def getresponse(self) -> _FakeThinkingResponse:
+        return _FakeThinkingResponse()
+
+
+class _TransferredSocket:
+    def __init__(self) -> None:
+        self.timeout = None
+
+    def settimeout(self, timeout) -> None:
+        self.timeout = timeout
+
+
+class _RawStream:
+    def __init__(self, sock) -> None:
+        self._sock = sock
+
+
+class _ResponseStream:
+    def __init__(self, sock) -> None:
+        self.raw = _RawStream(sock)
+
+
 class QueryOllamaTest(unittest.TestCase):
     def test_hard_deadline_and_bounded_structured_output(self) -> None:
         with (
@@ -209,6 +251,31 @@ class QueryOllamaTest(unittest.TestCase):
         body = _FakeConnection.last_body.decode()
         self.assertIn('"num_predict": 96', body)
         self.assertIn('"format": {', body)
+        self.assertIn('"think": false', body)
+
+    def test_uses_structured_thinking_fallback_from_qwen(self) -> None:
+        with (
+            mock.patch(
+                "tools.dataset.ollama_label_batch.http.client.HTTPConnection",
+                _FakeThinkingConnection,
+            ),
+            mock.patch(
+                "tools.dataset.ollama_label_batch.time.monotonic",
+                side_effect=[0.0, 0.1],
+            ),
+        ):
+            result = query_ollama(
+                "model", "image", "http://localhost/api/generate", "prompt", 10
+            )
+        self.assertEqual(result, '{"valid":true}')
+
+    def test_finds_socket_transferred_to_response(self) -> None:
+        sock = _TransferredSocket()
+        response = _FakeThinkingResponse()
+        response.fp = _ResponseStream(sock)
+        connection = _FakeConnection()
+        connection.sock = None
+        self.assertIs(response_socket(response, connection), sock)
 
 
 if __name__ == "__main__":

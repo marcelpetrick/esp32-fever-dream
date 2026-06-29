@@ -188,6 +188,11 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         help="Seconds to sleep between requests to avoid hammering Ollama (default: 1.0).",
     )
     parser.add_argument(
+        "--limit",
+        type=int,
+        help="Process at most this many pending frames (useful for smoke runs).",
+    )
+    parser.add_argument(
         "--train-fraction",
         type=float,
         default=0.80,
@@ -257,6 +262,8 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         parser.error("timeouts must be positive")
     if args.num_predict < 1:
         parser.error("--num-predict must be at least 1")
+    if args.limit is not None and args.limit < 1:
+        parser.error("--limit must be at least 1")
     return args
 
 
@@ -338,6 +345,15 @@ def encode_image(image_path: Path) -> str:
     return base64.b64encode(image_path.read_bytes()).decode()
 
 
+def response_socket(response: http.client.HTTPResponse, connection) -> object | None:
+    """Return the live response socket even after HTTPConnection releases it."""
+    if connection.sock is not None:
+        return connection.sock
+    stream = getattr(response, "fp", None)
+    raw = getattr(stream, "raw", None)
+    return getattr(raw, "_sock", None)
+
+
 def query_ollama(
     model: str,
     image_b64: str,
@@ -355,6 +371,7 @@ def query_ollama(
             "prompt": prompt,
             "images": [image_b64],
             "stream": True,
+            "think": False,
             "format": OUTPUT_SCHEMA,
             "options": {
                 "temperature": 0,
@@ -374,6 +391,7 @@ def query_ollama(
     if parsed_url.query:
         path += f"?{parsed_url.query}"
     response_text = ""
+    thinking_text = ""
     deadline = time.monotonic() + total_timeout
     try:
         connection.request("POST", path, body=payload, headers={"Content-Type": "application/json"})
@@ -384,8 +402,9 @@ def query_ollama(
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TimeoutError(f"Ollama request exceeded {total_timeout}s total deadline")
-            if connection.sock is not None:
-                connection.sock.settimeout(min(float(timeout), remaining))
+            live_socket = response_socket(response, connection)
+            if live_socket is not None:
+                live_socket.settimeout(min(float(timeout), remaining))
             raw_line = response.readline()
             if not raw_line:
                 break
@@ -394,13 +413,17 @@ def query_ollama(
                 continue
             chunk = json.loads(line)
             response_text += chunk.get("response", "")
+            thinking_text += chunk.get("thinking", "")
             if chunk.get("done"):
                 break
     except socket.timeout as exc:
         raise TimeoutError(f"Ollama request timed out: {exc}") from exc
     finally:
         connection.close()
-    return response_text
+    # Some Ollama/Qwen combinations stream structured output through the
+    # `thinking` field even with thinking disabled. Prefer normal response text
+    # but retain compatibility with that server behavior.
+    return response_text or thinking_text
 
 
 def extract_json(text: str) -> dict | None:
@@ -557,6 +580,8 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.shuffle:
         rng = random.Random(args.seed)
         rng.shuffle(to_process)
+    if args.limit is not None:
+        to_process = to_process[: args.limit]
     total = len(to_process)
     if total == 0:
         print("[INFO] nothing to process", flush=True)
