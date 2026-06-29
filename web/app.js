@@ -13,7 +13,8 @@
         { key: "hcho", label: "HCHO", unit: "", color: "#2e6f46", decimals: 3 },
         { key: "tvoc", label: "TVOC", unit: "", color: "#6f4fb5", decimals: 3 },
         { key: "temperature", label: "Temp", unit: "°C", color: "#1f6fb2", decimals: 1 },
-        { key: "humidity", label: "Humidity", unit: "%", color: "#9a6500", decimals: 0 }
+        { key: "humidity", label: "Humidity", unit: "%", color: "#9a6500", decimals: 0 },
+        { key: "confidencePct", label: "Confidence", unit: "%", color: "#6b7280", decimals: 0, showAll: true }
     ];
     var state = {
         status: null,
@@ -300,6 +301,7 @@
         var confidence = pick(raw, ["confidence", "quality", "score"]);
         var humidity = pick(raw, ["humidity_percent", "humidity", "rh_percent"]);
         var duration = pick(raw, ["recognition_duration_ms", "ocr_duration_ms", "duration_ms"]);
+        var confidenceNum = toNumberOrNull(confidence);
         return {
             timestampRaw: timestamp,
             timestamp: normalizeTimestamp(timestamp),
@@ -309,7 +311,8 @@
             temperature: toNumberOrNull(temperature),
             humidity: toNumberOrNull(humidity),
             status: String(pick(raw, ["status", "state"], "unknown") || "unknown"),
-            confidence: toNumberOrNull(confidence),
+            confidence: confidenceNum,
+            confidencePct: confidenceNum !== null ? normalizeConfidencePercent(confidenceNum) : null,
             recognitionDurationMs: toNumberOrNull(duration),
             source: pick(raw, ["source", "recognition_source"], ""),
             error: pick(raw, ["error", "message"], "")
@@ -318,7 +321,7 @@
 
     function hasAnyValue(reading) {
         return SERIES.some(function (series) {
-            return reading[series.key] !== null;
+            return !series.showAll && reading[series.key] !== null;
         });
     }
 
@@ -589,17 +592,20 @@
         var valid = state.readings.filter(function (reading) {
             return hasAnyValue(reading);
         });
+        var allWithConfidence = state.readings.filter(function (reading) {
+            return reading.confidencePct !== null;
+        });
         SERIES.forEach(function (series) {
             var canvas = document.getElementById("chart-" + series.key);
             if (canvas) {
-                drawMetricChart(canvas, valid, series);
+                drawMetricChart(canvas, series.showAll ? allWithConfidence : valid, series);
             }
         });
         if (!valid.length) {
             el.chartSummary.textContent = state.lastError ? "API unavailable" : "No valid samples";
             return;
         }
-        el.chartSummary.textContent = valid.length + " valid · five independent scales";
+        el.chartSummary.textContent = valid.length + " valid · six independent scales";
     }
 
     function ensureMetricCanvases() {
@@ -828,7 +834,7 @@
         var raw = state.status && pick(state.status, ["recognition_min_confidence_percent", "recognition_min_confidence"]);
         var value = toNumberOrNull(raw);
         if (value === null) {
-            return 60;
+            return 67;
         }
         return normalizeConfidencePercent(value);
     }
