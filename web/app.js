@@ -8,8 +8,9 @@
     };
     var STORAGE_KEY = "esp32-fever-dream-ui";
     var DEFAULT_MEASUREMENT_INTERVAL_SECONDS = 10;
-    var CHART_VISIBLE_POINTS = 200;
-    var CHART_PX_PER_POINT = 6;
+    var CHART_VISIBLE_POINTS = 30;
+    var CHART_PX_PER_POINT = 10;
+    var CHART_YAXIS_W = 58;
 
     var SERIES = [
         { key: "co2", label: "CO2", unit: "ppm", color: "#b84222", decimals: 0 },
@@ -604,9 +605,10 @@
             return reading.confidencePct !== null;
         });
         SERIES.forEach(function (series) {
-            var canvas = document.getElementById("chart-" + series.key);
-            if (canvas) {
-                drawMetricChart(canvas, series.showAll ? allWithConfidence : valid, series);
+            var dataCanvas = document.getElementById("chart-" + series.key);
+            var yCanvas = document.getElementById("yaxis-" + series.key);
+            if (dataCanvas && yCanvas) {
+                drawMetricChart(dataCanvas, yCanvas, series.showAll ? allWithConfidence : valid, series);
             }
         });
         if (!valid.length) {
@@ -622,97 +624,116 @@
                 return;
             }
             var card = document.createElement("article");
+            var yCanvas = document.createElement("canvas");
             var scroller = document.createElement("div");
-            var canvas = document.createElement("canvas");
+            var dataCanvas = document.createElement("canvas");
             card.className = "metric-chart";
+            yCanvas.id = "yaxis-" + series.key;
+            yCanvas.className = "chart-yaxis";
+            yCanvas.setAttribute("aria-hidden", "true");
             scroller.className = "chart-scroller";
-            canvas.id = "chart-" + series.key;
-            canvas.setAttribute("aria-label", series.label + " history chart");
-            scroller.appendChild(canvas);
+            dataCanvas.id = "chart-" + series.key;
+            dataCanvas.setAttribute("aria-label", series.label + " history chart");
+            scroller.appendChild(dataCanvas);
+            card.appendChild(yCanvas);
             card.appendChild(scroller);
             el.chartGrid.appendChild(card);
         });
     }
 
-    function drawMetricChart(canvas, readings, series) {
-        var ctx = canvas.getContext("2d");
+    function drawMetricChart(dataCanvas, yCanvas, readings, series) {
         var ratio = window.devicePixelRatio || 1;
-        var cssW = Math.max(CHART_VISIBLE_POINTS, readings.length) * CHART_PX_PER_POINT;
         var cssH = 220;
-        canvas.style.width = cssW + "px";
-        canvas.style.height = cssH + "px";
-        canvas.width = Math.round(cssW * ratio);
-        canvas.height = Math.round(cssH * ratio);
-        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        var cssW = Math.max(CHART_VISIBLE_POINTS, readings.length) * CHART_PX_PER_POINT;
+        var padding = { top: 30, right: 14, bottom: 30, left: 0 };
+        var plotH = Math.max(1, cssH - padding.top - padding.bottom);
 
-        var width = cssW;
-        var height = cssH;
         var styles = getComputedStyle(document.documentElement);
         var surface = styles.getPropertyValue("--surface-strong").trim();
         var text = styles.getPropertyValue("--text").trim();
         var muted = styles.getPropertyValue("--muted").trim();
         var line = styles.getPropertyValue("--line").trim();
 
-        ctx.clearRect(0, 0, width, height);
+        // --- Y-axis canvas (fixed, non-scrolling) ---
+        yCanvas.style.width = CHART_YAXIS_W + "px";
+        yCanvas.style.height = cssH + "px";
+        yCanvas.width = Math.round(CHART_YAXIS_W * ratio);
+        yCanvas.height = Math.round(cssH * ratio);
+        var yCtx = yCanvas.getContext("2d");
+        yCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        yCtx.clearRect(0, 0, CHART_YAXIS_W, cssH);
+        yCtx.fillStyle = surface;
+        yCtx.fillRect(0, 0, CHART_YAXIS_W, cssH);
+
+        // --- Data canvas (scrollable) ---
+        dataCanvas.style.width = cssW + "px";
+        dataCanvas.style.height = cssH + "px";
+        dataCanvas.width = Math.round(cssW * ratio);
+        dataCanvas.height = Math.round(cssH * ratio);
+        var ctx = dataCanvas.getContext("2d");
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        ctx.clearRect(0, 0, cssW, cssH);
         ctx.fillStyle = surface;
-        ctx.fillRect(0, 0, width, height);
+        ctx.fillRect(0, 0, cssW, cssH);
 
-        var values = readings.map(function (reading) {
-            return reading[series.key];
-        }).filter(function (value) {
-            return value !== null;
-        });
+        var plotW = Math.max(1, cssW - padding.left - padding.right);
 
-        var padding = { top: 30, right: 18, bottom: 30, left: 58 };
-        var plotW = Math.max(1, width - padding.left - padding.right);
-        var plotH = Math.max(1, height - padding.top - padding.bottom);
+        // Series label top-left of Y canvas
+        yCtx.fillStyle = text;
+        yCtx.font = "800 12px system-ui, sans-serif";
+        yCtx.textAlign = "right";
+        yCtx.fillText(series.label + (series.unit ? " " + series.unit : ""), CHART_YAXIS_W - 4, 18);
 
-        ctx.fillStyle = text;
-        ctx.font = "800 13px system-ui, sans-serif";
-        ctx.textAlign = "left";
-        ctx.fillText(series.label, padding.left, 18);
+        var values = readings.map(function (r) { return r[series.key]; }).filter(function (v) { return v !== null; });
 
         if (!values.length) {
-            ctx.fillStyle = muted;
-            ctx.font = "700 13px system-ui, sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText("No samples", width / 2, height / 2);
+            yCtx.fillStyle = muted;
+            yCtx.font = "11px system-ui, sans-serif";
+            yCtx.textAlign = "center";
+            yCtx.fillText("—", CHART_YAXIS_W / 2, cssH / 2);
             return;
         }
 
         var range = paddedRange(values);
-        drawMetricGrid(ctx, series, range, padding, plotW, plotH, line, muted);
+
+        // Draw Y-axis ticks and labels (into yCanvas)
+        yCtx.strokeStyle = line;
+        yCtx.lineWidth = 1;
+        yCtx.fillStyle = muted;
+        yCtx.font = "11px system-ui, sans-serif";
+        yCtx.textAlign = "right";
+        for (var tick = 0; tick <= 3; tick += 1) {
+            var frac = tick / 3;
+            var ty = padding.top + plotH * frac;
+            var val = range.max - (range.max - range.min) * frac;
+            // Tick mark at right edge of Y canvas
+            yCtx.beginPath();
+            yCtx.moveTo(CHART_YAXIS_W - 4, ty);
+            yCtx.lineTo(CHART_YAXIS_W, ty);
+            yCtx.stroke();
+            yCtx.fillText(formatSeriesValue(val, series), CHART_YAXIS_W - 6, ty + 4);
+            // Horizontal grid line across data canvas
+            ctx.strokeStyle = line;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding.left, ty);
+            ctx.lineTo(padding.left + plotW, ty);
+            ctx.stroke();
+        }
+
         drawMetricLine(ctx, readings, series, range, padding, plotW, plotH);
         drawMetricMarkers(ctx, readings, series, range, padding, plotW, plotH);
 
         ctx.fillStyle = muted;
         ctx.font = "11px system-ui, sans-serif";
         ctx.textAlign = "left";
-        ctx.fillText(sampleLabel(readings[0]), padding.left, height - 9);
+        ctx.fillText(sampleLabel(readings[0]), padding.left + 2, cssH - 9);
         ctx.textAlign = "right";
-        ctx.fillText(sampleLabel(readings[readings.length - 1]), width - padding.right, height - 9);
+        ctx.fillText(sampleLabel(readings[readings.length - 1]), cssW - padding.right, cssH - 9);
 
-        var scroller = canvas.parentNode;
+        var scroller = dataCanvas.parentNode;
         if (scroller) {
             scroller.scrollLeft = scroller.scrollWidth;
-        }
-    }
-
-    function drawMetricGrid(ctx, series, range, padding, plotW, plotH, line, muted) {
-        ctx.strokeStyle = line;
-        ctx.lineWidth = 1;
-        ctx.fillStyle = muted;
-        ctx.font = "11px system-ui, sans-serif";
-        ctx.textAlign = "right";
-        for (var tick = 0; tick <= 3; tick += 1) {
-            var ratio = tick / 3;
-            var y = padding.top + (plotH * ratio);
-            var value = range.max - ((range.max - range.min) * ratio);
-            ctx.beginPath();
-            ctx.moveTo(padding.left, y);
-            ctx.lineTo(padding.left + plotW, y);
-            ctx.stroke();
-            ctx.fillText(formatSeriesValue(value, series), padding.left - 8, y + 4);
         }
     }
 

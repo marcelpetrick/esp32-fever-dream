@@ -376,15 +376,27 @@ input {
 }
 
 .metric-chart {
+    display: flex;
     min-width: 0;
     border: 1px solid var(--line);
     border-radius: 6px;
     background: var(--surface-strong);
 }
 
+.chart-yaxis {
+    display: block;
+    flex-shrink: 0;
+    width: 58px;
+    height: 220px;
+    background: var(--surface-strong);
+    border-right: 1px solid var(--line);
+    border-radius: 6px 0 0 6px;
+}
+
 .chart-scroller {
+    flex: 1;
+    min-width: 0;
     overflow-x: auto;
-    width: 100%;
     scrollbar-width: thin;
     scrollbar-color: var(--line) transparent;
 }
