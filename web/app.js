@@ -8,6 +8,9 @@
     };
     var STORAGE_KEY = "esp32-fever-dream-ui";
     var DEFAULT_MEASUREMENT_INTERVAL_SECONDS = 10;
+    var CHART_VISIBLE_POINTS = 200;
+    var CHART_PX_PER_POINT = 6;
+
     var SERIES = [
         { key: "co2", label: "CO2", unit: "ppm", color: "#b84222", decimals: 0 },
         { key: "hcho", label: "HCHO", unit: "", color: "#2e6f46", decimals: 3 },
@@ -172,7 +175,12 @@
         }
         state.pipelineLoading = true;
         getJson(apiUrl(ENDPOINTS.status)).then(function (status) {
+            var prevCycle = state.status && toNumberOrNull(state.status.pipeline_cycle);
             state.status = newerPipelineStatus(state.status, status);
+            var newCycle = toNumberOrNull(state.status && state.status.pipeline_cycle);
+            if (prevCycle !== null && newCycle !== null && newCycle !== prevCycle) {
+                loadStreamFrame();
+            }
             renderHeader();
             renderPipeline();
         }).catch(function () {
@@ -614,27 +622,31 @@
                 return;
             }
             var card = document.createElement("article");
+            var scroller = document.createElement("div");
             var canvas = document.createElement("canvas");
             card.className = "metric-chart";
+            scroller.className = "chart-scroller";
             canvas.id = "chart-" + series.key;
-            canvas.width = 520;
-            canvas.height = 220;
             canvas.setAttribute("aria-label", series.label + " history chart");
-            card.appendChild(canvas);
+            scroller.appendChild(canvas);
+            card.appendChild(scroller);
             el.chartGrid.appendChild(card);
         });
     }
 
     function drawMetricChart(canvas, readings, series) {
         var ctx = canvas.getContext("2d");
-        var rect = canvas.getBoundingClientRect();
         var ratio = window.devicePixelRatio || 1;
-        canvas.width = Math.max(280, Math.floor(rect.width * ratio));
-        canvas.height = Math.max(180, Math.floor(rect.height * ratio));
+        var cssW = Math.max(CHART_VISIBLE_POINTS, readings.length) * CHART_PX_PER_POINT;
+        var cssH = 220;
+        canvas.style.width = cssW + "px";
+        canvas.style.height = cssH + "px";
+        canvas.width = Math.round(cssW * ratio);
+        canvas.height = Math.round(cssH * ratio);
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-        var width = rect.width;
-        var height = rect.height;
+        var width = cssW;
+        var height = cssH;
         var styles = getComputedStyle(document.documentElement);
         var surface = styles.getPropertyValue("--surface-strong").trim();
         var text = styles.getPropertyValue("--text").trim();
@@ -679,6 +691,11 @@
         ctx.fillText(sampleLabel(readings[0]), padding.left, height - 9);
         ctx.textAlign = "right";
         ctx.fillText(sampleLabel(readings[readings.length - 1]), width - padding.right, height - 9);
+
+        var scroller = canvas.parentNode;
+        if (scroller) {
+            scroller.scrollLeft = scroller.scrollWidth;
+        }
     }
 
     function drawMetricGrid(ctx, series, range, padding, plotW, plotH, line, muted) {
