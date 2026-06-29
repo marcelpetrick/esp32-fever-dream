@@ -16,6 +16,7 @@ idf_component_register(
         "../firmware/src/record_codec.cpp"
         "../firmware/src/reading_record.cpp"
         "../firmware/src/recognition.cpp"
+        "../firmware/src/flash_persistence.cpp"
         "../firmware/src/storage_ring_buffer.cpp"
         "../firmware/src/tinyml_display_recognizer.cpp"
         "../firmware/src/time_manager.cpp"

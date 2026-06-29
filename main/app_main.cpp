@@ -11,6 +11,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
+#include "flash_persistence.h"
 #include "measurement_controller.h"
 #include "nvs_flash.h"
 #include "serial_capture.h"
@@ -122,11 +123,16 @@ void MeasurementTask(void*) {
         *g_readings, *g_diagnostics, g_time, []() { return g_camera->Capture(); },
         [](const fever::CameraFrame& frame) { return fever::RecognizeDisplayWithTinyMl(frame, &RecordPipelineStage); });
 
+    uint32_t cycle = 0;
     while (true) {
         const uint32_t now_s = static_cast<uint32_t>(esp_timer_get_time() / 1000000LL);
         g_time.SetSynchronizedTime(now_s);
         const fever::ReadingRecord record = controller.RunOnce();
         (void)record;
+        ++cycle;
+        if (cycle % fever::config::kPersistenceIntervalCycles == 0) {
+            fever::FlashPersistence::Save(*g_readings);
+        }
         vTaskDelay(pdMS_TO_TICKS(fever::config::kMeasurementIntervalSeconds * 1000U));
     }
 }
@@ -154,6 +160,10 @@ extern "C" void app_main(void) {
 
     const bool wifi_ready = InitializeWifi();
     ESP_LOGI(kTag, "wifi startup: %s", wifi_ready ? "started" : "failed");
+
+    const std::size_t restored = fever::FlashPersistence::Restore(readings);
+    ESP_LOGI(kTag, "flash persistence: restored %zu records", restored);
+
     if (camera_ready && wifi_ready) {
         const bool debug_server_ready = fever::StartDebugCaptureServer(camera, readings, diagnostics);
         ESP_LOGI(kTag, "debug capture server: %s", debug_server_ready ? "started" : "failed");

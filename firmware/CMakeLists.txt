@@ -9,6 +9,7 @@ add_library(fever_core
     src/record_codec.cpp
     src/reading_record.cpp
     src/recognition.cpp
+    src/flash_persistence.cpp
     src/storage_ring_buffer.cpp
     src/time_manager.cpp
     src/version.cpp

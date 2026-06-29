@@ -16,6 +16,12 @@ inline constexpr int16_t kTemperatureMaxCentiC = 6000;
 inline constexpr uint8_t kHumidityMaxPercent = 100U;
 inline constexpr uint8_t kRecognitionMinConfidencePercent = 67U;
 
+// Flash persistence: save the last N records to NVS every M measurement cycles.
+// At 10 s per cycle, kPersistenceIntervalCycles = 360 means one save per hour
+// (~24 NVS page erases per day, well within flash endurance).
+inline constexpr std::size_t kPersistenceRecords = 300U;
+inline constexpr uint32_t kPersistenceIntervalCycles = 360U;
+
 inline constexpr uint16_t kRoiX = 40U;
 inline constexpr uint16_t kRoiY = 80U;
 inline constexpr uint16_t kRoiWidth = 240U;
