@@ -4,7 +4,7 @@
     var ENDPOINTS = {
         status: "/api/v1/status",
         current: "/api/v1/current",
-        latest: "/api/v1/readings/latest?count=1440"
+        latest: "/api/v1/readings/latest?count=720"
     };
     var STORAGE_KEY = "esp32-fever-dream-ui";
     var DEFAULT_MEASUREMENT_INTERVAL_SECONDS = 10;

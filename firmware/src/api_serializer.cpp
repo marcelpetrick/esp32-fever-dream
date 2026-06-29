@@ -119,7 +119,7 @@ std::string SerializeStatus(const DiagnosticsSnapshot& diagnostics, std::size_t 
     out << "{\"device\":\"esp32-cam-aqs\",\"display\":\"AQS\",\"firmware_version\":\"" << version::ProjectVersion()
         << "\",\"time_synced\":" << (diagnostics.time_synced ? "true" : "false")
         << ",\"storage_records\":" << storage_count << ",\"storage_capacity_records\":" << storage_capacity
-        << ",\"storage_backend\":\"ram_ring_buffer\""
+        << ",\"storage_backend\":\"psram_ring_buffer\""
         << ",\"storage_record_size_bytes\":" << storage_record_size_bytes
         << ",\"storage_used_bytes\":" << storage_used_bytes << ",\"storage_capacity_bytes\":" << storage_capacity_bytes
         << ",\"measurement_interval_seconds\":" << config::kMeasurementIntervalSeconds
