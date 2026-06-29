@@ -1,0 +1,5 @@
+sample_id,image_path,lighting_label,framesize,quality,brightness,contrast,saturation,aec,agc,awb,http_code,bytes,captured_at_utc,display_text,notes
+capture_0001,tools/dataset/captures/timed_upright_20260627T1115Z/capture_0001.jpg,timed_daylight_upright_20260627,vga,8,2,2,,0,0,0,200,24666,2026-06-27T09:13:26Z,,
+capture_0002,tools/dataset/captures/timed_upright_20260627T1115Z/capture_0002.jpg,timed_daylight_upright_20260627,vga,8,2,2,,0,0,0,200,18499,2026-06-27T09:13:32Z,,
+capture_0003,tools/dataset/captures/timed_upright_20260627T1115Z/capture_0003.jpg,timed_daylight_upright_20260627,vga,8,2,2,,0,0,0,200,18984,2026-06-27T09:13:42Z,,
+capture_0004,tools/dataset/captures/timed_upright_20260627T1115Z/capture_0004.jpg,timed_daylight_upright_20260627,vga,8,2,2,,0,0,0,200,24142,2026-06-27T09:14:15Z,,

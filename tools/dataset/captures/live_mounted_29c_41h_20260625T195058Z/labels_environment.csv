@@ -1,0 +1,21 @@
+sample_id,image_path,lighting_label,split,display_text,predicted_display_text,temperature_text,temperature_c,humidity_percent,valid,confidence,roi_brightness,roi_contrast,roi_sharpness,notes
+capture_01,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_01.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_02,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_02.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_03,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_03.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_04,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_04.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_05,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_05.jpg,mounted_post_flash_auto_exposure,validation,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_06,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_06.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_07,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_07.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_08,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_08.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_09,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_09.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_10,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_10.jpg,mounted_post_flash_auto_exposure,test,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_11,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_11.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_12,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_12.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_13,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_13.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_14,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_14.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_15,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_15.jpg,mounted_post_flash_auto_exposure,validation,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_16,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_16.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_17,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_17.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_18,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_18.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_19,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_19.jpg,mounted_post_flash_auto_exposure,train,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry
+capture_20,tools/dataset/captures/live_mounted_29c_41h_20260625T195058Z/capture_20.jpg,mounted_post_flash_auto_exposure,test,29C 41%,29C 41%,29C,29,41,true,1.0,,,,human_confirmed_live_mounted_geometry

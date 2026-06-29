@@ -1,0 +1,4 @@
+sample_id,image_path,temperature_c,humidity_percent,co2_ppm,hcho_raw,tvoc_raw,valid,split,notes
+capture_0001,tools/dataset/captures/live_upright_20260626T2309Z/capture_0001.jpg,27,43,444,13,36,true,train,live upright web capture manually read from image
+capture_0002,tools/dataset/captures/live_upright_20260626T2309Z/capture_0002.jpg,26,43,442,12,30,true,train,live upright web capture manually read from image
+capture_0003,tools/dataset/captures/live_upright_20260626T2309Z/capture_0003.jpg,26,42,446,17,41,true,train,live upright web capture manually read from image

@@ -1,0 +1,61 @@
+{
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "counts": {
+    "real_train": {
+      "0": 2208,
+      "1": 270,
+      "2": 745,
+      "3": 428,
+      "4": 701,
+      "5": 621,
+      "6": 422,
+      "7": 618,
+      "8": 412,
+      "9": 215
+    },
+    "real_validation": {
+      "0": 498,
+      "1": 98,
+      "2": 99,
+      "4": 295,
+      "5": 180,
+      "6": 20,
+      "7": 393,
+      "9": 1
+    },
+    "synthetic_train": {
+      "0": 250,
+      "1": 250,
+      "2": 250,
+      "3": 250,
+      "4": 250,
+      "5": 250,
+      "6": 250,
+      "7": 250,
+      "8": 250,
+      "9": 250
+    }
+  },
+  "generated_at_utc": "2026-06-29T06:55:00+00:00",
+  "limitations": [
+    "Synthetic crops are training augmentation only and are not validation evidence."
+  ],
+  "real_missing_digits": [],
+  "rows": 10724,
+  "target_size": [
+    24,
+    32
+  ],
+  "tool": "model_training.build_digit_dataset"
+}

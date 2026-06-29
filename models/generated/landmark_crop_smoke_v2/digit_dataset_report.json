@@ -1,0 +1,45 @@
+{
+  "classes": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9"
+  ],
+  "counts": {
+    "real_test": {
+      "1": 2,
+      "2": 2,
+      "4": 2,
+      "9": 2
+    },
+    "real_train": {
+      "1": 16,
+      "2": 16,
+      "4": 16,
+      "9": 16
+    },
+    "real_validation": {
+      "1": 2,
+      "2": 2,
+      "4": 2,
+      "9": 2
+    }
+  },
+  "generated_at_utc": "2026-06-26T20:58:08+00:00",
+  "limitations": [
+    "Only digits 2, 3, 4, and 9 are present in real captures so far.",
+    "Synthetic crops are for prototype training only and are not final validation evidence."
+  ],
+  "rows": 80,
+  "target_size": [
+    24,
+    32
+  ],
+  "tool": "model_training.build_digit_dataset"
+}

@@ -1,0 +1,9 @@
+sample_id,image_path,lighting_label,split,display_text,predicted_display_text,temperature_text,temperature_c,humidity_percent,valid,confidence,roi_brightness,roi_contrast,roi_sharpness,notes
+capture_0001,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0001.jpg,sweep_manual_bright,train,30C 44%,30C 44%,30C,30.00,44,true,0.0458,1.58,1.94,0.10,human_confirmed_fixed_layout_baseline;low_roi_quality
+capture_0002,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0002.jpg,sweep_manual_bright,train,30C 44%,30C 44%,30C,30.00,44,true,0.5163,19.13,38.85,3.37,human_confirmed_fixed_layout_baseline
+capture_0003,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0003.jpg,sweep_manual_bright,train,30C 44%,30C 44%,30C,30.00,44,true,0.5184,19.38,39.04,3.37,human_confirmed_fixed_layout_baseline
+capture_0004,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0004.jpg,sweep_manual_bright,train,30C 44%,30C 44%,30C,30.00,44,true,0.5145,19.03,38.75,3.34,human_confirmed_fixed_layout_baseline
+capture_0005,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0005.jpg,sweep_manual_bright,validation,30C 44%,30C 44%,30C,30.00,44,true,0.5173,19.25,38.93,3.37,human_confirmed_fixed_layout_baseline
+capture_0006,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0006.jpg,sweep_manual_bright,train,30C 44%,30C 44%,30C,30.00,44,true,0.5163,19.27,38.90,3.35,human_confirmed_fixed_layout_baseline
+capture_0007,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0007.jpg,sweep_manual_bright,train,30C 44%,30C 44%,30C,30.00,44,true,0.5150,19.30,38.78,3.34,human_confirmed_fixed_layout_baseline
+capture_0008,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0008.jpg,sweep_manual_bright,train,30C 44%,30C 44%,30C,30.00,44,true,0.5195,19.41,39.08,3.40,human_confirmed_fixed_layout_baseline

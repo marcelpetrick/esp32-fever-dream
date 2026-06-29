@@ -1,0 +1,53 @@
+{
+  "counts": {
+    "accepted": 501,
+    "rejected": 19,
+    "scanned": 520
+  },
+  "expected_dimensions": {
+    "height": 480,
+    "width": 640
+  },
+  "generated_at_utc": "2026-06-29T06:29:32+00:00",
+  "metrics": {
+    "brightness_mean": {
+      "max": 126.13031768798828,
+      "median": 37.19445610046387,
+      "min": 9.137496948242188,
+      "p10": 34.70715866088867,
+      "p90": 54.583244705200194
+    },
+    "contrast_stddev": {
+      "max": 114.35335540771484,
+      "median": 58.02357292175293,
+      "min": 10.482453346252441,
+      "p10": 54.95667037963867,
+      "p90": 68.15973434448243
+    },
+    "sharpness_laplacian_variance": {
+      "max": 24327.14453125,
+      "median": 437.87110900878906,
+      "min": 23.27186393737793,
+      "p10": 414.0104736328125,
+      "p90": 701.9564575195312
+    }
+  },
+  "rejection_reasons": {
+    "brightness_too_low": 1,
+    "contrast_too_low": 2,
+    "display_not_found": 18,
+    "sharpness_too_low": 1
+  },
+  "strict_threshold_met": true,
+  "thresholds": {
+    "brightness": {
+      "maximum": 240.0,
+      "minimum": 15.0
+    },
+    "maximum_near_duplicate_hash_distance": -1,
+    "minimum_accepted": 1,
+    "minimum_contrast": 18.0,
+    "minimum_sharpness": 30.0
+  },
+  "tool": "dataset.audit_capture_corpus"
+}

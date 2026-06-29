@@ -1,0 +1,9 @@
+sample_id,image_path,lighting_label,framesize,quality,brightness,contrast,saturation,aec,agc,awb,serial_status,bytes,width,height,captured_at_utc,display_text,notes
+capture_0001,tools/dataset/captures/serial_timed_20260627T1200Z/capture_0001.jpg,timed_daylight_usb,vga,8,2,2,0,0,0,0,failed,0,,,2026-06-27T09:57:21Z,,FEVER_CAPTURE_ERROR reason=capture_not_ready
+capture_0002,tools/dataset/captures/serial_timed_20260627T1200Z/capture_0002.jpg,timed_daylight_usb,vga,8,2,2,0,0,0,0,failed,0,,,2026-06-27T09:57:32Z,,FEVER_CAPTURE_ERROR reason=capture_not_ready
+capture_0003,tools/dataset/captures/serial_timed_20260627T1200Z/capture_0003.jpg,timed_daylight_usb,vga,8,2,2,0,0,0,0,ok,19643,640,480,2026-06-27T09:57:42Z,,serial_periodic_cache
+capture_0004,tools/dataset/captures/serial_timed_20260627T1200Z/capture_0004.jpg,timed_daylight_usb,vga,8,2,2,0,0,0,0,ok,25795,640,480,2026-06-27T09:57:54Z,,serial_periodic_cache
+capture_0005,tools/dataset/captures/serial_timed_20260627T1200Z/capture_0005.jpg,timed_daylight_usb,vga,8,2,2,0,0,0,0,ok,26000,640,480,2026-06-27T09:58:08Z,,serial_periodic_cache
+capture_0006,tools/dataset/captures/serial_timed_20260627T1200Z/capture_0006.jpg,timed_daylight_usb,vga,8,2,2,0,0,0,0,ok,25862,640,480,2026-06-27T09:58:21Z,,serial_periodic_cache
+capture_0007,tools/dataset/captures/serial_timed_20260627T1200Z/capture_0007.jpg,timed_daylight_usb,vga,8,2,2,0,0,0,0,ok,25823,640,480,2026-06-27T09:58:34Z,,serial_periodic_cache
+capture_0008,tools/dataset/captures/serial_timed_20260627T1200Z/capture_0008.jpg,timed_daylight_usb,vga,8,2,2,0,0,0,0,ok,25865,640,480,2026-06-27T09:58:48Z,,serial_periodic_cache

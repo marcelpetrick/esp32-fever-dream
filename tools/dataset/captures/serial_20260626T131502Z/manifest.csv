@@ -1,0 +1,2 @@
+sample_id,image_path,lighting_label,framesize,quality,brightness,contrast,saturation,aec,agc,awb,serial_status,bytes,width,height,captured_at_utc,display_text,notes
+capture_0001,tools/dataset/captures/serial_20260626T131502Z/capture_0001.jpg,usb_serial_uart_driver_test,vga,12,,,,,,,failed,0,,,2026-06-26T13:15:14Z,,timed out waiting for FEVER_JPEG_BEGIN

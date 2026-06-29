@@ -39,9 +39,13 @@ secrets.*
 dataset/raw/
 dataset/captures/
 tools/dataset/raw/
-tools/dataset/captures/
-models/generated/
-firmware/generated/
+# tools/dataset/captures/ -- tracked: raw JPEG captures + label CSVs are repo ground truth
+# models/generated/       -- tracked: trained model artifacts (tflite, keras, eval, digit crops)
+# firmware/generated/     -- tracked: deployed model header embedded in firmware
+
+# Scratch/intermediate files inside tracked directories
+tools/dataset/captures/**/*.tmp
+models/generated/**/*.tmp
 
 # Tool caches and logs
 .pipeline-cache

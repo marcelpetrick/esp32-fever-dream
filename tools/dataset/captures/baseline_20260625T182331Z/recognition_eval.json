@@ -1,0 +1,36 @@
+{
+  "acceptance": {
+    "full_reading_accuracy_met": true,
+    "full_reading_threshold": 0.98,
+    "invalid_or_ambiguous_rejected_explicitly": "not_evaluated",
+    "per_digit_accuracy_met": true,
+    "per_digit_threshold": 0.99
+  },
+  "dataset": {
+    "failure_class_counts": {},
+    "split_counts": {
+      "test": 10,
+      "train": 80,
+      "validation": 10
+    }
+  },
+  "generated_at_utc": "2026-06-25T18:28:18+00:00",
+  "mismatches": [],
+  "notes": [
+    "Phase 2 targets are 99% per-digit accuracy and 98% full-reading accuracy.",
+    "Invalid or ambiguous image rejection is a placeholder until image-level classifications are captured."
+  ],
+  "source_csv": "tools/dataset/captures/baseline_20260625T182331Z/labels_environment.csv",
+  "status": "evaluated",
+  "summary": {
+    "digit_positions_compared": 400,
+    "digit_positions_correct": 400,
+    "exact_matches": 100,
+    "full_reading_accuracy": 1.0,
+    "per_digit_accuracy": 1.0,
+    "predicted_rows": 100,
+    "total_rows": 100,
+    "unpredicted_rows": 0
+  },
+  "tool": "recognition_eval.display_text"
+}

@@ -1,0 +1,50 @@
+{
+  "generated_at_utc": "2026-06-25T18:34:36+00:00",
+  "labels_csv": "/home/mpetrick/repos/esp32-fever-dream/tools/dataset/captures/stability_20260625T183410Z/labels_environment.csv",
+  "limitations": [
+    "All baseline labels have the same temperature and humidity values.",
+    "The predicted_display_text column is a fixed-layout baseline predictor, not a trained OCR model.",
+    "A useful TinyML digit classifier still needs captures where the displayed values vary."
+  ],
+  "low_quality_samples": [
+    "capture_0002",
+    "capture_0003",
+    "capture_0004",
+    "capture_0005",
+    "capture_0006",
+    "capture_0007",
+    "capture_0008",
+    "capture_0009",
+    "capture_0010",
+    "capture_0011",
+    "capture_0012",
+    "capture_0013",
+    "capture_0014",
+    "capture_0015",
+    "capture_0016",
+    "capture_0017",
+    "capture_0018",
+    "capture_0019",
+    "capture_0020"
+  ],
+  "method": "human-confirmed fixed-layout baseline labels plus ROI quality metrics",
+  "source_dir": "/home/mpetrick/repos/esp32-fever-dream/tools/dataset/captures/stability_20260625T183410Z",
+  "summary": {
+    "humidity_percent": 44,
+    "low_quality_count": 19,
+    "median_confidence": 0.10581872402347682,
+    "median_roi_contrast": 6.274726029481561,
+    "median_roi_sharpness": 0.5306549600242193,
+    "minimum_confidence": 0.08885659187410663,
+    "p10_confidence": 0.09214874122138207,
+    "rows": 20,
+    "split_counts": {
+      "test": 2,
+      "train": 16,
+      "validation": 2
+    },
+    "temperature_c": 30.0,
+    "temperature_text": "30C"
+  },
+  "tool": "dataset.label_fixed_display_batch"
+}

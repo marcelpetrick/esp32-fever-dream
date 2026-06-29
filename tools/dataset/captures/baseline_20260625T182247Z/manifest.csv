@@ -1,0 +1,11 @@
+sample_id,image_path,lighting_label,framesize,quality,brightness,contrast,saturation,aec,agc,awb,http_code,bytes,captured_at_utc,display_text,notes
+capture_0001,tools/dataset/captures/baseline_20260625T182247Z/capture_0001.jpg,baseline_2p4_wifi,vga,10,,,,,,,200,21183,2026-06-25T18:22:47Z,,
+capture_0002,tools/dataset/captures/baseline_20260625T182247Z/capture_0002.jpg,baseline_2p4_wifi,vga,10,,,,,,,200,10242,2026-06-25T18:22:47Z,,
+capture_0003,tools/dataset/captures/baseline_20260625T182247Z/capture_0003.jpg,baseline_2p4_wifi,vga,10,,,,,,,200,13792,2026-06-25T18:22:48Z,,
+capture_0004,tools/dataset/captures/baseline_20260625T182247Z/capture_0004.jpg,baseline_2p4_wifi,vga,10,,,,,,,200,16898,2026-06-25T18:22:49Z,,
+capture_0005,tools/dataset/captures/baseline_20260625T182247Z/capture_0005.jpg,baseline_2p4_wifi,vga,10,,,,,,,200,14372,2026-06-25T18:22:50Z,,
+capture_0006,tools/dataset/captures/baseline_20260625T182247Z/capture_0006.jpg,baseline_2p4_wifi,vga,10,,,,,,,200,10021,2026-06-25T18:22:50Z,,
+capture_0007,tools/dataset/captures/baseline_20260625T182247Z/capture_0007.jpg,baseline_2p4_wifi,vga,10,,,,,,,200,17397,2026-06-25T18:22:51Z,,
+capture_0008,tools/dataset/captures/baseline_20260625T182247Z/capture_0008.jpg,baseline_2p4_wifi,vga,10,,,,,,,200,10443,2026-06-25T18:22:52Z,,
+capture_0009,tools/dataset/captures/baseline_20260625T182247Z/capture_0009.jpg,baseline_2p4_wifi,vga,10,,,,,,,200,17617,2026-06-25T18:22:53Z,,
+capture_0010,tools/dataset/captures/baseline_20260625T182247Z/capture_0010.jpg,baseline_2p4_wifi,vga,10,,,,,,,200,9927,2026-06-25T18:22:54Z,,

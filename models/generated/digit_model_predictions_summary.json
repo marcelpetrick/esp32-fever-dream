@@ -1,0 +1,9 @@
+{
+  "average_min_confidence_percent": 39.666666666666664,
+  "exact_accuracy": 0.0,
+  "exact_matches": 0,
+  "labeled_rows": 3,
+  "min_confidence_percent": 37,
+  "model": "models/generated/digit_classifier_int8.tflite",
+  "rows": 3
+}

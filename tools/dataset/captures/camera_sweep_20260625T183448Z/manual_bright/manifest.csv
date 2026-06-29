@@ -1,0 +1,9 @@
+sample_id,image_path,lighting_label,framesize,quality,brightness,contrast,saturation,aec,agc,awb,http_code,bytes,captured_at_utc,display_text,notes
+capture_0001,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0001.jpg,sweep_manual_bright,vga,12,2,2,,0,0,0,200,8241,2026-06-25T18:35:34Z,,
+capture_0002,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0002.jpg,sweep_manual_bright,vga,12,2,2,,0,0,0,200,18756,2026-06-25T18:35:35Z,,
+capture_0003,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0003.jpg,sweep_manual_bright,vga,12,2,2,,0,0,0,200,18733,2026-06-25T18:35:36Z,,
+capture_0004,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0004.jpg,sweep_manual_bright,vga,12,2,2,,0,0,0,200,18665,2026-06-25T18:35:37Z,,
+capture_0005,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0005.jpg,sweep_manual_bright,vga,12,2,2,,0,0,0,200,18687,2026-06-25T18:35:39Z,,
+capture_0006,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0006.jpg,sweep_manual_bright,vga,12,2,2,,0,0,0,200,18881,2026-06-25T18:35:40Z,,
+capture_0007,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0007.jpg,sweep_manual_bright,vga,12,2,2,,0,0,0,200,18626,2026-06-25T18:35:41Z,,
+capture_0008,tools/dataset/captures/camera_sweep_20260625T183448Z/manual_bright/capture_0008.jpg,sweep_manual_bright,vga,12,2,2,,0,0,0,200,18969,2026-06-25T18:35:42Z,,

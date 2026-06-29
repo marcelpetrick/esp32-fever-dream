@@ -1,0 +1,2 @@
+sample_id,image_path,lighting_label,framesize,quality,brightness,contrast,saturation,aec,agc,awb,serial_status,bytes,width,height,captured_at_utc,display_text,notes
+capture_0001,tools/dataset/captures/serial_20260626T131715Z/capture_0001.jpg,usb_serial_script_verified,vga,12,,,,,,,failed,0,,,2026-06-26T13:17:17Z,,Only base64 data is allowed

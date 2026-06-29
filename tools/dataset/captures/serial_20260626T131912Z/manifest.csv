@@ -1,0 +1,2 @@
+sample_id,image_path,lighting_label,framesize,quality,brightness,contrast,saturation,aec,agc,awb,serial_status,bytes,width,height,captured_at_utc,display_text,notes
+capture_0001,tools/dataset/captures/serial_20260626T131912Z/capture_0001.jpg,usb_serial_script_verified,vga,12,,,,,,,ok,9256,640,480,2026-06-26T13:19:14Z,,serial_capture
