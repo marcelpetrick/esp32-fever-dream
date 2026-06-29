@@ -108,12 +108,22 @@ bool CameraManager::Initialize() {
         sensor->set_vflip(sensor, 1);
         sensor->set_hmirror(sensor, 1);
         sensor->set_quality(sensor, 8);
+        // TODO: brightness and contrast are manual digital boosts applied on top
+        // of AEC/AGC.  On a bright backlit LCD they risk clipping digit segments
+        // to pure white.  Set both to 0 and let AEC alone control exposure, then
+        // re-capture a training batch under the new settings before retraining.
         sensor->set_brightness(sensor, 2);
         sensor->set_contrast(sensor, 2);
         sensor->set_saturation(sensor, 0);
         sensor->set_whitebal(sensor, 1);
         sensor->set_exposure_ctrl(sensor, 1);
         sensor->set_gain_ctrl(sensor, 1);
+        // TODO: the following OV2640 corrections improve image quality and are
+        // safe to enable.  Add before the next training capture session.
+        //   sensor->set_bpc(sensor, 1);      // black-pixel correction
+        //   sensor->set_wpc(sensor, 1);      // white-pixel correction
+        //   sensor->set_lenc(sensor, 1);     // lens vignetting correction
+        //   sensor->set_raw_gma(sensor, 1);  // raw gamma for mid-tone clarity
         ESP_LOGI(kTag, "detected sensor: %s PID=0x%x", SensorName(sensor), static_cast<unsigned int>(sensor->id.PID));
         InitializeAutofocusIfSupported(sensor);
     }

@@ -38,27 +38,29 @@ C4Context
     Rel(workstation, device, "Captures datasets over Wi-Fi or USB serial, flashes firmware, queries API")
 ```
 
-## C4 Containers
+## Containers
 
 ```mermaid
-C4Container
-    title Containers
-    Person(user, "Local user")
-    System_Boundary(system, "ESP32 Fever Dream") {
-        Container(firmware, "ESP32 firmware", "C++ / ESP-IDF", "Wi-Fi station, camera driver, measurement loop, TFLite Micro OCR")
-        Container(api, "HTTP API", "esp_http_server", "Health, capture, status, current reading, recent readings")
-        Container(serial, "USB serial fallback", "UART console", "No-Wi-Fi JPEG capture for datasets")
-        Container(web, "Embedded dashboard", "HTML/CSS/JS in firmware flash", "Browser UI served directly by the ESP32")
-        Container(storage, "Reading ring buffer", "RAM", "Last 1,440 records")
-    }
-    Container(training, "Training pipeline", "Python / TensorFlow", "Builds int8 digit model and firmware header")
+flowchart TB
+    user(["Local user"])
 
-    Rel(user, web, "Views")
-    Rel(web, api, "GET /api/v1/*")
-    Rel(firmware, storage, "Appends records")
-    Rel(api, storage, "Serializes records")
-    Rel(training, firmware, "Exports generated model header")
-    Rel(workstation, serial, "CAPTURE_JPEG command")
+    subgraph device["ESP32 Fever Dream"]
+        firmware["ESP32 firmware\n(C++ / ESP-IDF)\nWi-Fi, camera, measurement loop, TFLite OCR"]
+        api["HTTP API\n(esp_http_server)\nhealth · capture · status · readings"]
+        serial["USB serial fallback\n(UART)\ndataset capture without Wi-Fi"]
+        web["Embedded dashboard\n(HTML/CSS/JS in flash)\nserved directly by ESP32"]
+        storage["Reading ring buffer\n(RAM)\nlast 1 440 records"]
+    end
+
+    training["Training pipeline\n(Python / TensorFlow)\nbuilds int8 digit model header"]
+    workstation(["Developer workstation"])
+
+    user -->|views| web
+    web -->|"GET /api/v1/*"| api
+    firmware --> storage
+    api --> storage
+    training -->|"exports digit_classifier_model.h"| firmware
+    workstation -->|"CAPTURE_JPEG"| serial
 ```
 
 ## Firmware Components
