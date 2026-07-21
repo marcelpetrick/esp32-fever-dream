@@ -57,6 +57,32 @@ class TrustedInputTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unreviewed automated labels"):
                 read_label_rows([path])
 
+    def test_accepts_automated_consensus_rows(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "labels.csv"
+            image_path = Path(temp_dir) / "capture_0001.jpg"
+            image_path.write_bytes(b"not used by this test")
+            with path.open("w", encoding="utf-8", newline="") as csv_file:
+                writer = csv.DictWriter(
+                    csv_file,
+                    fieldnames=[
+                        "sample_id",
+                        "review_status",
+                        "reviewer",
+                        "image_path",
+                    ],
+                )
+                writer.writeheader()
+                writer.writerow(
+                    {
+                        "sample_id": "capture_0001",
+                        "review_status": "automated_consensus",
+                        "reviewer": "auto-consensus",
+                        "image_path": str(image_path),
+                    }
+                )
+            self.assertEqual(len(read_label_rows([path])), 1)
+
 
 class FirmwarePreprocessingParityTest(unittest.TestCase):
     def test_uses_firmware_luma_minmax_and_floor_sampling(self) -> None:

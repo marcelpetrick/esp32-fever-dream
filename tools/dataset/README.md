@@ -73,6 +73,25 @@ only consensus-approved rows to `labels_environment.csv`. Rows that do not
 meet consensus are excluded from training instead of being queued for manual
 review.
 
+Existing Qwen-only batches can be adjudicated with deterministic temporal,
+quality, and display-locator checks:
+
+```sh
+python3 tools/dataset/auto_consensus_labels.py \
+  --proposals tools/dataset/captures/<batch>/labels_ollama_proposals.csv \
+  --review-queue tools/dataset/captures/<batch>/labels_ollama_review_queue.csv \
+  --allow-single-model-temporal \
+  --require-locatable \
+  --output tools/dataset/captures/<batch>/labels_auto_consensus.csv \
+  --promoted-output tools/dataset/captures/<batch>/labels_environment_auto_consensus.csv \
+  --report-json reports/auto_consensus_<batch>.json \
+  --report-md reports/auto_consensus_<batch>.md
+```
+
+For stronger labels, run another local vision model to a separate proposal CSV
+and omit `--allow-single-model-temporal`; rows are then promoted only on exact
+multi-model agreement.
+
 Legacy review-queue tooling is still available:
 
 ```sh

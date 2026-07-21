@@ -88,11 +88,13 @@ def truthy(value: str) -> bool:
 
 
 def trusted_label(row: dict[str, str]) -> bool:
-    """Reject model proposals unless a human explicitly approved them."""
+    """Reject raw model proposals unless explicitly approved by a trusted path."""
     reviewer = row.get("reviewer", "").strip().lower()
+    review_status = row.get("review_status", "").strip().lower()
+    if review_status == "automated_consensus" and reviewer == "auto-consensus":
+        return True
     if reviewer.startswith("auto-") or reviewer in {"ollama", "model", "automatic"}:
         return False
-    review_status = row.get("review_status", "").strip().lower()
     if review_status:
         return review_status in {"approved", "corrected", "human"}
     if "proposal_status" in row:
@@ -245,12 +247,12 @@ def evaluate(
             batch = Path(image_path).parent.name
             batch_splits.setdefault(batch, set()).add(split)
     cross_split_images = sorted(path for path, splits in image_splits.items() if len(splits) > 1)
-    exempt_batches = set(args.exempt_cross_split_batches)
+    exempt_batches = set(getattr(args, "exempt_cross_split_batches", []))
     cross_split_batches = sorted(
         batch for batch, splits in batch_splits.items()
         if len(splits) > 1 and batch not in exempt_batches
     )
-    hamming_threshold = args.perceptual_hamming_threshold
+    hamming_threshold = getattr(args, "perceptual_hamming_threshold", 0)
     cross_split_near_duplicates: list[str] = []
     if hamming_threshold > 0:
         for index, (left_row, left_hash) in enumerate(hashed_rows):
@@ -274,6 +276,8 @@ def evaluate(
         if digit_counts.get(digit, 0) < args.min_samples_per_digit
     }
     heldout_count = split_counts.get("validation", 0) + split_counts.get("test", 0)
+    max_missing_validation_digits = getattr(args, "max_missing_validation_digits", 0)
+    max_hash_failures = getattr(args, "max_hash_failures", 0)
 
     checks = {
         "minimum_captures": len(usable_rows) >= args.min_captures,
@@ -286,7 +290,7 @@ def evaluate(
         "minimum_negative": len(negative_rows) >= args.min_negative,
         "validation_all_digits": len(
             REQUIRED_DIGITS - set(split_digit_counts["validation"])
-        ) <= args.max_missing_validation_digits,
+        ) <= max_missing_validation_digits,
         # Only require all digits in test split when a test split exists.
         "test_all_digits": (
             split_counts.get("test", 0) == 0
@@ -297,7 +301,7 @@ def evaluate(
         "sample_ids_unique": not duplicate_sample_ids,
         "images_split_exclusive": not cross_split_images,
         "capture_batches_split_exclusive": not cross_split_batches,
-        "all_images_hashable": len(hash_failures) <= args.max_hash_failures,
+        "all_images_hashable": len(hash_failures) <= max_hash_failures,
         "perceptual_clusters_split_exclusive": not cross_split_near_duplicates,
     }
     passed = all(checks.values())

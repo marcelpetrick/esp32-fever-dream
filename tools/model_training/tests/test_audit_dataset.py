@@ -85,6 +85,13 @@ class TrustedLabelTest(unittest.TestCase):
             )
         )
 
+    def test_automated_consensus_is_trusted(self) -> None:
+        self.assertTrue(
+            trusted_label(
+                {"review_status": "automated_consensus", "reviewer": "auto-consensus"}
+            )
+        )
+
 
 class IntegrityAuditTest(unittest.TestCase):
     def environment_row(self, sample_id: str, split: str) -> dict[str, str]:

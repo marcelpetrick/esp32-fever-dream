@@ -131,11 +131,15 @@ def read_label_rows(paths: list[Path]) -> list[dict[str, str]]:
             for row in reader:
                 review_status = row.get("review_status", "").strip().lower()
                 reviewer = row.get("reviewer", "").strip().lower()
+                consensus_label = review_status == "automated_consensus" and reviewer == "auto-consensus"
                 is_untrusted = (
                     "proposal_status" in row
-                    or reviewer.startswith("auto-")
+                    or (reviewer.startswith("auto-") and not consensus_label)
                     or reviewer in {"ollama", "model", "automatic"}
-                    or (review_status and review_status not in {"approved", "corrected", "human"})
+                    or (
+                        review_status
+                        and review_status not in {"approved", "corrected", "human", "automated_consensus"}
+                    )
                     or (not review_status and "ollama_ocr" in row.get("notes", "").lower())
                 )
                 if is_untrusted:

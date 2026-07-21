@@ -1,0 +1,15 @@
+{
+  "excluded_rows": 127,
+  "promoted_rows": 393,
+  "reason_counts": {
+    "no_valid_votes": 10,
+    "quality_rejected": 14,
+    "single_model_temporal_plausible": 393,
+    "temporal_anomaly": 103
+  },
+  "rows": 520,
+  "status_counts": {
+    "excluded": 127,
+    "promoted": 393
+  }
+}
