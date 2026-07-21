@@ -325,7 +325,7 @@ template <std::size_t N>
 bool ClassifyDigits(tflite::MicroInterpreter& interpreter, TfLiteTensor* input, TfLiteTensor* output,
                     const std::vector<uint8_t>& rgb, std::size_t width, std::size_t height, Rotation rotation,
                     const BrightBounds& bounds, const std::array<RelativeBox, N>& boxes, std::array<uint8_t, N>* digits,
-                    uint8_t* min_confidence) {
+                    std::array<uint8_t, N>* confidences) {
     for (std::size_t index = 0; index < boxes.size(); ++index) {
         if (!FillInput(input, rgb, width, height, rotation, ResolveBox(bounds, boxes[index]))) {
             return false;
@@ -335,13 +335,34 @@ bool ClassifyDigits(tflite::MicroInterpreter& interpreter, TfLiteTensor* input, 
             return false;
         }
         (*digits)[index] = digit;
-        *min_confidence = std::min(*min_confidence, confidence);
+        (*confidences)[index] = confidence;
     }
     return true;
 }
 
+template <std::size_t N>
+uint8_t MinConfidence(const std::array<uint8_t, N>& confidences, std::size_t active_count = N) {
+    uint8_t minimum = 100U;
+    for (std::size_t index = 0; index < std::min(active_count, N); ++index) {
+        minimum = std::min(minimum, confidences[index]);
+    }
+    return minimum;
+}
+
 uint16_t FourDigits(const std::array<uint8_t, 4>& digits) {
     return static_cast<uint16_t>((digits[0] * 1000U) + (digits[1] * 100U) + (digits[2] * 10U) + digits[3]);
+}
+
+uint16_t Co2Digits(const std::array<uint8_t, 4>& digits) {
+    const uint16_t four_digit = FourDigits(digits);
+    if (four_digit <= config::kCo2MaxPpm) {
+        return four_digit;
+    }
+    return static_cast<uint16_t>((digits[0] * 100U) + (digits[1] * 10U) + digits[2]);
+}
+
+std::size_t Co2ActiveDigitCount(const std::array<uint8_t, 4>& digits) {
+    return FourDigits(digits) <= config::kCo2MaxPpm ? 4U : 3U;
 }
 
 uint16_t ThreeFractionalDigits(const std::array<uint8_t, 4>& digits) {
@@ -360,25 +381,33 @@ CandidateReading ClassifyCandidate(tflite::MicroInterpreter& interpreter, TfLite
     std::array<uint8_t, 4> tvoc_digits{};
     std::array<uint8_t, 2> temperature_digits{};
     std::array<uint8_t, 2> humidity_digits{};
-    uint8_t min_confidence = 100U;
+    std::array<uint8_t, 4> co2_confidences{};
+    std::array<uint8_t, 4> hcho_confidences{};
+    std::array<uint8_t, 4> tvoc_confidences{};
+    std::array<uint8_t, 2> temperature_confidences{};
+    std::array<uint8_t, 2> humidity_confidences{};
 
     if (!ClassifyDigits(interpreter, input, output, rgb, width, height, rotation, bounds, kCo2DigitBoxes, &co2_digits,
-                        &min_confidence) ||
+                        &co2_confidences) ||
         !ClassifyDigits(interpreter, input, output, rgb, width, height, rotation, bounds, kHchoDigitBoxes, &hcho_digits,
-                        &min_confidence) ||
+                        &hcho_confidences) ||
         !ClassifyDigits(interpreter, input, output, rgb, width, height, rotation, bounds, kTvocDigitBoxes, &tvoc_digits,
-                        &min_confidence) ||
+                        &tvoc_confidences) ||
         !(rotation == Rotation::kRotate180
               ? ClassifyDigits(interpreter, input, output, rgb, width, height, rotation, bounds,
-                               kTemperatureDigitBoxesRotated, &temperature_digits, &min_confidence)
+                               kTemperatureDigitBoxesRotated, &temperature_digits, &temperature_confidences)
               : ClassifyDigits(interpreter, input, output, rgb, width, height, rotation, bounds,
-                               kTemperatureDigitBoxesUpright, &temperature_digits, &min_confidence)) ||
+                               kTemperatureDigitBoxesUpright, &temperature_digits, &temperature_confidences)) ||
         !ClassifyDigits(interpreter, input, output, rgb, width, height, rotation, bounds, kHumidityDigitBoxes,
-                        &humidity_digits, &min_confidence)) {
+                        &humidity_digits, &humidity_confidences)) {
         return {false, {0U, 0U, 0U, 0, 0U}, 0U};
     }
 
-    const uint16_t co2_ppm = FourDigits(co2_digits);
+    const uint16_t co2_ppm = Co2Digits(co2_digits);
+    const uint8_t min_confidence =
+        std::min({MinConfidence(co2_confidences, Co2ActiveDigitCount(co2_digits)), MinConfidence(hcho_confidences),
+                  MinConfidence(tvoc_confidences), MinConfidence(temperature_confidences),
+                  MinConfidence(humidity_confidences)});
     const uint16_t hcho_raw = ThreeFractionalDigits(hcho_digits);
     const uint16_t tvoc_raw = ThreeFractionalDigits(tvoc_digits);
     int16_t temperature_centi_c = static_cast<int16_t>(((temperature_digits[0] * 10U) + temperature_digits[1]) * 100U);

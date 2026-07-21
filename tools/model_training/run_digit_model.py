@@ -36,6 +36,8 @@ from tools.model_training.build_digit_dataset import (  # noqa: E402
     relative_temp_boxes,
 )
 
+CO2_MAX_PPM = 5000
+
 
 @dataclass(frozen=True)
 class ImageCase:
@@ -103,6 +105,28 @@ def optional_four_digit(row: dict[str, str], field: str) -> str | None:
     return f"{int(value):04d}"[-4:]
 
 
+def optional_co2_text(row: dict[str, str]) -> str | None:
+    value = row.get("co2_ppm", "").strip()
+    if not value:
+        return None
+    return str(int(value))[-4:]
+
+
+def assemble_co2_text(digits: str) -> str:
+    four_digit = int(digits)
+    if four_digit <= CO2_MAX_PPM:
+        return digits
+    return digits[:3]
+
+
+def active_co2_confidences(digits: str, confidences: list[int]) -> list[int]:
+    if len(digits) != len(confidences):
+        raise ValueError("CO2 digit and confidence counts differ")
+    if len(assemble_co2_text(digits)) == 3:
+        return confidences[:3]
+    return confidences
+
+
 def read_label_cases(paths: list[Path]) -> list[ImageCase]:
     cases: list[ImageCase] = []
     for path in paths:
@@ -126,7 +150,7 @@ def read_label_cases(paths: list[Path]) -> list[ImageCase]:
                         expected_humidity=(
                             f"{int(row['humidity_percent']):02d}"[-2:] if is_valid else None
                         ),
-                        expected_co2=optional_four_digit(row, "co2_ppm") if is_valid else None,
+                        expected_co2=optional_co2_text(row) if is_valid else None,
                         expected_hcho=optional_four_digit(row, "hcho_raw") if is_valid else None,
                         expected_tvoc=optional_four_digit(row, "tvoc_raw") if is_valid else None,
                         sample_id=row.get("sample_id") or image_path.stem,
@@ -248,7 +272,6 @@ def run_case(
     predicted: dict[str, str] = {}
     group_confidences: dict[str, list[int]] = {}
     all_digits: list[str] = []
-    all_confidences: list[int] = []
     for group_name, relative_boxes, fallback_boxes in digit_groups:
         group_digits: list[str] = []
         group_values: list[int] = []
@@ -264,7 +287,6 @@ def run_case(
         predicted[group_name] = "".join(group_digits)
         group_confidences[group_name] = group_values
         all_digits.extend(group_digits)
-        all_confidences.extend(group_values)
 
     expected = {
         "co2": case.expected_co2,
@@ -273,6 +295,9 @@ def run_case(
         "temperature": case.expected_temperature,
         "humidity": case.expected_humidity,
     }
+    group_confidences["co2"] = active_co2_confidences(predicted["co2"], group_confidences["co2"])
+    predicted["co2"] = assemble_co2_text(predicted["co2"])
+    all_confidences = [value for values in group_confidences.values() for value in values]
     comparable = {key: value for key, value in expected.items() if value is not None}
     min_confidence = min(all_confidences)
     accepted = min_confidence >= confidence_threshold

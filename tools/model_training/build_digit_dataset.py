@@ -317,6 +317,12 @@ def relative_temp_boxes(bounds: DisplayBounds | None) -> dict[int, tuple[int, in
     return RELATIVE_TEMP_DIGIT_BOXES_ROTATED
 
 
+def co2_digit_text(co2_ppm: str) -> str:
+    """CO2 digits are displayed left-aligned as either 3 or 4 visible digits."""
+    value = int(co2_ppm)
+    return str(value)[-4:]
+
+
 def save_real_crops(
     rows: list[dict[str, str]], output_dir: Path, args: argparse.Namespace
 ) -> list[CropRow]:
@@ -344,7 +350,7 @@ def save_real_crops(
             tuple[str, str, dict[int, tuple[int, int, int, int]], dict[int, tuple[int, int, int, int]]]
         ] = []
         if row.get("co2_ppm"):
-            digit_groups.append(("co2", f"{int(row['co2_ppm']):04d}"[-4:], RELATIVE_CO2_DIGIT_BOXES, CO2_DIGIT_BOXES))
+            digit_groups.append(("co2", co2_digit_text(row["co2_ppm"]), RELATIVE_CO2_DIGIT_BOXES, CO2_DIGIT_BOXES))
         if row.get("hcho_raw"):
             digit_groups.append(
                 ("hcho", f"{int(row['hcho_raw']):04d}"[-4:], RELATIVE_HCHO_DIGIT_BOXES, HCHO_DIGIT_BOXES)

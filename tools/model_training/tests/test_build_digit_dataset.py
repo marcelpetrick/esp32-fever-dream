@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import numpy as np
 from PIL import Image
 
-from tools.model_training.build_digit_dataset import normalize_crop, read_label_rows
+from tools.model_training.build_digit_dataset import co2_digit_text, normalize_crop, read_label_rows
 
 
 class TrustedInputTest(unittest.TestCase):
@@ -85,6 +85,10 @@ class TrustedInputTest(unittest.TestCase):
 
 
 class FirmwarePreprocessingParityTest(unittest.TestCase):
+    def test_co2_digits_are_left_aligned_not_zero_padded(self) -> None:
+        self.assertEqual(co2_digit_text("838"), "838")
+        self.assertEqual(co2_digit_text("1498"), "1498")
+
     def test_uses_firmware_luma_minmax_and_floor_sampling(self) -> None:
         pixels = np.asarray(
             [

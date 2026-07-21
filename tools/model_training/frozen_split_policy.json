@@ -2,7 +2,9 @@
   "version": 1,
   "train": [],
   "validation": [],
-  "test": [],
+  "test": [
+    "generated_negative_20260721"
+  ],
   "split_within": [
     {
       "batch": "serial_timed_fast_20260627T1205Z",
@@ -18,5 +20,5 @@
       "strategy": "interleaved"
     }
   ],
-  "notes": "Production AQS OCR training uses only current five-value AQS display captures. Legacy two-field temperature/humidity batches are excluded because their layout and crop geometry differ and they create misleading validation failures. Excluded legacy/low-quality batches: approved_29c_43h_20260625T185939Z, live_mounted_29c_41h_20260625T195058Z, training_baseline_manual_20260625T183552Z, daylight_changed_29c_43h_20260625T191248Z, baseline_20260625T182331Z, stability_20260625T183410Z. http_300_aqs_20260626T2040Z is excluded until more than 13/300 labels are reviewed. serial_timed_fast and live_surveillance are long sequential AQS runs and are split interleaved so train/validation/test all cover the recorded serial and HTTP-JPEG surveillance image conditions while exact images remain split-exclusive."
+  "notes": "Production AQS OCR training uses only current five-value AQS display captures. Legacy two-field temperature/humidity batches are excluded because their layout and crop geometry differ and they create misleading validation failures. Excluded legacy/low-quality batches: approved_29c_43h_20260625T185939Z, live_mounted_29c_41h_20260625T195058Z, training_baseline_manual_20260625T183552Z, daylight_changed_29c_43h_20260625T191248Z, baseline_20260625T182331Z, stability_20260625T183410Z. http_300_aqs_20260626T2040Z is excluded from training until stronger multi-model consensus exists, but its six current consensus rows are available for evaluation. serial_timed_fast and live_surveillance are long sequential AQS runs and are split interleaved so train/validation/test all cover the recorded serial and HTTP-JPEG surveillance image conditions while exact images remain split-exclusive. generated_negative_20260721 is a synthetic negative/ambiguous test-only batch used to measure false accepts."
 }

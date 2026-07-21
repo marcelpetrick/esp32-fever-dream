@@ -178,6 +178,26 @@ positive rejection rate, and false accepts from rows labeled `valid=false`.
 The default acceptance threshold is 85%. Images where the display locator fails
 are rejected instead of using fallback coordinates.
 
+CO2 is not zero-padded in the mounted AQS layout. Three-digit CO2 values are
+displayed left-aligned in the first three CO2 digit boxes. Host evaluation and
+firmware therefore use the first three CO2 boxes when the four-box prediction is
+outside the configured physical CO2 range, and they exclude the unused fourth
+box from the minimum confidence calculation.
+
+Generated negative/ambiguous frames can be added to the frozen test split to
+measure false accepts:
+
+```sh
+python3 tools/dataset/generate_negative_examples.py \
+  --labels tools/dataset/captures/<batch>/labels_environment_auto_consensus.csv \
+  --output-dir tools/dataset/captures/generated_negative_<date> \
+  --labels-out tools/dataset/captures/generated_negative_<date>/labels_environment.csv \
+  --count 120
+```
+
+Negative rows are `valid=false` and test-only. They must not contribute digit
+crops to training.
+
 ## Validation Rule
 
 The prototype is useful for wiring and timing tests. It is not production-ready

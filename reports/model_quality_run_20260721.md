@@ -1,69 +1,67 @@
-# Model Quality Run - 2026-07-21
+# Model quality run - 2026-07-21
 
-This records the autonomous labeling/OCR cleanup and training loop run on 2026-07-21.
+This run tested the automation-only remediation path after adding consensus
+labels, corrected CO2 semantics, and generated negative examples.
 
-## Data actions
+## Inputs
 
-- Removed 60 promoted `live_surveillance_20260629T1003Z` rows whose image paths could not be resolved by the training dataset builder.
-- Removed temporal-anomaly OCR labels before training:
-  - `serial_timed_fast_20260627T1205Z`: 103 rows removed, 393 retained.
-  - `live_surveillance_20260629T1003Z`: 503 rows removed, 922 retained.
-- Restricted the frozen policy to AQS-layout captures only. Legacy two-field captures remain useful for reference, but are excluded from this training policy because their layout does not match the current firmware recognizer.
-- Added interleaved split support so long capture runs can contribute train/validation/test examples without putting entire lighting/time domains into only one split.
-
-## Model/code actions
-
-- Corrected CO2 and humidity digit crop boxes in both host-side dataset generation and firmware inference.
-- Increased the digit classifier capacity while keeping the exported int8 model below the deployment size limit.
-- Added crop-level mistake mining:
-  - `reports/digit_crop_mistakes.csv`
-  - `reports/digit_crop_mistakes_summary.json`
-  - `reports/digit_mistake_sheets/*.png`
-
-## Training command
+- Positive labels:
+  - `tools/dataset/captures/serial_timed_fast_20260627T1205Z/labels_environment_auto_consensus.csv`
+  - `tools/dataset/captures/live_surveillance_20260629T1003Z/labels_environment_auto_consensus.csv`
+- Negative labels:
+  - `tools/dataset/captures/generated_negative_20260721/labels_environment.csv`
+- Training command:
 
 ```sh
 ./scripts/train_model.sh \
-  --labels tools/dataset/captures/serial_timed_fast_20260627T1205Z/labels_environment.csv \
-  --labels tools/dataset/captures/live_surveillance_20260629T1003Z/labels_environment.csv \
-  --epochs 60 \
-  --real-weight 3 \
-  --qualify-test \
-  --export-firmware-header
+  --labels tools/dataset/captures/serial_timed_fast_20260627T1205Z/labels_environment_auto_consensus.csv \
+  --labels tools/dataset/captures/live_surveillance_20260629T1003Z/labels_environment_auto_consensus.csv \
+  --labels tools/dataset/captures/generated_negative_20260721/labels_environment.csv \
+  --epochs 60 --real-weight 3 --qualify-test --export-firmware-header
 ```
 
-## Current metrics
+## Result
 
-- TFLite model size: 83,480 bytes.
-- Validation crop accuracy: 88.25%.
-- Test crop accuracy: 86.68%.
-- Worst test digit: digit `3` at 76.58%.
-- Full-frame digit accuracy: 89.82%.
-- Full-reading exact accuracy: 12.78%.
-- Positive rejection rate at current firmware threshold: 85.32%.
-- Negative examples: 0.
-- Deployment gate: blocked.
+The retrained model is not deployable and must not replace the checked-in model.
 
-## Blockers
+- TFLite size: 83,960 bytes.
+- Validation digit accuracy: 83.47%.
+- Frozen test digit accuracy: 82.05%.
+- Full-frame raw digit accuracy: 84.87%.
+- Full-reading exact accuracy after corrected CO2 confidence handling: 29.05%.
+- Positive rejection rate: 20.23%.
+- Generated negative rows: 120.
+- False accepts: 7.
+- False-accept rate: 5.83%.
 
-The current model is not production-ready. More training on the current labels alone is unlikely to close the gap.
+Field-level raw accuracy:
 
-Blocking issues:
+| Field | Accuracy |
+| --- | ---: |
+| CO2 | 34.75% |
+| HCHO | 66.92% |
+| TVOC | 66.39% |
+| Temperature | 98.17% |
+| Humidity | 87.07% |
 
-1. Bulk OCR labels are still not human-reviewed ground truth.
-2. Gas fields need explicit leading-blank handling. Treating blank leading digits as ordinary zeros creates misleading training examples and field-level failures.
-3. CO2/TVOC/HCHO exact field accuracy is still too low after crop-box correction.
-4. No negative/ambiguous frame set exists, so false-accept behavior cannot be measured.
-5. Firmware still uses the low prototype confidence threshold and the prototype humidity correction path.
+## Decision
 
-## Verifiable next loop
+Reject the trained artifacts. The source/data changes are still useful:
 
-1. Review and correct the highest-value rows from `reports/digit_crop_mistakes.csv`, prioritizing high-confidence errors and positions `co2_3`, `co2_2`, `tvoc_1`, `hcho_3`, `tvoc_2`, `hcho_2`, and `humidity_1`.
-2. Add a supported representation for leading blanks in gas fields. Verifiable criterion: blank-leading gas displays do not create digit-label rows for invisible digits, or a dedicated blank class/heuristic is evaluated separately.
-3. Add at least 100 negative/ambiguous frames. Verifiable criterion: `reports/model_deployment_gate.json` reports `negative_set_present: true` and a measured false-accept rate.
-4. Retrain and require:
-   - test digit accuracy >= 95%;
-   - worst-digit test accuracy >= 90%;
-   - full-reading exact accuracy >= 95%;
-   - model size <= 110 KB;
-   - deployment gate passes.
+- CO2 is now modeled as left-aligned 3- or 4-digit text instead of zero-padded
+  text.
+- Host and firmware confidence calculations now ignore the unused fourth CO2
+  box for 3-digit CO2 readings.
+- Generated negative examples are available for false-accept measurement.
+
+## Next loop
+
+Do not run more blind training on the current single-model consensus labels.
+Improve label quality first:
+
+1. Generate independent `llama3.2-vision:11b` proposals for the AQS batches.
+2. Optionally add `minicpm-v` proposals for disagreements.
+3. Regenerate consensus with exact multi-model agreement.
+4. Add automated crop-quality filters for pollutant rows.
+5. Retrain only when labels/crops change, then re-run
+   `./scripts/verify_model_deployment.sh`.
