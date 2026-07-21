@@ -198,7 +198,7 @@ def _auto_stamp(rows: list[dict[str, str]]) -> list[dict[str, str]]:
             row.get("review_decision", "").strip().lower() == "pending"
             and row.get("proposal_status") == "accepted"
         ):
-            row = {**row, "review_decision": "approve", "reviewer": "owner-bulk-approved", "reviewed_at_utc": now}
+            row = {**row, "review_decision": "approve", "reviewer": "auto-bulk-approved", "reviewed_at_utc": now}
         stamped.append(row)
     return stamped
 

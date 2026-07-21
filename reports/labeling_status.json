@@ -1,0 +1,341 @@
+{
+  "batches": [
+    {
+      "batch": "approved_29c_43h_20260625T185939Z",
+      "has_manifest": true,
+      "images": 41,
+      "labels": {
+        "reviewer_counts": {},
+        "reviewer_kind_counts": {
+          "missing": 40
+        },
+        "rows": 40,
+        "split_counts": {
+          "test": 4,
+          "train": 32,
+          "validation": 4
+        },
+        "trusted_like_valid_rows": 40,
+        "valid_rows": 40
+      }
+    },
+    {
+      "batch": "baseline_20260625T182247Z",
+      "has_manifest": true,
+      "images": 10
+    },
+    {
+      "batch": "baseline_20260625T182331Z",
+      "has_manifest": true,
+      "images": 104,
+      "labels": {
+        "reviewer_counts": {},
+        "reviewer_kind_counts": {
+          "missing": 100
+        },
+        "rows": 100,
+        "split_counts": {
+          "test": 10,
+          "train": 80,
+          "validation": 10
+        },
+        "trusted_like_valid_rows": 100,
+        "valid_rows": 100
+      }
+    },
+    {
+      "batch": "camera_sweep_20260625T182850Z",
+      "has_manifest": false,
+      "images": 0
+    },
+    {
+      "batch": "camera_sweep_20260625T182911Z",
+      "has_manifest": false,
+      "images": 0
+    },
+    {
+      "batch": "camera_sweep_20260625T183448Z",
+      "has_manifest": false,
+      "images": 0
+    },
+    {
+      "batch": "checks",
+      "has_manifest": false,
+      "images": 0
+    },
+    {
+      "batch": "daylight_changed_29c_43h_20260625T191248Z",
+      "has_manifest": true,
+      "images": 32,
+      "labels": {
+        "reviewer_counts": {},
+        "reviewer_kind_counts": {
+          "missing": 30
+        },
+        "rows": 30,
+        "split_counts": {
+          "test": 3,
+          "train": 24,
+          "validation": 3
+        },
+        "trusted_like_valid_rows": 30,
+        "valid_rows": 30
+      }
+    },
+    {
+      "batch": "http_300_aqs_20260626T2040Z",
+      "has_manifest": true,
+      "images": 306,
+      "labels": {
+        "reviewer_counts": {
+          "owner-bulk-approved": 13
+        },
+        "reviewer_kind_counts": {
+          "bulk": 13
+        },
+        "rows": 13,
+        "split_counts": {
+          "test": 1,
+          "train": 10,
+          "validation": 2
+        },
+        "trusted_like_valid_rows": 13,
+        "valid_rows": 13
+      },
+      "proposals": {
+        "rows": 300,
+        "status_counts": {
+          "accepted": 13,
+          "error": 1,
+          "rejected": 286
+        },
+        "valid_counts": {
+          "false": 287,
+          "true": 13
+        }
+      },
+      "review_queue": {
+        "decision_counts": {
+          "pending": 300
+        },
+        "reviewer_kind_counts": {
+          "missing": 300
+        },
+        "rows": 300
+      }
+    },
+    {
+      "batch": "live_mounted_29c_41h_20260625T195058Z",
+      "has_manifest": false,
+      "images": 23,
+      "labels": {
+        "reviewer_counts": {},
+        "reviewer_kind_counts": {
+          "missing": 20
+        },
+        "rows": 20,
+        "split_counts": {
+          "test": 2,
+          "train": 16,
+          "validation": 2
+        },
+        "trusted_like_valid_rows": 20,
+        "valid_rows": 20
+      }
+    },
+    {
+      "batch": "live_surveillance_20260629T1003Z",
+      "has_manifest": true,
+      "images": 1647,
+      "labels": {
+        "reviewer_counts": {
+          "owner-bulk-approved": 1485
+        },
+        "reviewer_kind_counts": {
+          "bulk": 1485
+        },
+        "rows": 1485,
+        "split_counts": {
+          "test": 323,
+          "train": 826,
+          "validation": 336
+        },
+        "trusted_like_valid_rows": 1485,
+        "valid_rows": 1485
+      },
+      "proposals": {
+        "rows": 1647,
+        "status_counts": {
+          "accepted": 1485,
+          "error": 1,
+          "rejected": 161
+        },
+        "valid_counts": {
+          "false": 162,
+          "true": 1485
+        }
+      },
+      "review_queue": {
+        "decision_counts": {
+          "pending": 1647
+        },
+        "reviewer_kind_counts": {
+          "missing": 1647
+        },
+        "rows": 1647
+      }
+    },
+    {
+      "batch": "live_upright_20260626T2309Z",
+      "has_manifest": false,
+      "images": 3,
+      "labels": {
+        "reviewer_counts": {},
+        "reviewer_kind_counts": {
+          "missing": 3
+        },
+        "rows": 3,
+        "split_counts": {
+          "train": 3
+        },
+        "trusted_like_valid_rows": 3,
+        "valid_rows": 3
+      }
+    },
+    {
+      "batch": "live_validation_20260625T193948Z",
+      "has_manifest": false,
+      "images": 2
+    },
+    {
+      "batch": "serial20260626",
+      "has_manifest": true,
+      "images": 93
+    },
+    {
+      "batch": "serial_20260626T130547Z",
+      "has_manifest": true,
+      "images": 0
+    },
+    {
+      "batch": "serial_20260626T130756Z",
+      "has_manifest": true,
+      "images": 0
+    },
+    {
+      "batch": "serial_20260626T131502Z",
+      "has_manifest": true,
+      "images": 0
+    },
+    {
+      "batch": "serial_20260626T131715Z",
+      "has_manifest": true,
+      "images": 0
+    },
+    {
+      "batch": "serial_20260626T131912Z",
+      "has_manifest": true,
+      "images": 1
+    },
+    {
+      "batch": "serial_timed_20260627T1200Z",
+      "has_manifest": true,
+      "images": 6
+    },
+    {
+      "batch": "serial_timed_fast_20260627T1205Z",
+      "has_manifest": true,
+      "images": 520,
+      "labels": {
+        "reviewer_counts": {
+          "owner-bulk-approved": 496
+        },
+        "reviewer_kind_counts": {
+          "bulk": 496
+        },
+        "rows": 496,
+        "split_counts": {
+          "test": 47,
+          "train": 399,
+          "validation": 50
+        },
+        "trusted_like_valid_rows": 496,
+        "valid_rows": 496
+      },
+      "proposals": {
+        "rows": 520,
+        "status_counts": {
+          "<blank>": 38,
+          "accepted": 473,
+          "error": 6,
+          "rejected": 3
+        },
+        "valid_counts": {
+          "false": 9,
+          "true": 511
+        }
+      },
+      "review_queue": {
+        "decision_counts": {
+          "pending": 520
+        },
+        "reviewer_kind_counts": {
+          "missing": 520
+        },
+        "rows": 520
+      }
+    },
+    {
+      "batch": "stability_20260625T183410Z",
+      "has_manifest": true,
+      "images": 21,
+      "labels": {
+        "reviewer_counts": {},
+        "reviewer_kind_counts": {
+          "missing": 20
+        },
+        "rows": 20,
+        "split_counts": {
+          "test": 2,
+          "train": 16,
+          "validation": 2
+        },
+        "trusted_like_valid_rows": 20,
+        "valid_rows": 20
+      }
+    },
+    {
+      "batch": "timed_upright_20260627T1115Z",
+      "has_manifest": true,
+      "images": 4
+    },
+    {
+      "batch": "training_baseline_manual_20260625T183552Z",
+      "has_manifest": true,
+      "images": 101,
+      "labels": {
+        "reviewer_counts": {},
+        "reviewer_kind_counts": {
+          "missing": 100
+        },
+        "rows": 100,
+        "split_counts": {
+          "test": 10,
+          "train": 80,
+          "validation": 10
+        },
+        "trusted_like_valid_rows": 100,
+        "valid_rows": 100
+      }
+    }
+  ],
+  "capture_root": "tools/dataset/captures",
+  "totals": {
+    "images": 2914,
+    "label_rows": 2307,
+    "pending_review_rows": 2467,
+    "proposal_rows": 2467,
+    "review_queue_rows": 2467,
+    "trusted_like_valid_label_rows": 2307
+  }
+}
