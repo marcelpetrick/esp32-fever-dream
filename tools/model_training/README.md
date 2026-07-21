@@ -4,23 +4,25 @@ This pipeline trains the fixed-display digit classifier used by the ESP32-CAM
 OCR prototype. It keeps real capture validation separate from synthetic
 augmentation.
 
-Training accepts human labels and explicitly approved/corrected Ollama review
-rows. It refuses proposal CSVs and unreviewed rows. Capture batches must belong
-to only one split; validation and test therefore require independent sessions.
-Synthetic crops are training-only.
+Training accepts trusted `labels_environment.csv` rows only. Raw Ollama proposal
+CSVs are refused. The current remediation plan replaces manual review with an
+automated consensus process: multiple local vision models plus temporal and
+plausibility checks must promote a row before it is trainable. Synthetic crops
+are training-only.
 
 `scripts/train_model.sh` applies
 `tools/model_training/frozen_split_policy.json` before auditing or cropping.
 Unknown capture sessions are rejected until their role is explicitly added to
-that policy. The current policy reserves the timed batch for validation and the
-independent 300-frame HTTP batch for test after human review.
+that policy. The current policy uses current five-value AQS captures only and
+splits long runs interleaved so train/validation/test all cover the recorded
+image conditions while exact images remain split-exclusive.
 
 ## Data Flow
 
 ```mermaid
 flowchart TD
     A[ESP32 debug capture endpoint] --> B[Raw JPEG capture batch]
-    B --> C[Human-confirmed labels_environment.csv]
+    B --> C[Consensus-promoted labels_environment.csv]
     C --> D[Real fixed ROI digit crops]
     D --> E[Digit crop manifest]
     F[Synthetic digit renderer] --> E
@@ -57,8 +59,13 @@ flowchart LR
 
 ## Setup
 
-The normal project Python is currently Python 3.14. TensorFlow wheels are not
-available for that interpreter on this host, so use the dedicated ML venv:
+The host has Python 3.14, but TensorFlow 2.21.0 does not publish Python 3.14
+wheels. The dedicated ML venv therefore uses the newest supported interpreter
+available here, Python 3.13.14, with exact package pins:
+
+- `tensorflow==2.21.0`
+- `numpy==2.5.1`
+- `pillow==12.3.0`
 
 ```sh
 ./scripts/setup_ml_env.sh
@@ -84,7 +91,8 @@ Capture a small batch when the display value or lighting changes:
   --agc 0
 ```
 
-After visually checking the contact sheet, label the batch:
+Legacy fixed-value batches can be labeled when the whole display is known to
+show one constant reading:
 
 ```sh
 python3 tools/dataset/label_fixed_display_batch.py \
@@ -94,11 +102,15 @@ python3 tools/dataset/label_fixed_display_batch.py \
   --temperature-unit C
 ```
 
+For current AQS data, do not label by hand. Use the automated Ollama consensus
+pipeline described in `plan210260721.md`; only consensus-promoted rows should
+enter `labels_environment.csv`.
+
 ## Train Prototype
 
-For the currently mounted prototype, the useful real batch is the
-post-flash mounted geometry batch labeled `29C 41%`. To reproduce the deployed
-prototype model, run:
+This path is legacy and kept only for reproducing older two-field prototype
+models. Current five-value AQS training should use the frozen AQS split policy
+and consensus-promoted labels.
 
 ```sh
 ./scripts/train_model.sh \

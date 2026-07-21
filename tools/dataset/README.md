@@ -54,8 +54,8 @@ unless the displayed values vary across a held-out validation set.
 
 ## Ollama label proposals
 
-Vision-model OCR is an untrusted first pass. It writes
-`labels_ollama_proposals.csv`, never training ground truth:
+Vision-model OCR writes `labels_ollama_proposals.csv`. A single model proposal
+is not training ground truth:
 
 ```sh
 python3 tools/dataset/ollama_label_batch.py \
@@ -65,11 +65,15 @@ python3 tools/dataset/ollama_label_batch.py \
 
 Requests use structured output, a bounded token count, and a hard total
 deadline. Successful proposals are retained on resume while rejected and error
-rows are retried. Do not pass this proposal CSV to the training pipeline;
-promote only human-reviewed values to `labels_environment.csv`.
+rows are retried. Do not pass this proposal CSV to the training pipeline.
 
-Prepare a review queue, edit its decision/correction columns, and promote the
-approved rows:
+The current remediation path is automation-only: produce proposals from at
+least two local vision models, run temporal/plausibility checks, then promote
+only consensus-approved rows to `labels_environment.csv`. Rows that do not
+meet consensus are excluded from training instead of being queued for manual
+review.
+
+Legacy review-queue tooling is still available:
 
 ```sh
 python3 tools/dataset/review_ollama_labels.py prepare \
@@ -84,7 +88,7 @@ python3 tools/dataset/review_ollama_labels.py promote \
 
 `review_decision` must be `approve`, `correct`, or `reject`. Approved/corrected
 rows require `reviewer` and an ISO-8601 `reviewed_at_utc`. Training refuses
-unreviewed Ollama rows.
+raw Ollama proposal rows.
 
 The best first-pass camera settings measured on the mounted setup were:
 

@@ -1,0 +1,114 @@
+{
+  "dependencies": [
+    {
+      "current": "2.1.7",
+      "latest": "2.1.7",
+      "name": "espressif/esp32-camera",
+      "note": "",
+      "source": "ESP Component Registry",
+      "status": "current"
+    },
+    {
+      "current": "1.3.7",
+      "latest": "1.3.7",
+      "name": "espressif/esp-tflite-micro",
+      "note": "",
+      "source": "ESP Component Registry",
+      "status": "current"
+    },
+    {
+      "current": "1.2.4",
+      "latest": "1.2.4",
+      "name": "espressif/esp-nn",
+      "note": "",
+      "source": "ESP Component Registry",
+      "status": "current"
+    },
+    {
+      "current": "1.3.1",
+      "latest": "1.3.1",
+      "name": "espressif/esp_jpeg",
+      "note": "",
+      "source": "ESP Component Registry",
+      "status": "current"
+    },
+    {
+      "current": "6.0.1",
+      "latest": "6.0.1",
+      "name": "idf",
+      "note": "IDF lock version",
+      "source": "dependencies.lock",
+      "status": "current"
+    },
+    {
+      "current": "2.21.0",
+      "latest": "2.21.0",
+      "name": "tensorflow",
+      "note": "setup constraint: tensorflow==2.21.0",
+      "source": "PyPI",
+      "status": "current"
+    },
+    {
+      "current": "2.5.1",
+      "latest": "2.5.1",
+      "name": "numpy",
+      "note": "setup constraint: numpy==2.5.1",
+      "source": "PyPI",
+      "status": "current"
+    },
+    {
+      "current": "12.3.0",
+      "latest": "12.3.0",
+      "name": "pillow",
+      "note": "setup constraint: pillow==12.3.0",
+      "source": "PyPI",
+      "status": "current"
+    }
+  ],
+  "ollama": {
+    "available": true,
+    "error": null,
+    "models": [
+      {
+        "id": "2a654d98e6fb",
+        "name": "qwen3.5:4b",
+        "size": "3.4"
+      },
+      {
+        "id": "32eb33b786c2",
+        "name": "qwen3.5:4b-ctx54k",
+        "size": "3.4"
+      },
+      {
+        "id": "6f2f9757ae97",
+        "name": "llama3.2-vision:11b",
+        "size": "7.8"
+      },
+      {
+        "id": "c92bfad01205",
+        "name": "minicpm-v:latest",
+        "size": "5.5"
+      },
+      {
+        "id": "55fc3abd3867",
+        "name": "moondream:latest",
+        "size": "1.7"
+      },
+      {
+        "id": "1343d82ebee3",
+        "name": "qwen3-vl:4b",
+        "size": "3.3"
+      },
+      {
+        "id": "0c8faadc50c2",
+        "name": "qwen3.5:4b-ctx32k",
+        "size": "3.4"
+      }
+    ],
+    "version": "ollama version is 0.31.2"
+  },
+  "python": {
+    "executable": "/home/mpetrick/repos/esp32-fever-dream/.venv-ml/bin/python",
+    "version": "3.13.14"
+  }
+}
