@@ -1,0 +1,16 @@
+{
+  "excluded_rows": 508,
+  "promoted_rows": 12,
+  "reason_counts": {
+    "insufficient_model_consensus": 384,
+    "multi_model_exact_consensus": 12,
+    "no_valid_votes": 4,
+    "quality_rejected": 17,
+    "temporal_anomaly": 103
+  },
+  "rows": 520,
+  "status_counts": {
+    "excluded": 508,
+    "promoted": 12
+  }
+}

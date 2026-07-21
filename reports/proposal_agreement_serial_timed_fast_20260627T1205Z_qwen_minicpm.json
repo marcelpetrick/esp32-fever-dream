@@ -1,0 +1,55 @@
+{
+  "all_fields_exact": 16,
+  "all_fields_exact_rate": 0.034782608695652174,
+  "both_accepted_rows": 460,
+  "common_rows": 520,
+  "fields": {
+    "co2_ppm": {
+      "exact": 460,
+      "exact_rate": 1.0,
+      "median_abs_delta": 0,
+      "total": 460,
+      "within_1": 460,
+      "within_10": 460,
+      "within_5": 460
+    },
+    "hcho_raw": {
+      "exact": 51,
+      "exact_rate": 0.1108695652173913,
+      "median_abs_delta": 17,
+      "total": 460,
+      "within_1": 63,
+      "within_10": 121,
+      "within_5": 86
+    },
+    "humidity_percent": {
+      "exact": 456,
+      "exact_rate": 0.991304347826087,
+      "median_abs_delta": 0,
+      "total": 460,
+      "within_1": 456,
+      "within_10": 459,
+      "within_5": 459
+    },
+    "temperature_c": {
+      "exact": 459,
+      "exact_rate": 0.9978260869565218,
+      "median_abs_delta": 0,
+      "total": 460,
+      "within_1": 459,
+      "within_10": 459,
+      "within_5": 459
+    },
+    "tvoc_raw": {
+      "exact": 63,
+      "exact_rate": 0.13695652173913042,
+      "median_abs_delta": 11,
+      "total": 460,
+      "within_1": 71,
+      "within_10": 93,
+      "within_5": 81
+    }
+  },
+  "left_rows": 520,
+  "right_rows": 520
+}

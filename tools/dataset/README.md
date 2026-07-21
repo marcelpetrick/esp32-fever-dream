@@ -92,6 +92,23 @@ For stronger labels, run another local vision model to a separate proposal CSV
 and omit `--allow-single-model-temporal`; rows are then promoted only on exact
 multi-model agreement.
 
+Compare proposal files before trusting a second model:
+
+```sh
+python3 tools/dataset/compare_label_proposals.py \
+  --left tools/dataset/captures/<batch>/labels_ollama_proposals.csv \
+  --right tools/dataset/captures/<batch>/labels_ollama_proposals_minicpm.csv \
+  --left-name qwen3-vl:4b \
+  --right-name minicpm-v:latest \
+  --output-json reports/proposal_agreement_<batch>.json \
+  --output-md reports/proposal_agreement_<batch>.md
+```
+
+On `serial_timed_fast_20260627T1205Z`, Qwen and MiniCPM agreed almost perfectly
+on CO2, temperature, and humidity, but disagreed heavily on HCHO/TVOC. Treat
+that as evidence to use pollutant-row-specific OCR for those small decimal rows
+instead of more full-frame labeling alone.
+
 Legacy review-queue tooling is still available:
 
 ```sh
