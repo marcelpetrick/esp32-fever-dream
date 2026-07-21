@@ -63,10 +63,10 @@ struct CandidateReading {
 };
 
 constexpr std::array<RelativeBox, 4> kCo2DigitBoxes = {{
-    {2110, 750, 925, 1360},
-    {3110, 750, 925, 1360},
-    {4110, 750, 925, 1360},
-    {5110, 750, 925, 1360},
+    {2050, 750, 1050, 1360},
+    {3100, 750, 1050, 1360},
+    {4150, 750, 1050, 1360},
+    {5350, 750, 1150, 1360},
 }};
 
 constexpr std::array<RelativeBox, 4> kHchoDigitBoxes = {{
@@ -94,8 +94,8 @@ constexpr std::array<RelativeBox, 2> kTemperatureDigitBoxesUpright = {{
 }};
 
 constexpr std::array<RelativeBox, 2> kHumidityDigitBoxes = {{
-    {7630, 6535, 890, 1140},
-    {8595, 6535, 890, 1140},
+    {6900, 6535, 820, 1140},
+    {7800, 6535, 820, 1140},
 }};
 
 alignas(16) uint8_t g_tensor_arena[kTensorArenaSize];

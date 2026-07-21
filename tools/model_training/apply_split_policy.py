@@ -27,8 +27,8 @@ def _sample_number(sample_id: str) -> int:
     return int(match.group(1)) if match else sys.maxsize
 
 
-def load_policy(path: Path) -> tuple[dict[str, str], dict[str, list[tuple[str, float]]]]:
-    """Return (batch→split, batch→[(split, fraction)]) from the policy file.
+def load_policy(path: Path) -> tuple[dict[str, str], dict[str, dict[str, object]]]:
+    """Return (batch→split, batch→split config) from the policy file.
 
     Simple entries in "train"/"validation"/"test" lists assign the whole batch.
     Entries in "split_within" divide a batch by sorted sample number:
@@ -38,6 +38,9 @@ def load_policy(path: Path) -> tuple[dict[str, str], dict[str, list[tuple[str, f
         ]
 
     Fractions must sum to ≤ 1; any remainder is silently dropped.
+    By default rows are assigned contiguously in sample-number order. Add
+    `"strategy": "interleaved"` to distribute samples across splits, which is
+    useful for long sequential captures whose values or lighting drift.
     """
     document = json.loads(path.read_text(encoding="utf-8"))
     assignments: dict[str, str] = {}
@@ -47,7 +50,7 @@ def load_policy(path: Path) -> tuple[dict[str, str], dict[str, list[tuple[str, f
                 raise ValueError(f"capture batch assigned more than once: {batch}")
             assignments[batch] = split
 
-    fractions: dict[str, list[tuple[str, float]]] = {}
+    fractions: dict[str, dict[str, object]] = {}
     for entry in document.get("split_within", []):
         batch = entry["batch"]
         if batch in assignments:
@@ -63,7 +66,10 @@ def load_policy(path: Path) -> tuple[dict[str, str], dict[str, list[tuple[str, f
             raise ValueError(f"split_within entry for {batch} has no fractions")
         if total > 1.001:
             raise ValueError(f"split_within fractions for {batch} sum to {total:.3f} > 1")
-        fractions[batch] = parts
+        strategy = entry.get("strategy", "contiguous")
+        if strategy not in {"contiguous", "interleaved"}:
+            raise ValueError(f"unsupported split_within strategy for {batch}: {strategy}")
+        fractions[batch] = {"parts": parts, "strategy": strategy}
 
     return assignments, fractions
 
@@ -103,16 +109,38 @@ def apply_policy(label_paths: list[Path], policy_path: Path, output_path: Path) 
                     raise ValueError(f"capture batch has no frozen split assignment: {batch}")
 
     # Apply fractional splits in sample-number order
-    for batch, parts in fractions.items():
+    for batch, config in fractions.items():
+        parts = config["parts"]
+        strategy = config["strategy"]
+        assert isinstance(parts, list)
+        assert isinstance(strategy, str)
         rows = sorted(batch_rows.get(batch, []), key=lambda r: _sample_number(r["sample_id"]))
         n = len(rows)
-        offset = 0
-        for split, frac in parts:
-            count = round(n * frac)
-            for row in rows[offset: offset + count]:
+        if strategy == "interleaved":
+            assigned_counts = {split: 0 for split, _ in parts}
+            target_counts = {split: round(n * frac) for split, frac in parts}
+            for index, row in enumerate(rows):
+                split = max(
+                    (candidate for candidate, _ in parts if assigned_counts[candidate] < target_counts[candidate]),
+                    key=lambda candidate: (
+                        ((index + 1) * dict(parts)[candidate]) - assigned_counts[candidate],
+                        -SPLITS.index(candidate),
+                    ),
+                    default=None,
+                )
+                if split is None:
+                    continue
                 row["split"] = split
                 all_rows.append(row)
-            offset += count
+                assigned_counts[split] += 1
+        else:
+            offset = 0
+            for split, frac in parts:
+                count = round(n * frac)
+                for row in rows[offset: offset + count]:
+                    row["split"] = split
+                    all_rows.append(row)
+                offset += count
 
     # Strip internal field
     for row in all_rows:

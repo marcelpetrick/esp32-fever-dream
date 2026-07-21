@@ -1,0 +1,368 @@
+[
+  {
+    "batch": "serial_timed_fast_20260627T1205Z",
+    "before": 496,
+    "after": 393,
+    "removed": 103,
+    "removed_examples": [
+      {
+        "sample_id": "capture_0021",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:82:neighbor_median=178"
+      },
+      {
+        "sample_id": "capture_0024",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:178:neighbor_median=127.5"
+      },
+      {
+        "sample_id": "capture_0026",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:54:neighbor_median=65;tvoc_raw:178:neighbor_median=82"
+      },
+      {
+        "sample_id": "capture_0029",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:82:neighbor_median=130"
+      },
+      {
+        "sample_id": "capture_0032",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:82:neighbor_median=130"
+      },
+      {
+        "sample_id": "capture_0035",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:82:neighbor_median=127.5"
+      },
+      {
+        "sample_id": "capture_0038",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:54:neighbor_median=64.5;tvoc_raw:178:neighbor_median=127.5"
+      },
+      {
+        "sample_id": "capture_0056",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:173:neighbor_median=94.5"
+      },
+      {
+        "sample_id": "capture_0059",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:13:neighbor_median=94.5"
+      },
+      {
+        "sample_id": "capture_0088",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:173:neighbor_median=14.5"
+      },
+      {
+        "sample_id": "capture_0136",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:65:neighbor_median=38.5"
+      },
+      {
+        "sample_id": "capture_0139",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:5:neighbor_median=38.5"
+      },
+      {
+        "sample_id": "capture_0181",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:18:neighbor_median=54"
+      },
+      {
+        "sample_id": "capture_0189",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:54:neighbor_median=33;tvoc_raw:5:neighbor_median=74"
+      },
+      {
+        "sample_id": "capture_0192",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:13:neighbor_median=33;tvoc_raw:137:neighbor_median=52.5"
+      },
+      {
+        "sample_id": "capture_0195",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:13:neighbor_median=31"
+      },
+      {
+        "sample_id": "capture_0198",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:137:neighbor_median=87"
+      },
+      {
+        "sample_id": "capture_0201",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:49:neighbor_median=13"
+      },
+      {
+        "sample_id": "capture_0204",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:13:neighbor_median=49;tvoc_raw:10:neighbor_median=137"
+      },
+      {
+        "sample_id": "capture_0207",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:49:neighbor_median=31;tvoc_raw:137:neighbor_median=75"
+      },
+      {
+        "sample_id": "capture_0210",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:49:neighbor_median=9;tvoc_raw:137:neighbor_median=52.5"
+      },
+      {
+        "sample_id": "capture_0216",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:5:neighbor_median=27"
+      },
+      {
+        "sample_id": "capture_0219",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:52:neighbor_median=5;tvoc_raw:15:neighbor_median=52.5"
+      },
+      {
+        "sample_id": "capture_0222",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:10:neighbor_median=89.5"
+      },
+      {
+        "sample_id": "capture_0225",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:137:neighbor_median=76"
+      }
+    ]
+  },
+  {
+    "batch": "live_surveillance_20260629T1003Z",
+    "before": 1425,
+    "after": 922,
+    "removed": 503,
+    "removed_examples": [
+      {
+        "sample_id": "capture_0004",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:178:neighbor_median=83.5"
+      },
+      {
+        "sample_id": "capture_0005",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:13:neighbor_median=83.5;tvoc_raw:498:neighbor_median=54"
+      },
+      {
+        "sample_id": "capture_0006",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "co2_ppm:487:neighbor_median=1473.5;tvoc_raw:5:neighbor_median=276.5"
+      },
+      {
+        "sample_id": "capture_0007",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:504:neighbor_median=276.5"
+      },
+      {
+        "sample_id": "capture_0008",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:55:neighbor_median=279.5"
+      },
+      {
+        "sample_id": "capture_0009",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:509:neighbor_median=55"
+      },
+      {
+        "sample_id": "capture_0010",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:55:neighbor_median=282"
+      },
+      {
+        "sample_id": "capture_0011",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:13:neighbor_median=161;tvoc_raw:36:neighbor_median=593"
+      },
+      {
+        "sample_id": "capture_0012",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "co2_ppm:1581:neighbor_median=1059;hcho_raw:239:neighbor_median=177;tvoc_raw:677:neighbor_median=406.5"
+      },
+      {
+        "sample_id": "capture_0013",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "co2_ppm:630:neighbor_median=1542.5;hcho_raw:271:neighbor_median=258.5;tvoc_raw:758:neighbor_median=717.5"
+      },
+      {
+        "sample_id": "capture_0014",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "co2_ppm:636:neighbor_median=1622;tvoc_raw:758:neighbor_median=789"
+      },
+      {
+        "sample_id": "capture_0015",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "co2_ppm:1663:neighbor_median=721;hcho_raw:296:neighbor_median=317.5"
+      },
+      {
+        "sample_id": "capture_0016",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "co2_ppm:1762:neighbor_median=806;hcho_raw:357:neighbor_median=341;tvoc_raw:999:neighbor_median=789"
+      },
+      {
+        "sample_id": "capture_0017",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "co2_ppm:806:neighbor_median=1251;hcho_raw:386:neighbor_median=373.5;tvoc_raw:880:neighbor_median=481"
+      },
+      {
+        "sample_id": "capture_0018",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "co2_ppm:806:neighbor_median=1300.5;hcho_raw:390:neighbor_median=371.5;tvoc_raw:0:neighbor_median=556"
+      },
+      {
+        "sample_id": "capture_0019",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "co2_ppm:839:neighbor_median=1353;hcho_raw:408:neighbor_median=388;tvoc_raw:142:neighbor_median=278"
+      },
+      {
+        "sample_id": "capture_0020",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "co2_ppm:1900:neighbor_median=1402.5;hcho_raw:140:neighbor_median=438.5"
+      },
+      {
+        "sample_id": "capture_0022",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:530:neighbor_median=499.5;tvoc_raw:464:neighbor_median=404"
+      },
+      {
+        "sample_id": "capture_0032",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:509:neighbor_median=530;tvoc_raw:14:neighbor_median=484"
+      },
+      {
+        "sample_id": "capture_0034",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:530:neighbor_median=550;tvoc_raw:484:neighbor_median=249"
+      },
+      {
+        "sample_id": "capture_0035",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "hcho_raw:570:neighbor_median=559;tvoc_raw:626:neighbor_median=245"
+      },
+      {
+        "sample_id": "capture_0036",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:6:neighbor_median=275"
+      },
+      {
+        "sample_id": "capture_0037",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:6:neighbor_median=36"
+      },
+      {
+        "sample_id": "capture_0038",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:66:neighbor_median=6"
+      },
+      {
+        "sample_id": "capture_0039",
+        "reasons": [
+          "temporal_flags"
+        ],
+        "temporal_flags": "tvoc_raw:6:neighbor_median=36"
+      }
+    ]
+  }
+]

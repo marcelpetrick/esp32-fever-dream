@@ -1,9 +1,9 @@
 {
   "checks": {
-    "all_digits_present_in_test": false,
+    "all_digits_present_in_test": true,
     "confidence_threshold": false,
     "false_accept_rate": false,
-    "frozen_test_present": false,
+    "frozen_test_present": true,
     "full_reading_accuracy": false,
     "model_size": true,
     "negative_set_present": false,
@@ -14,10 +14,10 @@
   "observed": {
     "confidence_threshold_percent": 30,
     "false_accept_rate": null,
-    "full_reading_accuracy": null,
-    "model_size_bytes": 32528,
-    "negative_rows": null,
-    "test_digit_accuracy": null
+    "full_reading_accuracy": 0.12775665399239544,
+    "model_size_bytes": 83480,
+    "negative_rows": 0,
+    "test_digit_accuracy": 0.8668478260869565
   },
   "passed": false
 }

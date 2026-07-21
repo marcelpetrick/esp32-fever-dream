@@ -149,19 +149,19 @@
       "images": 1647,
       "labels": {
         "reviewer_counts": {
-          "owner-bulk-approved": 1485
+          "owner-bulk-approved": 922
         },
         "reviewer_kind_counts": {
-          "bulk": 1485
+          "bulk": 922
         },
-        "rows": 1485,
+        "rows": 922,
         "split_counts": {
-          "test": 323,
-          "train": 826,
-          "validation": 336
+          "test": 215,
+          "train": 477,
+          "validation": 230
         },
-        "trusted_like_valid_rows": 1485,
-        "valid_rows": 1485
+        "trusted_like_valid_rows": 922,
+        "valid_rows": 922
       },
       "proposals": {
         "rows": 1647,
@@ -248,19 +248,19 @@
       "images": 520,
       "labels": {
         "reviewer_counts": {
-          "owner-bulk-approved": 496
+          "owner-bulk-approved": 393
         },
         "reviewer_kind_counts": {
-          "bulk": 496
+          "bulk": 393
         },
-        "rows": 496,
+        "rows": 393,
         "split_counts": {
-          "test": 47,
-          "train": 399,
+          "test": 45,
+          "train": 298,
           "validation": 50
         },
-        "trusted_like_valid_rows": 496,
-        "valid_rows": 496
+        "trusted_like_valid_rows": 393,
+        "valid_rows": 393
       },
       "proposals": {
         "rows": 520,
@@ -332,10 +332,10 @@
   "capture_root": "tools/dataset/captures",
   "totals": {
     "images": 2914,
-    "label_rows": 2307,
+    "label_rows": 1641,
     "pending_review_rows": 2467,
     "proposal_rows": 2467,
     "review_queue_rows": 2467,
-    "trusted_like_valid_label_rows": 2307
+    "trusted_like_valid_label_rows": 1641
   }
 }

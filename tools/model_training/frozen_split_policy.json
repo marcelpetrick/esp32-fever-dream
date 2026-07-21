@@ -1,21 +1,22 @@
 {
   "version": 1,
-  "train": [
-    "live_mounted_29c_41h_20260625T195058Z",
-    "live_upright_20260626T2309Z"
-  ],
-  "validation": [
-    "approved_29c_43h_20260625T185939Z"
-  ],
-  "test": [
-    "live_surveillance_20260629T1003Z"
-  ],
+  "train": [],
+  "validation": [],
+  "test": [],
   "split_within": [
     {
       "batch": "serial_timed_fast_20260627T1205Z",
       "train": 0.8,
-      "validation": 0.2
+      "validation": 0.2,
+      "strategy": "interleaved"
+    },
+    {
+      "batch": "live_surveillance_20260629T1003Z",
+      "train": 0.7,
+      "validation": 0.15,
+      "test": 0.15,
+      "strategy": "interleaved"
     }
   ],
-  "notes": "Excluded batches — locate_display fails for all images (wrong capture distance/framing): training_baseline_manual_20260625T183552Z, daylight_changed_29c_43h_20260625T191248Z, baseline_20260625T182331Z, stability_20260625T183410Z. http_300_aqs_20260626T2040Z excluded: only 13/300 Ollama-valid labels. approved_29c_43h moved to validation bucket (covers missing digits '3' and '8' that serial_timed_fast 20% split misses). live_surveillance_20260629T1003Z moved to test: HTTP JPEG crops have different visual characteristics than USB serial captures — used as held-out cross-domain generalisation test."
+  "notes": "Production AQS OCR training uses only current five-value AQS display captures. Legacy two-field temperature/humidity batches are excluded because their layout and crop geometry differ and they create misleading validation failures. Excluded legacy/low-quality batches: approved_29c_43h_20260625T185939Z, live_mounted_29c_41h_20260625T195058Z, training_baseline_manual_20260625T183552Z, daylight_changed_29c_43h_20260625T191248Z, baseline_20260625T182331Z, stability_20260625T183410Z. http_300_aqs_20260626T2040Z is excluded until more than 13/300 labels are reviewed. serial_timed_fast and live_surveillance are long sequential AQS runs and are split interleaved so train/validation/test all cover the recorded serial and HTTP-JPEG surveillance image conditions while exact images remain split-exclusive."
 }

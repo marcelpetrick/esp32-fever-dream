@@ -1,6 +1,6 @@
 # TinyML Dataset Audit
 
-Generated UTC: `2026-06-29T17:01:44+00:00`
+Generated UTC: `2026-07-21T18:36:52+00:00`
 Labels CSV: `/home/mpetrick/repos/esp32-fever-dream/models/generated/digit_dataset/merged_labels.csv`
 Status: `pass`
 
@@ -37,28 +37,28 @@ Status: `pass`
 
 ## Summary
 
-- Rows: 1850
-- Valid rows: 1850
-- Usable localized rows: 1820
+- Rows: 1314
+- Valid rows: 1314
+- Usable localized rows: 1314
 - Untrusted rows excluded: 0
 - Negative/ambiguous rows: 0
-- Distinct readings: 679
-- Held-out rows: 1400
-- Splits: `{'test': 1261, 'train': 420, 'validation': 139}`
-- Digit counts: `{'0': 9168, '1': 1447, '2': 3314, '3': 1327, '4': 2628, '5': 2141, '6': 1510, '7': 2088, '8': 3166, '9': 1611}`
-- Split digit counts: `{'train': {'0': 2208, '1': 270, '2': 705, '3': 388, '4': 661, '5': 621, '6': 422, '7': 618, '8': 412, '9': 175}, 'validation': {'0': 498, '1': 98, '2': 139, '3': 40, '4': 335, '5': 180, '6': 20, '7': 393, '9': 41}, 'test': {'0': 6462, '1': 1079, '2': 2470, '3': 899, '4': 1632, '5': 1340, '6': 1068, '7': 1077, '8': 2754, '9': 1395}}`
-- Validation missing digits: `['8']`
+- Distinct readings: 337
+- Held-out rows: 355
+- Splits: `{'test': 138, 'train': 959, 'validation': 217}`
+- Digit counts: `{'0': 6868, '1': 816, '2': 2381, '3': 1077, '4': 2110, '5': 1625, '6': 1117, '7': 1573, '8': 2330, '9': 1127}`
+- Split digit counts: `{'train': {'0': 5018, '1': 595, '2': 1729, '3': 795, '4': 1553, '5': 1198, '6': 823, '7': 1173, '8': 1658, '9': 802}, 'validation': {'0': 1131, '1': 134, '2': 396, '3': 171, '4': 349, '5': 275, '6': 187, '7': 288, '8': 369, '9': 172}, 'test': {'0': 719, '1': 87, '2': 256, '3': 111, '4': 208, '5': 152, '6': 107, '7': 112, '8': 303, '9': 153}}`
+- Validation missing digits: `[]`
 - Test missing digits: `[]`
 - Missing digits: `[]`
 - Underrepresented digits: `{}`
 - Duplicate sample IDs: `[]`
 - Cross-split images: `[]`
 - Cross-split capture batches: `[]`
-- Image/hash failures: 30
-- Image/hash failure examples: `['live_surveillance_20260629T1003Z_capture_0083:display_not_found', 'live_surveillance_20260629T1003Z_capture_0163:display_not_found', 'live_surveillance_20260629T1003Z_capture_0829:display_not_found', 'live_surveillance_20260629T1003Z_capture_1186:display_not_found', 'live_surveillance_20260629T1003Z_capture_1494:display_not_found', 'live_surveillance_20260629T1003Z_capture_1502:display_not_found', 'live_surveillance_20260629T1003Z_capture_1553:display_not_found', 'live_surveillance_20260629T1003Z_capture_1557:display_not_found', 'live_surveillance_20260629T1003Z_capture_1559:display_not_found', 'live_surveillance_20260629T1003Z_capture_1563:display_not_found', 'live_surveillance_20260629T1003Z_capture_1564:display_not_found', 'live_surveillance_20260629T1003Z_capture_1568:display_not_found', 'live_surveillance_20260629T1003Z_capture_1570:display_not_found', 'live_surveillance_20260629T1003Z_capture_1575:display_not_found', 'live_surveillance_20260629T1003Z_capture_1577:display_not_found', 'live_surveillance_20260629T1003Z_capture_1578:display_not_found', 'live_surveillance_20260629T1003Z_capture_1579:display_not_found', 'live_surveillance_20260629T1003Z_capture_1580:display_not_found', 'live_surveillance_20260629T1003Z_capture_1586:display_not_found', 'live_surveillance_20260629T1003Z_capture_1587:display_not_found']`
+- Image/hash failures: 0
+- Image/hash failure examples: `[]`
 - Cross-split perceptual near-duplicates detected (report capped at 100): 0
 - Cross-split near-duplicate examples: `[]`
-- Sample readings: `['29C 41%', '29C 43%', 'co2_ppm=1002 hcho_raw=13 tvoc_raw=36 28C 49%', 'co2_ppm=1119 hcho_raw=15 tvoc_raw=36 28C 49%', 'co2_ppm=1218 hcho_raw=135 tvoc_raw=375 28C 49%', 'co2_ppm=1229 hcho_raw=136 tvoc_raw=380 28C 49%', 'co2_ppm=1234 hcho_raw=13 tvoc_raw=383 28C 49%', 'co2_ppm=1234 hcho_raw=13 tvoc_raw=386 28C 49%', 'co2_ppm=1273 hcho_raw=144 tvoc_raw=403 28C 49%', 'co2_ppm=1278 hcho_raw=146 tvoc_raw=408 28C 49%', 'co2_ppm=1278 hcho_raw=15 tvoc_raw=406 28C 49%', 'co2_ppm=1278 hcho_raw=45 tvoc_raw=406 28C 49%', 'co2_ppm=1278 hcho_raw=47 tvoc_raw=44 28C 49%', 'co2_ppm=1284 hcho_raw=144 tvoc_raw=406 28C 49%', 'co2_ppm=1284 hcho_raw=147 tvoc_raw=406 28C 49%', 'co2_ppm=1284 hcho_raw=15 tvoc_raw=14 28C 49%', 'co2_ppm=1284 hcho_raw=18 tvoc_raw=14 28C 49%', 'co2_ppm=1289 hcho_raw=47 tvoc_raw=11 28C 49%', 'co2_ppm=1295 hcho_raw=13 tvoc_raw=11 28C 49%', 'co2_ppm=1322 hcho_raw=54 tvoc_raw=43 28C 50%']`
+- Sample readings: `['co2_ppm=1218 hcho_raw=135 tvoc_raw=375 28C 49%', 'co2_ppm=1229 hcho_raw=136 tvoc_raw=380 28C 49%', 'co2_ppm=1498 hcho_raw=185 tvoc_raw=58 28C 50%', 'co2_ppm=1498 hcho_raw=85 tvoc_raw=58 28C 53%', 'co2_ppm=1575 hcho_raw=235 tvoc_raw=658 28C 50%', 'co2_ppm=1581 hcho_raw=239 tvoc_raw=669 28C 50%', 'co2_ppm=1586 hcho_raw=242 tvoc_raw=677 28C 50%', 'co2_ppm=1592 hcho_raw=246 tvoc_raw=688 28C 50%', 'co2_ppm=1597 hcho_raw=246 tvoc_raw=688 28C 50%', 'co2_ppm=1603 hcho_raw=253 tvoc_raw=708 28C 50%', 'co2_ppm=1647 hcho_raw=285 tvoc_raw=789 28C 50%', 'co2_ppm=1680 hcho_raw=303 tvoc_raw=88 28C 51%', 'co2_ppm=1685 hcho_raw=303 tvoc_raw=88 28C 51%', 'co2_ppm=1685 hcho_raw=307 tvoc_raw=859 28C 51%', 'co2_ppm=1702 hcho_raw=38 tvoc_raw=890 28C 51%', 'co2_ppm=1702 hcho_raw=38 tvoc_raw=898 28C 51%', 'co2_ppm=1707 hcho_raw=32 tvoc_raw=890 28C 51%', 'co2_ppm=1713 hcho_raw=325 tvoc_raw=90 28C 51%', 'co2_ppm=1713 hcho_raw=329 tvoc_raw=92 28C 51%', 'co2_ppm=1724 hcho_raw=332 tvoc_raw=90 28C 51%']`
 
 ## Next Actions
 

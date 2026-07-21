@@ -1,9 +1,69 @@
 {
-  "average_min_confidence_percent": 39.666666666666664,
-  "exact_accuracy": 0.0,
-  "exact_matches": 0,
-  "labeled_rows": 3,
-  "min_confidence_percent": 37,
+  "accepted_field_accuracy": {
+    "co2": {
+      "accuracy": 0.14068441064638784,
+      "correct": 185,
+      "total": 1315
+    },
+    "hcho": {
+      "accuracy": 0.14600760456273765,
+      "correct": 192,
+      "total": 1315
+    },
+    "humidity": {
+      "accuracy": 0.1361216730038023,
+      "correct": 179,
+      "total": 1315
+    },
+    "temperature": {
+      "accuracy": 0.1467680608365019,
+      "correct": 193,
+      "total": 1315
+    },
+    "tvoc": {
+      "accuracy": 0.1452471482889734,
+      "correct": 191,
+      "total": 1315
+    }
+  },
+  "accepted_positive_rows": 193,
+  "average_min_confidence_percent": 59.7787072243346,
+  "digit_accuracy": 0.8981939163498099,
+  "exact_matches": 168,
+  "false_accept_rate": null,
+  "false_accepts": 0,
+  "full_reading_accuracy": 0.12775665399239544,
+  "min_confidence_percent": 19,
   "model": "models/generated/digit_classifier_int8.tflite",
-  "rows": 3
+  "negative_rows": 0,
+  "positive_rejection_rate": 0.8532319391634982,
+  "positive_rows": 1315,
+  "raw_field_accuracy": {
+    "co2": {
+      "accuracy": 0.529277566539924,
+      "correct": 696,
+      "total": 1315
+    },
+    "hcho": {
+      "accuracy": 0.7315589353612167,
+      "correct": 962,
+      "total": 1315
+    },
+    "humidity": {
+      "accuracy": 0.8798479087452471,
+      "correct": 1157,
+      "total": 1315
+    },
+    "temperature": {
+      "accuracy": 0.9901140684410646,
+      "correct": 1302,
+      "total": 1315
+    },
+    "tvoc": {
+      "accuracy": 0.6669201520912548,
+      "correct": 877,
+      "total": 1315
+    }
+  },
+  "rows": 1315
 }

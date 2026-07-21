@@ -1,0 +1,232 @@
+{
+  "accuracy": 0.8764084507042254,
+  "digit_labels": "models/generated/digit_dataset/digit_labels.csv",
+  "mistakes": 702,
+  "model": "models/generated/digit_classifier_int8.tflite",
+  "per_split": {
+    "test": {
+      "accuracy": 0.8668478260869565,
+      "per_digit": {
+        "0": {
+          "accuracy": 0.8539638386648123,
+          "rows": 719
+        },
+        "1": {
+          "accuracy": 0.8390804597701149,
+          "rows": 87
+        },
+        "2": {
+          "accuracy": 0.90234375,
+          "rows": 256
+        },
+        "3": {
+          "accuracy": 0.7657657657657657,
+          "rows": 111
+        },
+        "4": {
+          "accuracy": 0.8894230769230769,
+          "rows": 208
+        },
+        "5": {
+          "accuracy": 0.8618421052631579,
+          "rows": 152
+        },
+        "6": {
+          "accuracy": 0.794392523364486,
+          "rows": 107
+        },
+        "7": {
+          "accuracy": 0.8125,
+          "rows": 112
+        },
+        "8": {
+          "accuracy": 0.9240924092409241,
+          "rows": 303
+        },
+        "9": {
+          "accuracy": 0.9084967320261438,
+          "rows": 153
+        }
+      },
+      "rows": 2208
+    },
+    "validation": {
+      "accuracy": 0.8824884792626728,
+      "per_digit": {
+        "0": {
+          "accuracy": 0.8938992042440318,
+          "rows": 1131
+        },
+        "1": {
+          "accuracy": 0.8507462686567164,
+          "rows": 134
+        },
+        "2": {
+          "accuracy": 0.9090909090909091,
+          "rows": 396
+        },
+        "3": {
+          "accuracy": 0.8187134502923976,
+          "rows": 171
+        },
+        "4": {
+          "accuracy": 0.8997134670487106,
+          "rows": 349
+        },
+        "5": {
+          "accuracy": 0.9018181818181819,
+          "rows": 275
+        },
+        "6": {
+          "accuracy": 0.786096256684492,
+          "rows": 187
+        },
+        "7": {
+          "accuracy": 0.8993055555555556,
+          "rows": 288
+        },
+        "8": {
+          "accuracy": 0.8672086720867209,
+          "rows": 369
+        },
+        "9": {
+          "accuracy": 0.877906976744186,
+          "rows": 172
+        }
+      },
+      "rows": 3472
+    }
+  },
+  "rows": 5680,
+  "splits": [
+    "test",
+    "validation"
+  ],
+  "top_confusions": [
+    {
+      "count": 76,
+      "expected": "0",
+      "predicted": "1"
+    },
+    {
+      "count": 47,
+      "expected": "0",
+      "predicted": "2"
+    },
+    {
+      "count": 32,
+      "expected": "0",
+      "predicted": "6"
+    },
+    {
+      "count": 25,
+      "expected": "7",
+      "predicted": "1"
+    },
+    {
+      "count": 25,
+      "expected": "8",
+      "predicted": "9"
+    },
+    {
+      "count": 22,
+      "expected": "8",
+      "predicted": "6"
+    },
+    {
+      "count": 21,
+      "expected": "2",
+      "predicted": "6"
+    },
+    {
+      "count": 19,
+      "expected": "6",
+      "predicted": "5"
+    },
+    {
+      "count": 19,
+      "expected": "9",
+      "predicted": "5"
+    },
+    {
+      "count": 18,
+      "expected": "5",
+      "predicted": "9"
+    },
+    {
+      "count": 17,
+      "expected": "3",
+      "predicted": "5"
+    },
+    {
+      "count": 17,
+      "expected": "0",
+      "predicted": "3"
+    },
+    {
+      "count": 17,
+      "expected": "3",
+      "predicted": "0"
+    },
+    {
+      "count": 15,
+      "expected": "2",
+      "predicted": "8"
+    },
+    {
+      "count": 15,
+      "expected": "6",
+      "predicted": "8"
+    },
+    {
+      "count": 14,
+      "expected": "4",
+      "predicted": "2"
+    },
+    {
+      "count": 14,
+      "expected": "0",
+      "predicted": "9"
+    },
+    {
+      "count": 13,
+      "expected": "0",
+      "predicted": "8"
+    },
+    {
+      "count": 12,
+      "expected": "5",
+      "predicted": "3"
+    },
+    {
+      "count": 12,
+      "expected": "0",
+      "predicted": "4"
+    },
+    {
+      "count": 11,
+      "expected": "0",
+      "predicted": "5"
+    },
+    {
+      "count": 11,
+      "expected": "1",
+      "predicted": "4"
+    },
+    {
+      "count": 11,
+      "expected": "6",
+      "predicted": "0"
+    },
+    {
+      "count": 10,
+      "expected": "9",
+      "predicted": "3"
+    },
+    {
+      "count": 10,
+      "expected": "4",
+      "predicted": "7"
+    }
+  ]
+}

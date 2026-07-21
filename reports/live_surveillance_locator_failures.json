@@ -1,0 +1,246 @@
+{
+  "source": "tools/dataset/captures/live_surveillance_20260629T1003Z/labels_environment.csv",
+  "failure_count": 60,
+  "failures": [
+    {
+      "sample_id": "capture_0083",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_0163",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_0829",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1186",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1346",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1363",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1378",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1423",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1494",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1502",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1512",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1529",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1530",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1545",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1546",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1547",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1548",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1550",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1551",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1552",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1553",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1557",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1559",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1560",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1561",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1563",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1564",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1566",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1568",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1570",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1571",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1572",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1573",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1574",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1575",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1576",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1577",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1578",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1579",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1580",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1581",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1586",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1587",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1591",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1592",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1593",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1594",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1595",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1605",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1628",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1629",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1631",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1635",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1638",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1639",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1640",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1641",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1642",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1643",
+      "reason": "display_not_found"
+    },
+    {
+      "sample_id": "capture_1646",
+      "reason": "display_not_found"
+    }
+  ]
+}
