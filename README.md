@@ -70,7 +70,7 @@ The firmware configuration includes the AI-Thinker camera pin map and assumes PS
 
 Firmware target:
 
-- ESP-IDF v6.0.1.
+- ESP-IDF v6.0.2.
 - ESP32 target.
 - C++ firmware core with ESP-IDF app entrypoint.
 - Managed component: `espressif/esp32-camera` pinned to `2.1.7`.
@@ -118,10 +118,10 @@ ESP-IDF is not vendored. The scripts source the pinned local install automatical
 Default local install path:
 
 ```text
-~/.local/opt/esp-idf-v6.0.1
+~/.local/opt/esp-idf-v6.0.2
 ```
 
-Override it with `IDF_PATH_ROOT=/path/to/esp-idf-v6.0.1 ./scripts/build_firmware.sh`. If the export script is not available, the firmware build exits with a clear error.
+Override it with `IDF_PATH_ROOT=/path/to/esp-idf-v6.0.2 ./scripts/build_firmware.sh`. If the export script is not available, the firmware build exits with a clear error.
 
 ## Local Configuration
 
