@@ -1,7 +1,10 @@
 ---
+# Google coding style, with two deliberate deviations: 4-space indentation and a
+# 120-column limit. Everything not listed here follows the Google guidelines.
 BasedOnStyle: Google
 IndentWidth: 4
 ColumnLimit: 120
+UseTab: Never
 DerivePointerAlignment: false
 PointerAlignment: Left
 SortIncludes: true
