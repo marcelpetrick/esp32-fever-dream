@@ -34,6 +34,93 @@ Status: **collection phase** — raw input first, drafting later.
 
 ---
 
+## 2b. THE HOOK (lead with this)
+
+Two facts carry the entire post. Everything else is supporting material.
+Open with them — do not bury them under setup.
+
+### Hook A — the line-count inversion
+
+> I built an ESP32 that reads a CO2 sensor's display with a camera.
+>
+> The embedded firmware: **3,002 lines**.
+> The code to figure out *what the digits actually were*: **7,431 lines**.
+>
+> I expected that ratio to be the other way around.
+
+**Why this works:** it's one comparison, no jargon, and it inverts the reader's
+assumption in two numbers. Every engineer instinctively believes the embedded
+part is the hard part. The repo says otherwise, and it says it in a metric
+nobody can argue with.
+
+**The reasoning behind it — this is the actual insight:**
+The firmware is *bounded*. Capture a frame, crop a ROI, run inference, serve
+JSON. You know when it's done, because it either compiles and runs or it
+doesn't. The recognition problem is *unbounded* — it isn't "write the code," it's
+"establish what the truth is, at scale, without a human labeling 3,083 frames by
+hand." That's not an engineering task with a definition of done. That's a
+measurement problem wearing an engineering costume. The line count is just where
+that difference finally became visible.
+
+### Hook B — the money slide (the agreement collapse)
+
+> I asked two independent vision models to read the same 460 frames of the same
+> display.
+>
+> | Field | Do they agree? |
+> | --- | ---: |
+> | CO2 | **100.0%** |
+> | Temperature | **99.8%** |
+> | Humidity | **99.1%** |
+> | HCHO | **11.1%** |
+> | TVOC | **13.7%** |
+>
+> Same display. Same frames. Same models. The big digits are solved. On the small
+> ones, the models don't even agree with *each other*.
+
+**Why this works:** it's a single table where the numbers fall off a cliff
+mid-column. The reader's eye does the work — no explanation needed to feel that
+something broke.
+
+**The reasoning behind it — why this is the whole project in one table:**
+The instinctive read is "the model is bad, train it more." That read is wrong,
+and being able to say *why* is what makes this post worth writing.
+
+Those two rows aren't measuring my model at all. They're measuring **whether a
+ground truth exists**. When two independent labelers agree 100% of the time, you
+have labels and training is a solved exercise. When they agree 11% of the time,
+you have *noise* — and every epoch you train on it teaches the network to
+reproduce a coin flip with increasing confidence.
+
+That reframes the whole effort. It wasn't "the model underperformed." It was
+**I could not tell the model what the right answer was**, because I didn't
+reliably know. Accuracy was never the bottleneck. Ground truth was.
+
+And the proof is in the failure: a retrain on those labels moved full-reading
+accuracy 12.78% → 29.05% while per-digit accuracy *dropped* 86.68% → 82.05%,
+with a 5.83% false-accept rate. It got better and worse simultaneously, which is
+the signature of learning noise. It was rejected by an automated gate. It is not
+on the device.
+
+### How A and B fit together
+
+A is the setup, B is the payoff, and the causal link between them is the post:
+
+**7,431 lines of tooling exist *because* of that 11%.**
+
+Multi-model consensus, temporal consistency checks, display-locator quality
+gates, generated negative examples, a frozen test split, a deployment gate —
+none of that is model code. It is all machinery built for one purpose: to
+manufacture a trustworthy answer key. That is where the 80% went, and that is
+the part nobody budgets for.
+
+Closing line candidate:
+
+> The neural network was the easy part. Knowing what it was supposed to say was
+> the project.
+
+---
+
 ## 3. Raw material
 
 ### 3.1 The one-line pitch
