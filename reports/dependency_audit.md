@@ -8,10 +8,11 @@
 | espressif/esp-tflite-micro | 1.3.7 | 1.3.7 | current | ESP Component Registry |  |
 | espressif/esp-nn | 1.2.4 | 1.2.4 | current | ESP Component Registry |  |
 | espressif/esp_jpeg | 1.3.1 | 1.3.1 | current | ESP Component Registry |  |
-| idf | 6.0.1 | 6.0.1 | current | dependencies.lock | IDF lock version |
+| idf | 6.0.2 | 6.0.2 | current | GitHub Releases | highest stable esp-idf release; toolchain pin lives in scripts/idf_env.sh |
 | tensorflow | 2.21.0 | 2.21.0 | current | PyPI | setup constraint: tensorflow==2.21.0 |
 | numpy | 2.5.1 | 2.5.1 | current | PyPI | setup constraint: numpy==2.5.1 |
 | pillow | 12.3.0 | 12.3.0 | current | PyPI | setup constraint: pillow==12.3.0 |
+| ollama | 0.31.2 | 0.32.3 | stale | GitHub Releases | host tool, hand-installed in /usr/local/bin; upgrading it changes vision-model labeling output |
 
 ## Ollama
 

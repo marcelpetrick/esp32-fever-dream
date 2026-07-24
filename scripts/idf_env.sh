@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-IDF_VERSION="v6.0.1"
+IDF_VERSION="v6.0.2"
 IDF_PATH_ROOT="${IDF_PATH_ROOT:-/home/mpetrick/.local/opt/esp-idf-${IDF_VERSION}}"
 
 source_idf_environment() {

@@ -33,11 +33,11 @@
       "status": "current"
     },
     {
-      "current": "6.0.1",
-      "latest": "6.0.1",
+      "current": "6.0.2",
+      "latest": "6.0.2",
       "name": "idf",
-      "note": "IDF lock version",
-      "source": "dependencies.lock",
+      "note": "highest stable esp-idf release; toolchain pin lives in scripts/idf_env.sh",
+      "source": "GitHub Releases",
       "status": "current"
     },
     {
@@ -63,6 +63,14 @@
       "note": "setup constraint: pillow==12.3.0",
       "source": "PyPI",
       "status": "current"
+    },
+    {
+      "current": "0.31.2",
+      "latest": "0.32.3",
+      "name": "ollama",
+      "note": "host tool, hand-installed in /usr/local/bin; upgrading it changes vision-model labeling output",
+      "source": "GitHub Releases",
+      "status": "stale"
     }
   ],
   "ollama": {
@@ -108,7 +116,9 @@
     "version": "ollama version is 0.31.2"
   },
   "python": {
-    "executable": "/home/mpetrick/repos/esp32-fever-dream/.venv-ml/bin/python",
-    "version": "3.13.14"
+    "executable": "/usr/bin/python3",
+    "ml_venv": "/home/mpetrick/repos/esp32-fever-dream/.venv-ml",
+    "ml_venv_present": true,
+    "version": "3.14.6"
   }
 }
