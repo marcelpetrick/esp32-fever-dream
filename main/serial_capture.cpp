@@ -28,8 +28,8 @@ void WriteBase64Frame(const CameraFrame& frame) {
     for (std::size_t offset = 0U; offset < frame.data.size(); offset += kRawChunkSize) {
         const std::size_t chunk_size = std::min(kRawChunkSize, frame.data.size() - offset);
         std::size_t encoded_size = 0U;
-        const int result =
-            mbedtls_base64_encode(encoded.data(), encoded.size(), &encoded_size, frame.data.data() + offset, chunk_size);
+        const int result = mbedtls_base64_encode(encoded.data(), encoded.size(), &encoded_size,
+                                                 frame.data.data() + offset, chunk_size);
         if (result != 0) {
             printf("FEVER_CAPTURE_ERROR reason=base64_encode_failed code=%d\n", result);
             return;

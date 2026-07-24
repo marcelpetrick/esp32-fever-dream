@@ -3,8 +3,7 @@
 #include "version.h"
 
 void TestApiSerializer() {
-    const auto record = fever::ReadingRecord::Success(123U, {728U, 57U, 159U, 2175, 44U},
-                                                      fever::ConfidencePercent{94U},
+    const auto record = fever::ReadingRecord::Success(123U, {728U, 57U, 159U, 2175, 44U}, fever::ConfidencePercent{94U},
                                                       fever::ReadingFlags::kRecognitionRuleBased);
     const std::string current = fever::SerializeCurrent(record);
     REQUIRE(current.find("\"co2_ppm\":728") != std::string::npos);
@@ -23,7 +22,7 @@ void TestApiSerializer() {
     REQUIRE(status.find(std::string{"\"firmware_version\":\""} + fever::version::ProjectVersion() + "\"") !=
             std::string::npos);
     REQUIRE(status.find("\"time_synced\":true") != std::string::npos);
-    REQUIRE(status.find("\"storage_backend\":\"ram_ring_buffer\"") != std::string::npos);
+    REQUIRE(status.find("\"storage_backend\":\"psram_ring_buffer\"") != std::string::npos);
     REQUIRE(status.find("\"pipeline_stage\":\"run_ocr\"") != std::string::npos);
     REQUIRE(status.find("\"pipeline_stage_index\":4") != std::string::npos);
     REQUIRE(status.find("\"pipeline_cycle\":7") != std::string::npos);

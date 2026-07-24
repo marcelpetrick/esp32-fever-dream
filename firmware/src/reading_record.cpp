@@ -4,14 +4,29 @@ namespace fever {
 
 ReadingRecord ReadingRecord::Success(uint32_t timestamp_s, AqsValues values, ConfidencePercent confidence,
                                      ReadingFlags flags, uint16_t recognition_duration_ms) {
-    return ReadingRecord{timestamp_s, values.co2_ppm, values.hcho_raw, values.tvoc_raw, values.temperature_centi_c,
-                         values.humidity_percent, ReadingStatus::kOk, confidence, recognition_duration_ms, flags};
+    return ReadingRecord{timestamp_s,
+                         values.co2_ppm,
+                         values.hcho_raw,
+                         values.tvoc_raw,
+                         values.temperature_centi_c,
+                         values.humidity_percent,
+                         ReadingStatus::kOk,
+                         confidence,
+                         recognition_duration_ms,
+                         flags};
 }
 
 ReadingRecord ReadingRecord::Failure(uint32_t timestamp_s, ReadingStatus status, ConfidencePercent confidence,
                                      ReadingFlags flags, uint16_t recognition_duration_ms) {
-    return ReadingRecord{timestamp_s, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
-                         kTemperatureUnavailable, kHumidityUnavailable, status, confidence, recognition_duration_ms,
+    return ReadingRecord{timestamp_s,
+                         kAqsUnsignedUnavailable,
+                         kAqsUnsignedUnavailable,
+                         kAqsUnsignedUnavailable,
+                         kTemperatureUnavailable,
+                         kHumidityUnavailable,
+                         status,
+                         confidence,
+                         recognition_duration_ms,
                          flags};
 }
 

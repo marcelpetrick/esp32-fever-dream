@@ -5,8 +5,8 @@ void TestApiRouter() {
     fever::StorageRingBuffer storage(3);
     fever::Diagnostics diagnostics;
     diagnostics.RecordBoot();
-    REQUIRE(storage.Append(fever::ReadingRecord::Success(10U, {728U, 57U, 159U, 2100, 44U}, fever::ConfidencePercent{95U},
-                                                         fever::ReadingFlags::kRecognitionRuleBased)));
+    REQUIRE(storage.Append(fever::ReadingRecord::Success(
+        10U, {728U, 57U, 159U, 2100, 44U}, fever::ConfidencePercent{95U}, fever::ReadingFlags::kRecognitionRuleBased)));
     REQUIRE(storage.Append(fever::ReadingRecord::Failure(20U, fever::ReadingStatus::kRecognitionFailed,
                                                          fever::ConfidencePercent{22U},
                                                          fever::ReadingFlags::kRecognitionRuleBased)));

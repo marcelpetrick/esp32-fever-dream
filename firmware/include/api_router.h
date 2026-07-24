@@ -17,7 +17,7 @@ enum class ApiMethod : uint8_t {
 /** API request shape independent from a concrete ESP-IDF HTTP server. */
 struct ApiRequest {
     /** HTTP method. */
-    ApiMethod method;
+    ApiMethod method = ApiMethod::kGet;
     /** Request path, including optional query string. */
     std::string target;
 };
@@ -25,7 +25,7 @@ struct ApiRequest {
 /** API response body and HTTP status code. */
 struct ApiResponse {
     /** HTTP status code. */
-    int status_code;
+    int status_code = 0;
     /** JSON response body. */
     std::string body;
 };

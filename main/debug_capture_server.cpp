@@ -87,7 +87,8 @@ esp_err_t AppScriptHandler(httpd_req_t* request) {
 
 esp_err_t ApiHandler(httpd_req_t* request) {
     if (g_storage == nullptr || g_diagnostics == nullptr) {
-        return SendJson(request, 500, "{\"error\":{\"code\":\"api_not_ready\",\"message\":\"API state not registered\"}}");
+        return SendJson(request, 500,
+                        "{\"error\":{\"code\":\"api_not_ready\",\"message\":\"API state not registered\"}}");
     }
     ApiRouter router(*g_storage, *g_diagnostics);
     const ApiResponse response = router.Handle(ApiRequest{ApiMethod::kGet, request->uri});
@@ -124,7 +125,8 @@ esp_err_t CaptureJpegHandler(httpd_req_t* request) {
     httpd_resp_set_hdr(request, "X-Fever-Frame-Width", width);
     httpd_resp_set_hdr(request, "X-Fever-Frame-Height", height);
     httpd_resp_set_hdr(request, "X-Fever-Capture-Source", "periodic-cache");
-    return httpd_resp_send(request, reinterpret_cast<const char*>(capture.frame.data.data()), capture.frame.data.size());
+    return httpd_resp_send(request, reinterpret_cast<const char*>(capture.frame.data.data()),
+                           capture.frame.data.size());
 }
 
 }  // namespace

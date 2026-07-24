@@ -14,8 +14,8 @@ void TestMeasurementController() {
             return fever::CameraCaptureResult{true, frame, ""};
         },
         [](const fever::CameraFrame&) {
-            return fever::RecognitionResult{true, {733U, 58U, 160U, 2215, 48U}, fever::ConfidencePercent{93U}, 37U,
-                                            fever::ReadingStatus::kOk, ""};
+            return fever::RecognitionResult{true, {733U, 58U, 160U, 2215, 48U}, fever::ConfidencePercent{93U},
+                                            37U,  fever::ReadingStatus::kOk,    ""};
         });
 
     const fever::ReadingRecord success = success_controller.RunOnce();
@@ -34,11 +34,14 @@ void TestMeasurementController() {
     fever::MeasurementController failure_controller(
         storage, diagnostics, time, []() { return fever::CameraCaptureResult{false, {}, "camera_timeout"}; },
         [](const fever::CameraFrame&) {
-            return fever::RecognitionResult{true,
-                                            {fever::kAqsUnsignedUnavailable, fever::kAqsUnsignedUnavailable,
-                                             fever::kAqsUnsignedUnavailable, fever::kTemperatureUnavailable,
-                                             fever::kHumidityUnavailable},
-                                            fever::ConfidencePercent{0U}, 0U, fever::ReadingStatus::kOk, ""};
+            return fever::RecognitionResult{
+                true,
+                {fever::kAqsUnsignedUnavailable, fever::kAqsUnsignedUnavailable, fever::kAqsUnsignedUnavailable,
+                 fever::kTemperatureUnavailable, fever::kHumidityUnavailable},
+                fever::ConfidencePercent{0U},
+                0U,
+                fever::ReadingStatus::kOk,
+                ""};
         });
 
     const fever::ReadingRecord failure = failure_controller.RunOnce();

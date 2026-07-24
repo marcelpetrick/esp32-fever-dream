@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <numeric>
 #include <vector>
 
 #include "app_config.h"
@@ -47,7 +48,6 @@ struct BrightBounds {
     int y;
     int width;
     int height;
-    int bright_pixels;
     bool valid;
 };
 
@@ -180,10 +180,10 @@ BrightBounds FindBrightBounds(const std::vector<uint8_t>& rgb, std::size_t width
         }
     }
     if (best_count < 20) {
-        return {0, 0, 0, 0, best_count, false};
+        return {0, 0, 0, 0, false};
     }
     if (strip_row < static_cast<int>(height) * 35 / 100) {
-        return {0, 0, 0, 0, best_count, false};
+        return {0, 0, 0, 0, false};
     }
 
     int strip_top = strip_row;
@@ -217,7 +217,7 @@ BrightBounds FindBrightBounds(const std::vector<uint8_t>& rgb, std::size_t width
     }
 
     if (color_pixels < 60 || color_min_x >= color_max_x) {
-        return {0, 0, 0, 0, color_pixels, false};
+        return {0, 0, 0, 0, false};
     }
 
     int text_min_x = static_cast<int>(width);
@@ -242,7 +242,7 @@ BrightBounds FindBrightBounds(const std::vector<uint8_t>& rgb, std::size_t width
     }
 
     if (text_pixels < 120 || text_min_y >= strip_top || text_max_y >= strip_top) {
-        return {0, 0, 0, 0, text_pixels, false};
+        return {0, 0, 0, 0, false};
     }
 
     const int strip_width = color_max_x - color_min_x + 1;
@@ -254,8 +254,8 @@ BrightBounds FindBrightBounds(const std::vector<uint8_t>& rgb, std::size_t width
     max_y = std::clamp(max_y, final_height - 1, static_cast<int>(height) - 1);
     const int min_y = max_y - final_height + 1;
     const bool plausible = final_width >= 140 && final_width <= static_cast<int>(width) - 20 && final_height >= 140 &&
-                           final_height <= static_cast<int>(height) - 20 && strip_top > text_min_y;
-    return {min_x, min_y, final_width, final_height, color_pixels + text_pixels, plausible};
+                           final_height <= static_cast<int>(height) - 20;
+    return {min_x, min_y, final_width, final_height, plausible};
 }
 
 DigitBox ResolveBox(const BrightBounds& bounds, const RelativeBox& box) {
@@ -342,11 +342,9 @@ bool ClassifyDigits(tflite::MicroInterpreter& interpreter, TfLiteTensor* input, 
 
 template <std::size_t N>
 uint8_t MinConfidence(const std::array<uint8_t, N>& confidences, std::size_t active_count = N) {
-    uint8_t minimum = 100U;
-    for (std::size_t index = 0; index < std::min(active_count, N); ++index) {
-        minimum = std::min(minimum, confidences[index]);
-    }
-    return minimum;
+    const auto count = static_cast<std::ptrdiff_t>(std::min(active_count, N));
+    return std::accumulate(confidences.begin(), confidences.begin() + count, static_cast<uint8_t>(100U),
+                           [](uint8_t lhs, uint8_t rhs) { return std::min(lhs, rhs); });
 }
 
 uint16_t FourDigits(const std::array<uint8_t, 4>& digits) {
@@ -404,10 +402,9 @@ CandidateReading ClassifyCandidate(tflite::MicroInterpreter& interpreter, TfLite
     }
 
     const uint16_t co2_ppm = Co2Digits(co2_digits);
-    const uint8_t min_confidence =
-        std::min({MinConfidence(co2_confidences, Co2ActiveDigitCount(co2_digits)), MinConfidence(hcho_confidences),
-                  MinConfidence(tvoc_confidences), MinConfidence(temperature_confidences),
-                  MinConfidence(humidity_confidences)});
+    const uint8_t min_confidence = std::min(
+        {MinConfidence(co2_confidences, Co2ActiveDigitCount(co2_digits)), MinConfidence(hcho_confidences),
+         MinConfidence(tvoc_confidences), MinConfidence(temperature_confidences), MinConfidence(humidity_confidences)});
     const uint16_t hcho_raw = ThreeFractionalDigits(hcho_digits);
     const uint16_t tvoc_raw = ThreeFractionalDigits(tvoc_digits);
     int16_t temperature_centi_c = static_cast<int16_t>(((temperature_digits[0] * 10U) + temperature_digits[1]) * 100U);

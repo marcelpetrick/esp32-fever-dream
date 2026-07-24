@@ -2,10 +2,9 @@
 #include "test_support.h"
 
 void TestRecordCodec() {
-    const fever::ReadingRecord record =
-        fever::ReadingRecord::Success(1750000000U, {728U, 57U, 159U, -125, 44U}, fever::ConfidencePercent{98U},
-                                      fever::ReadingFlags::kRecognitionRuleBased | fever::ReadingFlags::kTimeEstimated,
-                                      1234U);
+    const fever::ReadingRecord record = fever::ReadingRecord::Success(
+        1750000000U, {728U, 57U, 159U, -125, 44U}, fever::ConfidencePercent{98U},
+        fever::ReadingFlags::kRecognitionRuleBased | fever::ReadingFlags::kTimeEstimated, 1234U);
 
     const auto encoded = fever::RecordCodec::Encode(record);
     const auto decoded = fever::RecordCodec::Decode(encoded);

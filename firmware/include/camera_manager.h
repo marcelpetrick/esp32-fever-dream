@@ -21,17 +21,17 @@ struct CameraFrame {
     /** Encoded or raw frame bytes. */
     std::vector<uint8_t> data;
     /** Frame width in pixels when known. */
-    std::size_t width;
+    std::size_t width = 0U;
     /** Frame height in pixels when known. */
-    std::size_t height;
+    std::size_t height = 0U;
     /** Pixel format of `data`. */
-    CameraPixelFormat format;
+    CameraPixelFormat format = CameraPixelFormat::kUnknown;
 };
 
 /** Result of a single camera capture attempt. */
 struct CameraCaptureResult {
     /** True when `frame` contains a valid capture. */
-    bool ok;
+    bool ok = false;
     /** Captured frame on success. */
     CameraFrame frame;
     /** Stable diagnostic reason on failure. */

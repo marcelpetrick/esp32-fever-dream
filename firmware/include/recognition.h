@@ -29,15 +29,15 @@ struct DigitSegments {
 /** Recognition result passed into validation, storage, and API layers. */
 struct RecognitionResult {
     /** True when a plausible temperature was recognized. */
-    bool ok;
+    bool ok = false;
     /** Five-value AQS payload when `ok` is true. */
-    AqsValues values;
+    AqsValues values{};
     /** Recognition confidence percentage. */
-    ConfidencePercent confidence;
+    ConfidencePercent confidence{};
     /** End-to-end recognition runtime in milliseconds. */
-    uint32_t recognition_duration_ms;
+    uint32_t recognition_duration_ms = 0U;
     /** Status code describing success or failure. */
-    ReadingStatus status;
+    ReadingStatus status = ReadingStatus::kOk;
     /** Stable diagnostic reason for failed recognition. */
     std::string error;
 };

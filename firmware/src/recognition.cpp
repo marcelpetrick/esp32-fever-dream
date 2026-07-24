@@ -40,12 +40,12 @@ std::optional<uint8_t> DecodeSevenSegmentDigit(const DigitSegments& segments) {
 
 RecognitionResult ParseDisplayText(const std::string& display_text, ConfidencePercent confidence) {
     if (display_text.empty()) {
-        return RecognitionResult{false, kUnavailableValues, confidence, 0U, ReadingStatus::kRecognitionFailed,
-                                 "empty_display_text"};
+        return RecognitionResult{
+            false, kUnavailableValues, confidence, 0U, ReadingStatus::kRecognitionFailed, "empty_display_text"};
     }
     if (confidence.value < config::kRecognitionMinConfidencePercent) {
-        return RecognitionResult{false, kUnavailableValues, confidence, 0U, ReadingStatus::kConfidenceTooLow,
-                                 "confidence_below_threshold"};
+        return RecognitionResult{
+            false, kUnavailableValues, confidence, 0U, ReadingStatus::kConfidenceTooLow, "confidence_below_threshold"};
     }
 
     int sign = 1;
@@ -65,25 +65,22 @@ RecognitionResult ParseDisplayText(const std::string& display_text, ConfidencePe
         const char ch = display_text[index];
         if (ch == '.') {
             if (seen_decimal) {
-                return RecognitionResult{false, kUnavailableValues, confidence, 0U,
-                                         ReadingStatus::kRecognitionFailed,
-                                         "duplicate_decimal"};
+                return RecognitionResult{
+                    false, kUnavailableValues, confidence, 0U, ReadingStatus::kRecognitionFailed, "duplicate_decimal"};
             }
             seen_decimal = true;
             continue;
         }
         if (!std::isdigit(static_cast<unsigned char>(ch))) {
-            return RecognitionResult{false, kUnavailableValues, confidence, 0U,
-                                     ReadingStatus::kRecognitionFailed,
-                                     "invalid_character"};
+            return RecognitionResult{
+                false, kUnavailableValues, confidence, 0U, ReadingStatus::kRecognitionFailed, "invalid_character"};
         }
         seen_digit = true;
         const int32_t digit = ch - '0';
         if (seen_decimal) {
             if (fractional_scale >= 100) {
-                return RecognitionResult{false, kUnavailableValues, confidence, 0U,
-                                         ReadingStatus::kRecognitionFailed,
-                                         "too_many_decimals"};
+                return RecognitionResult{
+                    false, kUnavailableValues, confidence, 0U, ReadingStatus::kRecognitionFailed, "too_many_decimals"};
             }
             fractional = (fractional * 10) + digit;
             fractional_scale *= 10;
@@ -93,7 +90,7 @@ RecognitionResult ParseDisplayText(const std::string& display_text, ConfidencePe
     }
 
     if (!seen_digit) {
-        return RecognitionResult{false, kUnavailableValues, confidence, 0U, ReadingStatus::kRecognitionFailed,
+        return RecognitionResult{false,      kUnavailableValues, confidence, 0U, ReadingStatus::kRecognitionFailed,
                                  "no_digits"};
     }
 
@@ -104,18 +101,19 @@ RecognitionResult ParseDisplayText(const std::string& display_text, ConfidencePe
 
     const int32_t centi = sign * ((whole * 100) + fractional);
     if (centi < INT16_MIN || centi > INT16_MAX) {
-        return RecognitionResult{false, kUnavailableValues, confidence, 0U, ReadingStatus::kValueOutOfRange,
-                                 "value_overflows_record"};
+        return RecognitionResult{
+            false, kUnavailableValues, confidence, 0U, ReadingStatus::kValueOutOfRange, "value_overflows_record"};
     }
     if (!IsPlausibleTemperature(static_cast<int16_t>(centi))) {
-        return RecognitionResult{false, kUnavailableValues, confidence, 0U, ReadingStatus::kValueOutOfRange,
-                                 "temperature_out_of_range"};
+        return RecognitionResult{
+            false, kUnavailableValues, confidence, 0U, ReadingStatus::kValueOutOfRange, "temperature_out_of_range"};
     }
 
     return RecognitionResult{true,
                              {kAqsUnsignedUnavailable, kAqsUnsignedUnavailable, kAqsUnsignedUnavailable,
                               static_cast<int16_t>(centi), kHumidityUnavailable},
-                             confidence, 0U,
+                             confidence,
+                             0U,
                              ReadingStatus::kOk,
                              ""};
 }

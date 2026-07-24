@@ -4,8 +4,8 @@
 
 #ifdef ESP_PLATFORM
 #include "app_config.h"
-#include "esp_camera_af.h"
 #include "esp_camera.h"
+#include "esp_camera_af.h"
 #include "esp_log.h"
 #endif
 

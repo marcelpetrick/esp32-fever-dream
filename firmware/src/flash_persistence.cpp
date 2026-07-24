@@ -18,9 +18,9 @@ namespace FlashPersistence {
 namespace {
 #ifdef ESP_PLATFORM
 constexpr const char* kTag = "flash_persist";
-#endif
 constexpr const char* kNvsNamespace = "fever";
 constexpr const char* kNvsKey = "ring_tail";
+#endif
 }  // namespace
 
 void Save(const StorageRingBuffer& storage) {
@@ -55,6 +55,8 @@ void Save(const StorageRingBuffer& storage) {
         ESP_LOGI(kTag, "saved %zu records (%zu B) to NVS", records.size(), blob.size());
     }
     nvs_close(handle);
+#else
+    (void)storage;
 #endif
 }
 
@@ -89,8 +91,7 @@ std::size_t Restore(StorageRingBuffer& storage) {
         std::array<uint8_t, RecordCodec::kEncodedSize> encoded{};
         const std::size_t offset = i * RecordCodec::kEncodedSize;
         std::copy(blob.begin() + static_cast<std::ptrdiff_t>(offset),
-                  blob.begin() + static_cast<std::ptrdiff_t>(offset + RecordCodec::kEncodedSize),
-                  encoded.begin());
+                  blob.begin() + static_cast<std::ptrdiff_t>(offset + RecordCodec::kEncodedSize), encoded.begin());
         const auto record = RecordCodec::Decode(encoded);
         if (record && storage.Append(*record)) {
             ++restored;

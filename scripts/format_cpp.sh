@@ -8,7 +8,10 @@ if [[ "${1:-}" == "--check" ]]; then
     CHECK=true
 fi
 
+# Generated artifacts (model byte arrays) are excluded: reformatting them produces
+# thousands of lines of churn whenever the local clang-format version changes.
 mapfile -t FILES < <(find "${ROOT_DIR}/firmware" "${ROOT_DIR}/main" "${ROOT_DIR}/tests" \
+    -path "${ROOT_DIR}/firmware/generated" -prune -o \
     \( -name '*.h' -o -name '*.cpp' -o -name '*.c' \) -print | sort)
 
 if [[ "${#FILES[@]}" -eq 0 ]]; then
