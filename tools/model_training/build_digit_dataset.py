@@ -137,8 +137,7 @@ def read_label_rows(paths: list[Path]) -> list[dict[str, str]]:
                     or (reviewer.startswith("auto-") and not consensus_label)
                     or reviewer in {"ollama", "model", "automatic"}
                     or (
-                        review_status
-                        and review_status not in {"approved", "corrected", "human", "automated_consensus"}
+                        review_status and review_status not in {"approved", "corrected", "human", "automated_consensus"}
                     )
                     or (not review_status and "ollama_ocr" in row.get("notes", "").lower())
                 )
@@ -269,12 +268,7 @@ def locate_bounds_for_orientation(image: Image.Image, rotation: int) -> DisplayB
     min_x = min(max(0, min_x), max(0, width - final_width))
     max_y = min(max(final_height - 1, max_y), height - 1)
     min_y = max_y - final_height + 1
-    if (
-        final_width < 140
-        or final_width > width - 20
-        or final_height < 140
-        or final_height > height - 20
-    ):
+    if final_width < 140 or final_width > width - 20 or final_height < 140 or final_height > height - 20:
         return None
     return DisplayBounds(min_x, min_y, final_width, final_height, rotation, len(color_xs) + len(text_xs))
 
@@ -323,9 +317,7 @@ def co2_digit_text(co2_ppm: str) -> str:
     return str(value)[-4:]
 
 
-def save_real_crops(
-    rows: list[dict[str, str]], output_dir: Path, args: argparse.Namespace
-) -> list[CropRow]:
+def save_real_crops(rows: list[dict[str, str]], output_dir: Path, args: argparse.Namespace) -> list[CropRow]:
     crop_rows: list[CropRow] = []
     crops_dir = output_dir / "crops"
     for row_index, row in enumerate(rows, start=1):
@@ -367,9 +359,7 @@ def save_real_crops(
                 ("humidity", humidity, RELATIVE_HUMIDITY_DIGIT_BOXES, HUMIDITY_DIGIT_BOXES),
             )
         )
-        split = row.get("split") or split_for_index(
-            row_index, args.real_test_every, args.real_validation_every
-        )
+        split = row.get("split") or split_for_index(row_index, args.real_test_every, args.real_validation_every)
         for prefix, text, relative_boxes, fallback_boxes in digit_groups:
             for position, digit in enumerate(text):
                 crop = normalize_crop(crop_digit(image, bounds, relative_boxes[position], fallback_boxes[position]))
@@ -502,17 +492,9 @@ def write_report(rows: list[CropRow], output_path: Path) -> None:
         "rows": len(rows),
         "counts": counts,
         "real_missing_digits": sorted(
-            set(CLASSES)
-            - {
-                label
-                for key, labels in counts.items()
-                if key.startswith("real_")
-                for label in labels
-            }
+            set(CLASSES) - {label for key, labels in counts.items() if key.startswith("real_") for label in labels}
         ),
-        "limitations": [
-            "Synthetic crops are training augmentation only and are not validation evidence."
-        ],
+        "limitations": ["Synthetic crops are training augmentation only and are not validation evidence."],
     }
     output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

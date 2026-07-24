@@ -71,26 +71,16 @@ class TrustedLabelTest(unittest.TestCase):
         self.assertFalse(trusted_label({"notes": "timed ollama_ocr"}))
 
     def test_corrected_ollama_label_is_trusted(self) -> None:
-        self.assertTrue(
-            trusted_label({"notes": "ollama_ocr", "review_status": "corrected"})
-        )
+        self.assertTrue(trusted_label({"notes": "ollama_ocr", "review_status": "corrected"}))
 
     def test_proposal_schema_is_untrusted(self) -> None:
         self.assertFalse(trusted_label({"proposal_status": "accepted"}))
 
     def test_auto_bulk_approval_is_untrusted(self) -> None:
-        self.assertFalse(
-            trusted_label(
-                {"review_status": "approved", "reviewer": "auto-bulk-approved"}
-            )
-        )
+        self.assertFalse(trusted_label({"review_status": "approved", "reviewer": "auto-bulk-approved"}))
 
     def test_automated_consensus_is_trusted(self) -> None:
-        self.assertTrue(
-            trusted_label(
-                {"review_status": "automated_consensus", "reviewer": "auto-consensus"}
-            )
-        )
+        self.assertTrue(trusted_label({"review_status": "automated_consensus", "reviewer": "auto-consensus"}))
 
 
 class IntegrityAuditTest(unittest.TestCase):

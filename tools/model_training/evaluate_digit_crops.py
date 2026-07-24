@@ -125,8 +125,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         "accuracy": (sum(correct[(split, "ALL")] for split in selected_splits) / len(rows)) if rows else None,
         "per_split": {},
         "top_confusions": [
-            {"expected": key[0], "predicted": key[1], "count": count}
-            for key, count in confusion.most_common(25)
+            {"expected": key[0], "predicted": key[1], "count": count} for key, count in confusion.most_common(25)
         ],
     }
     for split in sorted(selected_splits):
@@ -138,11 +137,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             "per_digit": {
                 digit: {
                     "rows": total[(split, digit)],
-                    "accuracy": (
-                        correct[(split, digit)] / total[(split, digit)]
-                        if total[(split, digit)]
-                        else None
-                    ),
+                    "accuracy": (correct[(split, digit)] / total[(split, digit)] if total[(split, digit)] else None),
                 }
                 for digit in CLASSES
             },

@@ -233,9 +233,9 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         action="store_true",
         default=True,
         help="Process unlabeled frames in random order (default: on). "
-             "Randomising spreads sampling across the full capture window so "
-             "rare digit values appear early rather than after all similar "
-             "consecutive frames have been processed.",
+        "Randomising spreads sampling across the full capture window so "
+        "rare digit values appear early rather than after all similar "
+        "consecutive frames have been processed.",
     )
     parser.add_argument(
         "--no-shuffle",
@@ -329,8 +329,7 @@ def warmup_model(model: str, url: str, timeout: int, num_ctx: int) -> None:
     print(f"[INFO] warming up {model} (ctx={num_ctx}) ...", flush=True)
     t0 = time.monotonic()
     payload = json.dumps(
-        {"model": model, "prompt": _WARMUP_PROMPT, "stream": False,
-         "options": {"num_ctx": num_ctx}}
+        {"model": model, "prompt": _WARMUP_PROMPT, "stream": False, "options": {"num_ctx": num_ctx}}
     ).encode()
     req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
     try:
@@ -383,9 +382,7 @@ def query_ollama(
     parsed_url = urllib.parse.urlsplit(url)
     if parsed_url.scheme not in {"http", "https"} or not parsed_url.hostname:
         raise ValueError(f"unsupported Ollama URL: {url}")
-    connection_class = (
-        http.client.HTTPSConnection if parsed_url.scheme == "https" else http.client.HTTPConnection
-    )
+    connection_class = http.client.HTTPSConnection if parsed_url.scheme == "https" else http.client.HTTPConnection
     connection = connection_class(parsed_url.hostname, parsed_url.port, timeout=timeout)
     path = parsed_url.path or "/"
     if parsed_url.query:
@@ -564,9 +561,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     ok_rows = accepted_rows(rows, args.skip_duplicates)
     print(f"[INFO] manifest: {len(rows)} total rows, {len(ok_rows)} accepted frames", flush=True)
 
-    existing: dict[str, dict[str, object]] = (
-        dict(load_existing_labels(output_path)) if args.resume else {}
-    )
+    existing: dict[str, dict[str, object]] = dict(load_existing_labels(output_path)) if args.resume else {}
     completed = {sample_id for sample_id, row in existing.items() if proposal_succeeded(row)}
     if existing:
         retry_count = len(existing) - len(completed)
@@ -643,8 +638,14 @@ def main(argv: Iterable[str] | None = None) -> int:
 
         t0 = time.monotonic()
         parsed, note, attempts = ocr_image(
-            image_path, args.model, args.ollama_url, args.retries, args.request_timeout,
-            args.num_ctx, args.total_timeout, args.num_predict,
+            image_path,
+            args.model,
+            args.ollama_url,
+            args.retries,
+            args.request_timeout,
+            args.num_ctx,
+            args.total_timeout,
+            args.num_predict,
         )
         elapsed = time.monotonic() - t0
         common = {
@@ -705,8 +706,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             else note
         )
         print(
-            f"  [{done:4d}/{total}] {status}  {sample_id}  {vals}"
-            f"  ({elapsed:.1f}s  ETA {remaining / 60:.0f}min)",
+            f"  [{done:4d}/{total}] {status}  {sample_id}  {vals}" f"  ({elapsed:.1f}s  ETA {remaining / 60:.0f}min)",
             flush=True,
         )
 

@@ -142,14 +142,8 @@ def read_label_cases(paths: list[Path]) -> list[ImageCase]:
                 cases.append(
                     ImageCase(
                         image_path=image_path,
-                        expected_temperature=(
-                            f"{float(row['temperature_c']):.0f}".zfill(2)[-2:]
-                            if is_valid
-                            else None
-                        ),
-                        expected_humidity=(
-                            f"{int(row['humidity_percent']):02d}"[-2:] if is_valid else None
-                        ),
+                        expected_temperature=(f"{float(row['temperature_c']):.0f}".zfill(2)[-2:] if is_valid else None),
+                        expected_humidity=(f"{int(row['humidity_percent']):02d}"[-2:] if is_valid else None),
                         expected_co2=optional_co2_text(row) if is_valid else None,
                         expected_hcho=optional_four_digit(row, "hcho_raw") if is_valid else None,
                         expected_tvoc=optional_four_digit(row, "tvoc_raw") if is_valid else None,
@@ -208,7 +202,9 @@ def crop_to_input(
     return values.astype(np.int8).reshape(1, TARGET_SIZE[1], TARGET_SIZE[0], 1)
 
 
-def predict_digit(interpreter, input_detail: dict, output_detail: dict, tensor: np.ndarray) -> tuple[str, int, list[int]]:
+def predict_digit(
+    interpreter, input_detail: dict, output_detail: dict, tensor: np.ndarray
+) -> tuple[str, int, list[int]]:
     interpreter.set_tensor(input_detail["index"], tensor)
     interpreter.invoke()
     raw = interpreter.get_tensor(output_detail["index"])[0].astype(int)
@@ -239,9 +235,7 @@ def rejected_result(case: ImageCase, reason: str) -> dict:
         "field_match": "",
         "accepted": "false",
         "rejection_reason": reason,
-        "should_accept": (
-            "true" if case.should_accept is True else "false" if case.should_accept is False else ""
-        ),
+        "should_accept": ("true" if case.should_accept is True else "false" if case.should_accept is False else ""),
         "match": "false" if case.should_accept is True else "",
     }
 
@@ -259,9 +253,21 @@ def run_case(
         return rejected_result(case, "display_not_found")
     temp_boxes = relative_temp_boxes(bounds)
     digit_groups = [
-        ("co2", [RELATIVE_CO2_DIGIT_BOXES[index] for index in range(4)], [CO2_DIGIT_BOXES[index] for index in range(4)]),
-        ("hcho", [RELATIVE_HCHO_DIGIT_BOXES[index] for index in range(4)], [HCHO_DIGIT_BOXES[index] for index in range(4)]),
-        ("tvoc", [RELATIVE_TVOC_DIGIT_BOXES[index] for index in range(4)], [TVOC_DIGIT_BOXES[index] for index in range(4)]),
+        (
+            "co2",
+            [RELATIVE_CO2_DIGIT_BOXES[index] for index in range(4)],
+            [CO2_DIGIT_BOXES[index] for index in range(4)],
+        ),
+        (
+            "hcho",
+            [RELATIVE_HCHO_DIGIT_BOXES[index] for index in range(4)],
+            [HCHO_DIGIT_BOXES[index] for index in range(4)],
+        ),
+        (
+            "tvoc",
+            [RELATIVE_TVOC_DIGIT_BOXES[index] for index in range(4)],
+            [TVOC_DIGIT_BOXES[index] for index in range(4)],
+        ),
         ("temperature", [temp_boxes[0], temp_boxes[1]], [TEMP_DIGIT_BOXES[0], TEMP_DIGIT_BOXES[1]]),
         (
             "humidity",
@@ -301,11 +307,7 @@ def run_case(
     comparable = {key: value for key, value in expected.items() if value is not None}
     min_confidence = min(all_confidences)
     accepted = min_confidence >= confidence_threshold
-    is_match = (
-        accepted
-        and bool(comparable)
-        and all(predicted[key] == value for key, value in comparable.items())
-    )
+    is_match = accepted and bool(comparable) and all(predicted[key] == value for key, value in comparable.items())
     field_match = {
         key: ("true" if expected_value is not None and predicted[key] == expected_value else "false")
         for key, expected_value in expected.items()
@@ -333,9 +335,7 @@ def run_case(
         "field_match": ";".join(f"{key}:{value}" for key, value in field_match.items()),
         "accepted": "true" if accepted else "false",
         "rejection_reason": "" if accepted else "confidence_below_threshold",
-        "should_accept": (
-            "true" if case.should_accept is True else "false" if case.should_accept is False else ""
-        ),
+        "should_accept": ("true" if case.should_accept is True else "false" if case.should_accept is False else ""),
         "match": "true" if is_match else "false" if comparable else "",
     }
 
@@ -391,10 +391,7 @@ def write_summary(rows: list[dict], output_path: Path, model_path: Path) -> dict
     for name, predicted, expected in field_names:
         comparable = [row for row in positives if row[expected]]
         raw_correct = sum(row[predicted] == row[expected] for row in comparable)
-        accepted_correct = sum(
-            row["accepted"] == "true" and row[predicted] == row[expected]
-            for row in comparable
-        )
+        accepted_correct = sum(row["accepted"] == "true" and row[predicted] == row[expected] for row in comparable)
         raw_field_accuracy[name] = {
             "correct": raw_correct,
             "total": len(comparable),
@@ -423,11 +420,7 @@ def write_summary(rows: list[dict], output_path: Path, model_path: Path) -> dict
         "accepted_field_accuracy": accepted_field_accuracy,
         "false_accepts": len(false_accepts),
         "false_accept_rate": len(false_accepts) / len(negatives) if negatives else None,
-        "positive_rejection_rate": (
-            (len(positives) - len(accepted_positives)) / len(positives)
-            if positives
-            else None
-        ),
+        "positive_rejection_rate": ((len(positives) - len(accepted_positives)) / len(positives) if positives else None),
         "min_confidence_percent": min((int(row["min_confidence_percent"]) for row in rows), default=None),
         "average_min_confidence_percent": (
             sum(int(row["min_confidence_percent"]) for row in rows) / len(rows) if rows else None
@@ -457,20 +450,18 @@ def main(argv: Iterable[str] | None = None) -> int:
     output_detail = interpreter.get_output_details()[0]
     if not 0 <= args.confidence_threshold <= 100:
         raise ValueError("--confidence-threshold must be between 0 and 100")
-    rows = [
-        run_case(case, interpreter, input_detail, output_detail, args.confidence_threshold)
-        for case in cases
-    ]
+    rows = [run_case(case, interpreter, input_detail, output_detail, args.confidence_threshold) for case in cases]
     write_csv(rows, args.output)
     summary = write_summary(rows, args.summary_json, args.model)
 
     accuracy = summary["full_reading_accuracy"]
     accuracy_text = "n/a" if accuracy is None else f"{accuracy:.4f}"
     print(
-        f"[INFO] rows={summary['rows']} positives={summary['positive_rows']} "
-        f"full_reading_accuracy={accuracy_text}"
+        f"[INFO] rows={summary['rows']} positives={summary['positive_rows']} " f"full_reading_accuracy={accuracy_text}"
     )
-    print(f"[INFO] min_confidence={summary['min_confidence_percent']} avg_min_confidence={summary['average_min_confidence_percent']}")
+    print(
+        f"[INFO] min_confidence={summary['min_confidence_percent']} avg_min_confidence={summary['average_min_confidence_percent']}"
+    )
     print(f"[INFO] wrote {args.output}")
     print(f"[INFO] wrote {args.summary_json}")
     return 0

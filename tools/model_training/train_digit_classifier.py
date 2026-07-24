@@ -60,23 +60,17 @@ def read_rows(path: Path) -> list[dict[str, str]]:
 
 
 def validate_source_splits(rows: list[dict[str, str]]) -> None:
-    synthetic_heldout = [
-        row for row in rows if row.get("source") == "synthetic" and row["split"] != "train"
-    ]
+    synthetic_heldout = [row for row in rows if row.get("source") == "synthetic" and row["split"] != "train"]
     if synthetic_heldout:
         raise ValueError("synthetic rows are forbidden in validation and test splits")
     non_real_heldout = [
-        row
-        for row in rows
-        if row["split"] in {"validation", "test"} and row.get("source", "real") != "real"
+        row for row in rows if row["split"] in {"validation", "test"} and row.get("source", "real") != "real"
     ]
     if non_real_heldout:
         raise ValueError("validation and test must contain real crops only")
 
 
-def load_split(
-    rows: list[dict[str, str]], split: str
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def load_split(rows: list[dict[str, str]], split: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     x_values: list[np.ndarray] = []
     y_values: list[int] = []
     real_values: list[bool] = []
@@ -216,9 +210,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     class_counts = np.bincount(y_train, minlength=len(CLASSES)).astype(np.float32)
     class_counts = np.where(class_counts == 0, 1.0, class_counts)
     class_freq_weight = (class_counts.sum() / (len(CLASSES) * class_counts)).astype(np.float32)
-    sample_weight = (
-        np.where(train_is_real, args.real_weight, 1.0) * class_freq_weight[y_train]
-    ).astype(np.float32)
+    sample_weight = (np.where(train_is_real, args.real_weight, 1.0) * class_freq_weight[y_train]).astype(np.float32)
 
     history = model.fit(
         x_train,

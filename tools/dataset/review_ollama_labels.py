@@ -97,10 +97,7 @@ def temporal_flags(rows: list[dict[str, str]], neighbor_count: int = 4) -> dict[
         for row in rows
         if (
             row.get("proposal_status") == "accepted"
-            or (
-                not row.get("proposal_status")
-                and row.get("valid", "").strip().lower() == "true"
-            )
+            or (not row.get("proposal_status") and row.get("valid", "").strip().lower() == "true")
         )
         and all(row.get(field, "").lstrip("-").isdigit() for field in VALUE_FIELDS)
     ]
@@ -126,10 +123,7 @@ def audit_reasons(path: Path | None) -> dict[str, str]:
     if path is None:
         return {}
     _, rows = read_csv(path)
-    return {
-        Path(row["image_path"]).stem: row.get("rejection_reasons", "")
-        for row in rows
-    }
+    return {Path(row["image_path"]).stem: row.get("rejection_reasons", "") for row in rows}
 
 
 def prepare_queue(proposals_path: Path, audit_path: Path | None, output_path: Path) -> None:
@@ -141,9 +135,7 @@ def prepare_queue(proposals_path: Path, audit_path: Path | None, output_path: Pa
     flags = temporal_flags(proposals)
     quality = audit_reasons(audit_path)
     fieldnames = proposal_fields + [
-        field
-        for field in (*PROVENANCE_FIELDS, *REVIEW_FIELDS)
-        if field not in proposal_fields
+        field for field in (*PROVENANCE_FIELDS, *REVIEW_FIELDS) if field not in proposal_fields
     ]
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temporary = output_path.with_suffix(output_path.suffix + ".tmp")
@@ -154,11 +146,7 @@ def prepare_queue(proposals_path: Path, audit_path: Path | None, output_path: Pa
             prior = existing.get(proposal["sample_id"], {})
             output = dict(proposal)
             if not output.get("proposal_status"):
-                output["proposal_status"] = (
-                    "accepted"
-                    if output.get("valid", "").strip().lower() == "true"
-                    else "error"
-                )
+                output["proposal_status"] = "accepted" if output.get("valid", "").strip().lower() == "true" else "error"
             output.setdefault("model", "legacy-unknown")
             output.setdefault("prompt_version", "aqs-five-field-v1")
             for field in REVIEW_FIELDS:
@@ -194,10 +182,7 @@ def _auto_stamp(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     now = dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat()
     stamped: list[dict[str, str]] = []
     for row in rows:
-        if (
-            row.get("review_decision", "").strip().lower() == "pending"
-            and row.get("proposal_status") == "accepted"
-        ):
+        if row.get("review_decision", "").strip().lower() == "pending" and row.get("proposal_status") == "accepted":
             row = {**row, "review_decision": "approve", "reviewer": "auto-bulk-approved", "reviewed_at_utc": now}
         stamped.append(row)
     return stamped

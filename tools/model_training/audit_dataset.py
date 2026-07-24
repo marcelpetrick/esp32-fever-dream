@@ -27,51 +27,51 @@ DIGIT_RE = re.compile(r"\d")
 
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Audit TinyML OCR dataset readiness.")
-    parser.add_argument(
-        "--labels", required=True, type=Path, help="Label CSV to audit."
-    )
-    parser.add_argument(
-        "--json-out", required=True, type=Path, help="JSON report output."
-    )
-    parser.add_argument(
-        "--markdown-out", required=True, type=Path, help="Markdown report output."
-    )
+    parser.add_argument("--labels", required=True, type=Path, help="Label CSV to audit.")
+    parser.add_argument("--json-out", required=True, type=Path, help="JSON report output.")
+    parser.add_argument("--markdown-out", required=True, type=Path, help="Markdown report output.")
     parser.add_argument("--min-captures", type=int, default=300)
     parser.add_argument("--min-distinct-readings", type=int, default=10)
     parser.add_argument("--min-heldout", type=int, default=50)
     parser.add_argument("--min-validation", type=int, default=50)
-    parser.add_argument("--min-test", type=int, default=0,
-                        help="Minimum test-split rows (0 = no test set required).")
-    parser.add_argument("--min-negative", type=int, default=0,
-                        help="Minimum negative/ambiguous rows (0 = none required).")
+    parser.add_argument("--min-test", type=int, default=0, help="Minimum test-split rows (0 = no test set required).")
+    parser.add_argument(
+        "--min-negative", type=int, default=0, help="Minimum negative/ambiguous rows (0 = none required)."
+    )
     parser.add_argument("--min-samples-per-digit", type=int, default=20)
     parser.add_argument(
-        "--exempt-cross-split-batches", nargs="*", default=[],
+        "--exempt-cross-split-batches",
+        nargs="*",
+        default=[],
         metavar="BATCH",
         help="Batch names that are intentionally split across train/validation "
-             "(e.g. batches listed in split_within). Excluded from the "
-             "capture_batches_split_exclusive check.",
+        "(e.g. batches listed in split_within). Excluded from the "
+        "capture_batches_split_exclusive check.",
     )
     parser.add_argument(
-        "--max-hash-failures", type=int, default=0,
+        "--max-hash-failures",
+        type=int,
+        default=0,
         help="Maximum number of images allowed to fail perceptual hashing "
-             "(locate_display failures). 0 = zero tolerance.",
+        "(locate_display failures). 0 = zero tolerance.",
     )
     parser.add_argument(
-        "--perceptual-hamming-threshold", type=int, default=2,
+        "--perceptual-hamming-threshold",
+        type=int,
+        default=2,
         help="Maximum Hamming distance between pHashes to consider two images "
-             "near-duplicates. Use 0 to disable (only exact pixel-identical "
-             "images flagged).",
+        "near-duplicates. Use 0 to disable (only exact pixel-identical "
+        "images flagged).",
     )
     parser.add_argument(
-        "--max-missing-validation-digits", type=int, default=0,
+        "--max-missing-validation-digits",
+        type=int,
+        default=0,
         help="How many digit classes may be absent from the validation split "
-             "before the validation_all_digits check fails. Useful when the "
-             "validation set is too small to cover every sensor value.",
+        "before the validation_all_digits check fails. Useful when the "
+        "validation set is too small to cover every sensor value.",
     )
-    parser.add_argument(
-        "--strict", action="store_true", help="Exit non-zero when audit fails."
-    )
+    parser.add_argument("--strict", action="store_true", help="Exit non-zero when audit fails.")
     return parser.parse_args(list(argv))
 
 
@@ -135,11 +135,7 @@ def row_label(row: dict[str, str]) -> str:
         part
         for part in (
             row.get("temperature_text", "").strip(),
-            (
-                (hum + "%")
-                if hum
-                else ""
-            ),
+            ((hum + "%") if hum else ""),
         )
         if part
     )
@@ -155,10 +151,7 @@ def crop_digit_label(row: dict[str, str]) -> str:
         "humidity_percent",
     )
     if all(row.get(field, "").strip() for field in environment_fields):
-        parts = [
-            f"{int(row[field]):04d}"[-4:]
-            for field in ("co2_ppm", "hcho_raw", "tvoc_raw")
-        ]
+        parts = [f"{int(row[field]):04d}"[-4:] for field in ("co2_ppm", "hcho_raw", "tvoc_raw")]
         parts.append(f"{float(row['temperature_c']):.0f}".zfill(2)[-2:])
         parts.append(f"{int(row['humidity_percent']):02d}"[-2:])
         return "".join(parts)
@@ -177,9 +170,7 @@ def row_perceptual_hash(row: dict[str, str]) -> tuple[int | None, str | None]:
     if bounds is None:
         return None, "display_not_found"
     oriented = image.rotate(bounds.rotation) if bounds.rotation else image
-    region = oriented.crop(
-        (bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height)
-    )
+    region = oriented.crop((bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height))
     sample = region.convert("L").resize((9, 8), Image.Resampling.LANCZOS)
     pixels = list(sample.get_flattened_data())
     value = 0
@@ -189,19 +180,11 @@ def row_perceptual_hash(row: dict[str, str]) -> tuple[int | None, str | None]:
     return value, None
 
 
-def evaluate(
-    rows: list[dict[str, str]], labels_path: Path, args: argparse.Namespace
-) -> dict[str, object]:
-    candidate_rows = [
-        row for row in rows if truthy(row.get("valid", "true")) and row_label(row)
-    ]
+def evaluate(rows: list[dict[str, str]], labels_path: Path, args: argparse.Namespace) -> dict[str, object]:
+    candidate_rows = [row for row in rows if truthy(row.get("valid", "true")) and row_label(row)]
     untrusted_rows = [row for row in candidate_rows if not trusted_label(row)]
     valid_rows = [row for row in candidate_rows if trusted_label(row)]
-    negative_rows = [
-        row
-        for row in rows
-        if not truthy(row.get("valid", "true")) and trusted_label(row)
-    ]
+    negative_rows = [row for row in rows if not truthy(row.get("valid", "true")) and trusted_label(row)]
     hashed_rows: list[tuple[dict[str, str], int]] = []
     hash_failures: list[str] = []
     for row in valid_rows:
@@ -213,9 +196,7 @@ def evaluate(
     usable_rows = [row for row, _ in hashed_rows]
     labels = [row_label(row) for row in usable_rows]
     distinct_readings = sorted(set(labels))
-    split_counts = Counter(
-        row.get("split", "unassigned") or "unassigned" for row in usable_rows
-    )
+    split_counts = Counter(row.get("split", "unassigned") or "unassigned" for row in usable_rows)
     digit_counts = Counter()
     split_digit_counts: dict[str, Counter[str]] = {
         "train": Counter(),
@@ -230,8 +211,7 @@ def evaluate(
             split_digit_counts[split].update(digits)
 
     split_names_valid = all(
-        (row.get("split", "") or "unassigned") in {"train", "validation", "test"}
-        for row in valid_rows
+        (row.get("split", "") or "unassigned") in {"train", "validation", "test"} for row in valid_rows
     )
     sample_ids = [row.get("sample_id", "") for row in valid_rows]
     duplicate_sample_ids = sorted(
@@ -249,8 +229,7 @@ def evaluate(
     cross_split_images = sorted(path for path, splits in image_splits.items() if len(splits) > 1)
     exempt_batches = set(getattr(args, "exempt_cross_split_batches", []))
     cross_split_batches = sorted(
-        batch for batch, splits in batch_splits.items()
-        if len(splits) > 1 and batch not in exempt_batches
+        batch for batch, splits in batch_splits.items() if len(splits) > 1 and batch not in exempt_batches
     )
     hamming_threshold = getattr(args, "perceptual_hamming_threshold", 0)
     cross_split_near_duplicates: list[str] = []
@@ -288,13 +267,11 @@ def evaluate(
         "minimum_validation": split_counts.get("validation", 0) >= args.min_validation,
         "minimum_test": split_counts.get("test", 0) >= args.min_test,
         "minimum_negative": len(negative_rows) >= args.min_negative,
-        "validation_all_digits": len(
-            REQUIRED_DIGITS - set(split_digit_counts["validation"])
-        ) <= max_missing_validation_digits,
+        "validation_all_digits": len(REQUIRED_DIGITS - set(split_digit_counts["validation"]))
+        <= max_missing_validation_digits,
         # Only require all digits in test split when a test split exists.
         "test_all_digits": (
-            split_counts.get("test", 0) == 0
-            or not (REQUIRED_DIGITS - set(split_digit_counts["test"]))
+            split_counts.get("test", 0) == 0 or not (REQUIRED_DIGITS - set(split_digit_counts["test"]))
         ),
         "all_labels_trusted": not untrusted_rows,
         "split_names_valid": split_names_valid,
@@ -332,16 +309,9 @@ def evaluate(
             "heldout_count": heldout_count,
             "split_counts": dict(sorted(split_counts.items())),
             "digit_counts": dict(sorted(digit_counts.items())),
-            "split_digit_counts": {
-                split: dict(sorted(counts.items()))
-                for split, counts in split_digit_counts.items()
-            },
-            "validation_missing_digits": sorted(
-                REQUIRED_DIGITS - set(split_digit_counts["validation"])
-            ),
-            "test_missing_digits": sorted(
-                REQUIRED_DIGITS - set(split_digit_counts["test"])
-            ),
+            "split_digit_counts": {split: dict(sorted(counts.items())) for split, counts in split_digit_counts.items()},
+            "validation_missing_digits": sorted(REQUIRED_DIGITS - set(split_digit_counts["validation"])),
+            "test_missing_digits": sorted(REQUIRED_DIGITS - set(split_digit_counts["test"])),
             "missing_digits": missing_digits,
             "underrepresented_digits": underrepresented,
             "duplicate_sample_ids": duplicate_sample_ids,
@@ -432,14 +402,10 @@ def render_markdown(report: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
-def write_report(
-    report: dict[str, object], json_path: Path, markdown_path: Path
-) -> None:
+def write_report(report: dict[str, object], json_path: Path, markdown_path: Path) -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(
-        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    json_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     markdown_path.write_text(render_markdown(report), encoding="utf-8")
 
 
@@ -449,9 +415,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     report = evaluate(rows, args.labels, args)
     write_report(report, args.json_out, args.markdown_out)
     if args.strict and not report["passed"]:
-        print(
-            f"dataset audit blocked training; see {args.markdown_out}", file=sys.stderr
-        )
+        print(f"dataset audit blocked training; see {args.markdown_out}", file=sys.stderr)
         return 2
     return 0
 

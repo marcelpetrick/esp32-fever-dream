@@ -1,0 +1,10 @@
+# Formatter and linter configuration for the Python tooling under tools/.
+# The 120-column limit matches the clang-format ColumnLimit used for the firmware.
+
+[tool.black]
+line-length = 120
+target-version = ["py313"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"

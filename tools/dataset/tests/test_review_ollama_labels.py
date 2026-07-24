@@ -106,5 +106,6 @@ class ReviewWorkflowTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "image quality rejected"):
                 promote_queue(queue, labels)
 
+
 if __name__ == "__main__":
     unittest.main()

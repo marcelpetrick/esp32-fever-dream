@@ -13,9 +13,7 @@ from tools.model_training.apply_split_policy import apply_policy, load_policy
 class ApplySplitPolicyTest(unittest.TestCase):
     def write_labels(self, path: Path, batch: str, count: int) -> None:
         with path.open("w", encoding="utf-8", newline="") as csv_file:
-            writer = csv.DictWriter(
-                csv_file, fieldnames=["sample_id", "image_path", "split"]
-            )
+            writer = csv.DictWriter(csv_file, fieldnames=["sample_id", "image_path", "split"])
             writer.writeheader()
             for index in range(1, count + 1):
                 writer.writerow(
@@ -31,9 +29,7 @@ class ApplySplitPolicyTest(unittest.TestCase):
             root = Path(temp_dir)
             labels = root / "labels.csv"
             with labels.open("w", encoding="utf-8", newline="") as csv_file:
-                writer = csv.DictWriter(
-                    csv_file, fieldnames=["sample_id", "image_path", "split"]
-                )
+                writer = csv.DictWriter(csv_file, fieldnames=["sample_id", "image_path", "split"])
                 writer.writeheader()
                 writer.writerow(
                     {

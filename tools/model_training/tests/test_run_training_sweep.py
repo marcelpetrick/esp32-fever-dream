@@ -11,8 +11,7 @@ class QualificationTest(unittest.TestCase):
             "validation_real_tflite": {
                 "accuracy": overall,
                 "per_digit": {
-                    str(digit): {"accuracy": digit_accuracy, "total": 10, "correct": 10}
-                    for digit in range(10)
+                    str(digit): {"accuracy": digit_accuracy, "total": 10, "correct": 10} for digit in range(10)
                 },
             }
         }

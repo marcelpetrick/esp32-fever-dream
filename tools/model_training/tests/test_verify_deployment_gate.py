@@ -10,9 +10,7 @@ class DeploymentGateTest(unittest.TestCase):
         return {
             "test_real_tflite": {
                 "accuracy": 0.995,
-                "per_digit": {
-                    str(digit): {"accuracy": 0.98} for digit in range(10)
-                },
+                "per_digit": {str(digit): {"accuracy": 0.98} for digit in range(10)},
             }
         }
 

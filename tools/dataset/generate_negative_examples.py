@@ -124,7 +124,9 @@ def generate(args: argparse.Namespace) -> list[dict[str, str]]:
         rows.append(
             {
                 "sample_id": sample_id,
-                "image_path": str(output_path.relative_to(REPO_ROOT) if output_path.is_relative_to(REPO_ROOT) else output_path),
+                "image_path": str(
+                    output_path.relative_to(REPO_ROOT) if output_path.is_relative_to(REPO_ROOT) else output_path
+                ),
                 "temperature_c": "",
                 "humidity_percent": "",
                 "co2_ppm": "",

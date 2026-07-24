@@ -20,7 +20,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Iterable
 
-
 BAUD_RATES = {
     9600: termios.B9600,
     19200: termios.B19200,

@@ -111,13 +111,7 @@ def image_metrics(image: Image.Image) -> tuple[float, float, float]:
     if min(gray.shape) < 3:
         sharpness = 0.0
     else:
-        laplacian = (
-            -4.0 * gray[1:-1, 1:-1]
-            + gray[:-2, 1:-1]
-            + gray[2:, 1:-1]
-            + gray[1:-1, :-2]
-            + gray[1:-1, 2:]
-        )
+        laplacian = -4.0 * gray[1:-1, 1:-1] + gray[:-2, 1:-1] + gray[2:, 1:-1] + gray[1:-1, :-2] + gray[1:-1, 2:]
         sharpness = float(np.var(laplacian))
     return brightness, contrast, sharpness
 
@@ -220,9 +214,7 @@ def write_csv(rows: list[AuditRow], path: Path) -> None:
 
 
 def metric_summary(rows: list[AuditRow], field: str) -> dict[str, float] | None:
-    values = np.asarray(
-        [getattr(row, field) for row in rows if getattr(row, field) is not None], dtype=np.float64
-    )
+    values = np.asarray([getattr(row, field) for row in rows if getattr(row, field) is not None], dtype=np.float64)
     if not len(values):
         return None
     return {

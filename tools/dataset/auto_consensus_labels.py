@@ -211,7 +211,9 @@ def decide(
         "reviewer": "auto-consensus",
         "reviewed_at_utc": reviewed_at,
         "proposal_model": "+".join(distinct_models),
-        "prompt_version": "+".join(sorted({row.get("prompt_version", "") for row in winning_rows if row.get("prompt_version", "")})),
+        "prompt_version": "+".join(
+            sorted({row.get("prompt_version", "") for row in winning_rows if row.get("prompt_version", "")})
+        ),
         "source_proposals": "+".join(sorted({row.get("_source_proposals", "") for row in winning_rows})),
         "consensus_status": status,
         "consensus_reason": reason,
@@ -243,7 +245,9 @@ def rejected(
             "consensus_reason": reason,
             "consensus_models": "+".join(sorted({proposal_model(row) for row in proposals})),
             "consensus_votes": "0",
-            "notes": ";".join(part for part in [flags.get("quality_reasons", ""), flags.get("temporal_flags", "")] if part),
+            "notes": ";".join(
+                part for part in [flags.get("quality_reasons", ""), flags.get("temporal_flags", "")] if part
+            ),
         }
     )
     return output

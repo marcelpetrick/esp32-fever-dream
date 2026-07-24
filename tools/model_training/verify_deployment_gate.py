@@ -39,36 +39,25 @@ def evaluate_gate(
 ) -> dict[str, object]:
     test = model_eval.get("test_real_tflite")
     per_digit = test.get("per_digit", {}) if isinstance(test, dict) else {}
-    class_accuracies = [
-        metrics.get("accuracy")
-        for metrics in per_digit.values()
-        if isinstance(metrics, dict)
-    ]
-    threshold_match = re.search(
-        r"kRecognitionMinConfidencePercent\s*=\s*(\d+)U", firmware_config
-    )
+    class_accuracies = [metrics.get("accuracy") for metrics in per_digit.values() if isinstance(metrics, dict)]
+    threshold_match = re.search(r"kRecognitionMinConfidencePercent\s*=\s*(\d+)U", firmware_config)
     confidence_threshold = int(threshold_match.group(1)) if threshold_match else None
     full_reading_accuracy = reading_eval.get("full_reading_accuracy")
     false_accept_rate = reading_eval.get("false_accept_rate")
     checks = {
         "frozen_test_present": isinstance(test, dict),
-        "test_digit_accuracy": (
-            isinstance(test, dict) and float(test.get("accuracy", 0.0)) >= MIN_DIGIT_ACCURACY
-        ),
+        "test_digit_accuracy": (isinstance(test, dict) and float(test.get("accuracy", 0.0)) >= MIN_DIGIT_ACCURACY),
         "all_digits_present_in_test": len(class_accuracies) == 10
         and all(value is not None for value in class_accuracies),
         "worst_digit_accuracy": len(class_accuracies) == 10
         and all(value is not None and float(value) >= MIN_CLASS_ACCURACY for value in class_accuracies),
         "full_reading_accuracy": full_reading_accuracy is not None
         and float(full_reading_accuracy) >= MIN_FULL_READING_ACCURACY,
-        "false_accept_rate": false_accept_rate is not None
-        and float(false_accept_rate) <= MAX_FALSE_ACCEPT_RATE,
+        "false_accept_rate": false_accept_rate is not None and float(false_accept_rate) <= MAX_FALSE_ACCEPT_RATE,
         "negative_set_present": int(reading_eval.get("negative_rows", 0)) >= 50,
         "model_size": model_size <= MAX_MODEL_BYTES,
-        "confidence_threshold": confidence_threshold is not None
-        and confidence_threshold >= MIN_CONFIDENCE_THRESHOLD,
-        "prototype_correction_removed": "Temporary mounted-prototype correction"
-        not in recognizer_source,
+        "confidence_threshold": confidence_threshold is not None and confidence_threshold >= MIN_CONFIDENCE_THRESHOLD,
+        "prototype_correction_removed": "Temporary mounted-prototype correction" not in recognizer_source,
     }
     return {
         "passed": all(checks.values()),

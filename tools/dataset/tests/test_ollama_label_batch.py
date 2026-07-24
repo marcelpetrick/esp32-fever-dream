@@ -264,9 +264,7 @@ class QueryOllamaTest(unittest.TestCase):
                 side_effect=[0.0, 0.1],
             ),
         ):
-            result = query_ollama(
-                "model", "image", "http://localhost/api/generate", "prompt", 10
-            )
+            result = query_ollama("model", "image", "http://localhost/api/generate", "prompt", 10)
         self.assertEqual(result, '{"valid":true}')
 
     def test_finds_socket_transferred_to_response(self) -> None:

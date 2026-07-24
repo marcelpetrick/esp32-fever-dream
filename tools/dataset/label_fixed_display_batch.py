@@ -60,9 +60,7 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     parser.add_argument("--output", type=Path, help="Labels CSV output path.")
     parser.add_argument("--report-json", type=Path, help="Quality report JSON path.")
     parser.add_argument("--report-md", type=Path, help="Quality report Markdown path.")
-    parser.add_argument(
-        "--contact-sheet", type=Path, help="Bottom-strip contact sheet path."
-    )
+    parser.add_argument("--contact-sheet", type=Path, help="Bottom-strip contact sheet path.")
     parser.add_argument(
         "--method-note",
         default="human_confirmed_fixed_layout_baseline",
@@ -118,9 +116,7 @@ def confidence_from_metrics(metrics: RoiMetrics) -> float:
     return max(
         0.0,
         min(
-            (0.45 * contrast_score)
-            + (0.45 * sharpness_score)
-            + (0.10 * brightness_score),
+            (0.45 * contrast_score) + (0.45 * sharpness_score) + (0.10 * brightness_score),
             1.0,
         ),
     )
@@ -134,9 +130,7 @@ def split_for_index(index: int) -> str:
     return "train"
 
 
-def label_rows(
-    args: argparse.Namespace, manifest_rows: list[dict[str, str]]
-) -> list[SampleLabel]:
+def label_rows(args: argparse.Namespace, manifest_rows: list[dict[str, str]]) -> list[SampleLabel]:
     labels: list[SampleLabel] = []
     temp_text = f"{args.temperature_c:g}{args.temperature_unit}"
     valid = args.temperature_unit == "C"
@@ -238,9 +232,7 @@ def percentile(values: list[float], p: float) -> float:
     return ordered[index]
 
 
-def summarize(
-    labels: list[SampleLabel], source_dir: Path, labels_path: Path
-) -> dict[str, object]:
+def summarize(labels: list[SampleLabel], source_dir: Path, labels_path: Path) -> dict[str, object]:
     confidences = [label.confidence for label in labels]
     contrasts = [label.roi_quality.contrast for label in labels]
     sharpness = [label.roi_quality.sharpness for label in labels]
@@ -262,9 +254,7 @@ def summarize(
             "temperature_c": labels[0].temperature_c if labels else None,
             "humidity_percent": labels[0].humidity_percent if labels else None,
             "minimum_confidence": min(confidences) if confidences else None,
-            "median_confidence": (
-                statistics.median(confidences) if confidences else None
-            ),
+            "median_confidence": (statistics.median(confidences) if confidences else None),
             "p10_confidence": percentile(confidences, 0.10) if confidences else None,
             "median_roi_contrast": statistics.median(contrasts) if contrasts else None,
             "median_roi_sharpness": statistics.median(sharpness) if sharpness else None,
@@ -313,24 +303,16 @@ def render_report(report: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
-def write_report(
-    report: dict[str, object], json_path: Path, markdown_path: Path
-) -> None:
+def write_report(report: dict[str, object], json_path: Path, markdown_path: Path) -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(
-        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    json_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     markdown_path.write_text(render_report(report), encoding="utf-8")
 
 
 def write_contact_sheet(dataset_dir: Path, output: Path) -> None:
     images = sorted(dataset_dir.glob("capture_*.jpg"))
-    selected = (
-        images[:12]
-        if len(images) <= 12
-        else [images[round(i * (len(images) - 1) / 11)] for i in range(12)]
-    )
+    selected = images[:12] if len(images) <= 12 else [images[round(i * (len(images) - 1) / 11)] for i in range(12)]
     cells: list[Image.Image] = []
     for image_path in selected:
         image = Image.open(image_path).convert("RGB")
@@ -354,9 +336,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     labels_path = args.output or dataset_dir / "labels_environment.csv"
     report_json = args.report_json or dataset_dir / "fixed_display_report.json"
     report_md = args.report_md or dataset_dir / "fixed_display_report.md"
-    contact_sheet = (
-        args.contact_sheet or dataset_dir / "bottom_strip_contact_labeled.jpg"
-    )
+    contact_sheet = args.contact_sheet or dataset_dir / "bottom_strip_contact_labeled.jpg"
 
     manifest_rows = read_manifest(dataset_dir)
     labels = label_rows(args, manifest_rows)

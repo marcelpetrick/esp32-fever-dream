@@ -53,11 +53,7 @@ def parse_int(value: str) -> int | None:
 
 def compare(left: dict[str, dict[str, str]], right: dict[str, dict[str, str]]) -> dict[str, object]:
     common_ids = sorted(set(left) & set(right))
-    both_accepted = [
-        sample_id
-        for sample_id in common_ids
-        if accepted(left[sample_id]) and accepted(right[sample_id])
-    ]
+    both_accepted = [sample_id for sample_id in common_ids if accepted(left[sample_id]) and accepted(right[sample_id])]
     field_reports: dict[str, dict[str, object]] = {}
     for field in VALUE_FIELDS:
         exact = 0
@@ -97,7 +93,9 @@ def compare(left: dict[str, dict[str, str]], right: dict[str, dict[str, str]]) -
     }
 
 
-def write_report(report: dict[str, object], output_json: Path, output_md: Path, left_name: str, right_name: str) -> None:
+def write_report(
+    report: dict[str, object], output_json: Path, output_md: Path, left_name: str, right_name: str
+) -> None:
     output_json.parent.mkdir(parents=True, exist_ok=True)
     output_json.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

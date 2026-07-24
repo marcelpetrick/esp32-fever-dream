@@ -45,9 +45,7 @@ def count_images(batch: Path) -> int:
 
 
 def counts(rows: list[dict[str, str]], field: str) -> dict[str, int]:
-    return dict(
-        Counter((row.get(field, "").strip() or "<blank>") for row in rows).most_common()
-    )
+    return dict(Counter((row.get(field, "").strip() or "<blank>") for row in rows).most_common())
 
 
 def truthy(value: str) -> bool:
@@ -107,12 +105,7 @@ def summarize_batch(batch: Path) -> dict[str, object]:
     if labels_path.exists():
         fields, rows = read_rows(labels_path)
         reviewer_kinds = Counter(reviewer_kind(row.get("reviewer", "")) for row in rows)
-        trusted_like = [
-            row
-            for row in rows
-            if truthy(row.get("valid", "true"))
-            and trusted_like_label(row)
-        ]
+        trusted_like = [row for row in rows if truthy(row.get("valid", "true")) and trusted_like_label(row)]
         summary["labels"] = {
             "rows": len(rows),
             "valid_rows": sum(1 for row in rows if truthy(row.get("valid", "true"))),
@@ -126,11 +119,7 @@ def summarize_batch(batch: Path) -> dict[str, object]:
 
 
 def summarize(capture_root: Path) -> dict[str, object]:
-    batches = [
-        summarize_batch(path)
-        for path in sorted(capture_root.iterdir())
-        if path.is_dir()
-    ]
+    batches = [summarize_batch(path) for path in sorted(capture_root.iterdir()) if path.is_dir()]
     totals = {
         "images": sum(int(batch["images"]) for batch in batches),
         "label_rows": sum(int(batch.get("labels", {}).get("rows", 0)) for batch in batches),
@@ -140,8 +129,7 @@ def summarize(capture_root: Path) -> dict[str, object]:
         "proposal_rows": sum(int(batch.get("proposals", {}).get("rows", 0)) for batch in batches),
         "review_queue_rows": sum(int(batch.get("review_queue", {}).get("rows", 0)) for batch in batches),
         "pending_review_rows": sum(
-            int(batch.get("review_queue", {}).get("decision_counts", {}).get("pending", 0))
-            for batch in batches
+            int(batch.get("review_queue", {}).get("decision_counts", {}).get("pending", 0)) for batch in batches
         ),
     }
     return {"capture_root": str(capture_root), "totals": totals, "batches": batches}

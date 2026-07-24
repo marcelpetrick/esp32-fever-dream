@@ -137,7 +137,7 @@ def apply_policy(label_paths: list[Path], policy_path: Path, output_path: Path) 
             offset = 0
             for split, frac in parts:
                 count = round(n * frac)
-                for row in rows[offset: offset + count]:
+                for row in rows[offset : offset + count]:
                     row["split"] = split
                     all_rows.append(row)
                 offset += count
