@@ -6,29 +6,29 @@
 # Python: black for formatting and ruff for lint autofixes, both pinned to 120
 #         columns (see pyproject.toml).
 #
+# All tools are version-pinned in scripts/tool_versions.sh and are mandatory: a
+# missing or mismatched tool fails instead of being silently skipped.
+#
 # Run this before committing. scripts/check_all.sh runs the same tools in
 # --check mode and fails the pipeline when anything is unformatted.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# shellcheck source=scripts/tool_versions.sh
+source "${ROOT_DIR}/scripts/tool_versions.sh"
+
+VENV_DIR="$(fever_tools_venv "${ROOT_DIR}")"
+
 printf '[INFO] formatting C/C++\n'
 "${ROOT_DIR}/scripts/format_cpp.sh"
 
-if [[ -d "${ROOT_DIR}/tools" ]]; then
-    if command -v ruff >/dev/null 2>&1; then
-        printf '[INFO] applying ruff autofixes\n'
-        ruff check --fix "${ROOT_DIR}/tools"
-    else
-        printf '[WARN] ruff not found, skipping Python lint autofixes\n' >&2
-    fi
+fever_require_python_tools "${ROOT_DIR}"
 
-    if command -v black >/dev/null 2>&1; then
-        printf '[INFO] formatting Python\n'
-        black "${ROOT_DIR}/tools"
-    else
-        printf '[WARN] black not found, skipping Python formatting\n' >&2
-    fi
-fi
+printf '[INFO] applying ruff autofixes\n'
+"${VENV_DIR}/bin/ruff" check --fix "${ROOT_DIR}/tools"
+
+printf '[INFO] formatting Python\n'
+"${VENV_DIR}/bin/black" "${ROOT_DIR}/tools"
 
 printf '[INFO] formatting complete\n'

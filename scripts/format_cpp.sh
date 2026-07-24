@@ -2,11 +2,17 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# shellcheck source=scripts/tool_versions.sh
+source "${ROOT_DIR}/scripts/tool_versions.sh"
+
 CHECK=false
 
 if [[ "${1:-}" == "--check" ]]; then
     CHECK=true
 fi
+
+fever_require_tool clang-format "${FEVER_CLANG_FORMAT_VERSION}"
 
 # Generated artifacts (model byte arrays) are excluded: reformatting them produces
 # thousands of lines of churn whenever the local clang-format version changes.
