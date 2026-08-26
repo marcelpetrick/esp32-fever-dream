@@ -6,9 +6,9 @@ Local ESP32-CAM air quality sensor readout firmware. The current prototype captu
 
 **Author: Marcel Petrick <mail@marcelpetrick.it>**
 
-**Note: projected is generated with AI.**
-
 **License: GPLv3 or later. See `LICENSE`.**
+
+**Note: project is generated with AI.**
 
 ### set-up idealized
 ![](media/esp32cam_c0_sensor.png)
